@@ -3,7 +3,9 @@
 export const SAVE_KEY='tamahagane-kobo.save.v1';
 export const MAX_SWORDS=200;
 // collection: the 刀帳 — real swords forged so far, {name: {first, count}} (added for #4; older saves start with none)
-export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},settings:{sound:true}});
+// money: 文 from selling swords, spent on steel (#7; older saves start with the same 3,000)
+export const START_MONEY=3000;
+export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},money:START_MONEY,settings:{sound:true}});
 
 export function parseSave(text){
  if(!text)return emptySave();
@@ -25,6 +27,12 @@ export function addSword(save,sword,at=Date.now()){
  const entry={no:forged,at,...sword};
  const collection={...(save.collection||{})};
  if(sword.meito){const was=collection[sword.meito];collection[sword.meito]=was?{...was,count:was.count+1}:{first:at,count:1,no:forged};}
- return {...save,forged,collection,swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
+ // the finished sword is sold at once; its steel was paid for when the forging started
+ return {...save,forged,collection,money:(save.money??START_MONEY)+(sword.price||0),swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
+}
+export function pay(save,cost){
+ const money=save.money??START_MONEY;
+ if(cost>money)return null;
+ return {...save,money:money-cost};
 }
 export const bestSword=save=>save.swords.reduce((best,s)=>!best||s.overall>best.overall?s:best,null);

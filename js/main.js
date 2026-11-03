@@ -1,6 +1,6 @@
 // The app shell: screens (title, form, materials, the forging steps, result, 刀帳, records), the canvas loop, input and the save.
 import * as R from './rules.js';
-import {loadSave,writeSave,addSword,bestSword} from './save.js';
+import {loadSave,writeSave,addSword,bestSword,pay,START_MONEY} from './save.js';
 import * as S from './sound.js';
 import * as D from './draw.js';
 import {MEITO} from './meito.js';
@@ -17,7 +17,8 @@ let scene=null,timers=[],W=360,H=480,last=performance.now(),runTime=0;
 
 const FORGE=[['heat','熱する'],['hammer','叩く'],['hamon','焼き入れ'],['quench','焼き入れ'],['polish','研ぐ']];
 const STEP_NAMES=['素材','熱する','叩く','焼き入れ','研ぐ'];
-const MAT_COLOR={jou:'#c9d3dc',nami:'#9aa3ab',oroshi:'#8a6a55',houcho:'#5b6470'};
+const MAT_COLOR={hakusai:'#7d6a5a',chikusa:'#e2e8ee',jou:'#c9d3dc',kera:'#7a6f66',nami:'#9aa3ab',nanban:'#7f8ea6',kugi:'#6b4e3d',inseki:'#4a4d57',oroshi:'#8a6a55',houcho:'#5b6470',zuku:'#3d3f45'};
+const money=()=>save.money??START_MONEY;
 
 const api={
  run:null,
@@ -52,10 +53,17 @@ function setFace(mood){
 }
 function matIcon(id,size=40){
  const src=artSrc('mat-'+id);if(src)return `<img class="mat-img" src="${src}" alt="" width="${size}" height="${size}">`;
- const c=MAT_COLOR[id];
- return `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true"><path d="M6 26 12 10 26 6 35 16 32 31 17 35z" fill="${c}"/><path d="M12 10 26 6 35 16 22 19z" fill="rgba(255,255,255,0.28)"/><path d="M22 19 17 35 6 26z" fill="rgba(0,0,0,0.22)"/>${id==='jou'?'<path d="M28 9l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5z" fill="#fff"/>':''}</svg>`;
+ const c=MAT_COLOR[id]||'#888',lump=`<path d="M6 26 12 10 26 6 35 16 32 31 17 35z" fill="${c}"/><path d="M12 10 26 6 35 16 22 19z" fill="rgba(255,255,255,0.28)"/><path d="M22 19 17 35 6 26z" fill="rgba(0,0,0,0.22)"/>`;
+ const body={
+  hakusai:`<path d="M5 14h30l-5 6 5 6H5l5-6z" fill="${c}"/><path d="M5 14h30l-5 6H10z" fill="rgba(255,255,255,0.2)"/>`,
+  kugi:[8,18,28].map((x,i)=>`<rect x="${x}" y="${6+i*2}" width="4" height="${26-i*3}" rx="1" fill="${c}"/><rect x="${x-2}" y="${5+i*2}" width="8" height="3" rx="1" fill="#4b362a"/>`).join(''),
+  inseki:lump+'<path d="M12 14l14 14M16 10l14 14M10 20l10 10" stroke="rgba(190,200,215,.55)" stroke-width="1.2"/>',
+  nanban:`<rect x="5" y="15" width="30" height="11" rx="2" fill="${c}"/><rect x="5" y="15" width="30" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>`,
+  chikusa:lump+'<path d="M28 9l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5z" fill="#fff"/>',
+  jou:lump+'<path d="M28 9l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5z" fill="#fff"/>'
+ }[id]||lump;
+ return `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true">${body}</svg>`;
 }
-const pips=(n,label)=>`<span class="pips" title="${label}">${label}<b>${'●'.repeat(n)}<i>${'●'.repeat(5-n)}</i></b></span>`;
 const yen=n=>n.toLocaleString('ja-JP');
 const starStr=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
@@ -106,6 +114,7 @@ function showTitle(){
  el.panel.innerHTML=`<div class="title">
   <div class="title-name"><h1>玉鋼工房</h1><span class="seal">工房</span></div>
   <p class="title-sub">たまはがね こうぼう</p>
+  <p class="title-money">所持金 ${yen(money())}文</p>
   <div class="menu"><button class="btn primary big" data-go="forge">刀を打つ</button>
   <div class="menu-row"><button class="btn" data-go="zukan">刀帳（${found()}/${MEITO.length}）</button>
   <button class="btn" data-go="records" ${n?'':'disabled'}>打った刀（${n}振）</button></div></div>
@@ -115,7 +124,7 @@ function showTitle(){
  el.panel.querySelector('[data-go=records]').onclick=()=>{S.tick();showRecords();};
 }
 
-let pick={form:null,kawa:null,shin:null,active:'kawa'};
+let pick={form:null,structure:'kobuse',kawa:null,shin:null,ha:null,mune:null,active:'kawa'};
 function showForms(){
  mode('forms');steps(0);el.meter.hidden=true;
  setScene(new Ambient(api,'forms','title',{dim:0.78}));
@@ -129,41 +138,56 @@ function showForms(){
 function showMaterials(){
  if(!pick.form)return showForms();
  mode('materials');steps(0);el.meter.hidden=true;
- setScene(new Ambient(api,'materials','title',{dim:0.78}));
- api.controls([{label:'形を選び直す',onClick:showForms},{label:'これで打つ',primary:true,disabled:true,onClick:()=>{if(pick.kawa&&pick.shin)startForging();}}]);
+ setScene(new Ambient(api,'materials','title',{dim:0.8}));
+ api.controls([{label:'形を選び直す',onClick:showForms},{label:'これで打つ',primary:true,disabled:true,onClick:startForging}]);
  renderMaterials();
 }
+const yenOr=n=>n?`${yen(n)}文`:'無料';
 function renderMaterials(){
- const c=pick.kawa&&pick.shin?R.combine(pick.kawa,pick.shin):null;
- const slot=(k,label,sub)=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${label}</small><b>${m?m.name:'えらぶ'}</b><em>${sub}</em></button>`;};
- const cross=`<svg class="cross" viewBox="0 0 40 100" aria-hidden="true"><path d="M20 4 30 18 26 86 20 97 14 86 10 18z" fill="${pick.kawa?MAT_COLOR[pick.kawa]:'#3a302a'}" stroke="#d4aa52" stroke-width="1"/><path d="M20 14 25.5 23 23 60 20 66 17 60 14.5 23z" fill="${pick.shin?MAT_COLOR[pick.shin]:'#2a221d'}" stroke="rgba(0,0,0,.4)"/></svg>`;
+ const st=R.structure(pick.structure);
+ if(!st.slots.includes(pick.active))pick.active=st.slots.find(k=>!pick[k])||st.slots[0];
+ const ready=R.buildReady(pick),c=ready?R.combine(pick):null,cost=R.buildCost(pick),enough=cost<=money();
+ const used=st.slots.filter(k=>pick[k]);
  el.panel.innerHTML=`<div class="mats-screen">
-  <div class="slots">${slot('kawa','皮鉄（かわがね）','外側・刃になる')}${cross}${slot('shin','心鉄（しんがね）','内側・折れにくさ')}</div>
+  <div class="structs">${R.STRUCTURES.map(t=>`<button class="chip-btn ${t.id===st.id?'on':''}" data-struct="${t.id}">${t.name}</button>`).join('')}</div>
+  <div class="slots">${st.slots.map(k=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${R.SLOTS[k].name}</small><b>${m?m.name:'えらぶ'}</b><em>${R.SLOTS[k].role}</em></button>`;}).join('')}</div>
   <p class="era-line">${eraLine()}</p>
-  <div class="mats">${R.MATERIALS.map(m=>`<button class="mat ${pick.kawa===m.id?'is-kawa':''} ${pick.shin===m.id?'is-shin':''}" data-mat="${m.id}">
-   ${matIcon(m.id)}<span class="mat-text"><b>${m.name}</b><small>${m.note}</small><span class="mat-pips">${pips(m.hard,'硬さ')}${pips(m.tough,'粘り')}${pips(m.beauty,'美しさ')}</span></span></button>`).join('')}</div>
+  <div class="mats">${R.MATERIALS.map(m=>{const marks=used.filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');
+   return `<button class="mat ${marks?'picked':''}" data-mat="${m.id}"><em class="era-tag ${m.era?'':'none'}">${m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}</small></span></button>`;}).join('')}</div>
+  <p class="cost-line ${enough?'':'short'}">材料代 <b>${yen(cost)}</b>文　所持金 <b>${yen(money())}</b>文</p>
  </div>`;
+ for(const b of el.panel.querySelectorAll('[data-struct]'))b.onclick=()=>{S.tick();pick.structure=b.dataset.struct;renderMaterials();};
  for(const b of el.panel.querySelectorAll('[data-slot]'))b.onclick=()=>{S.tick();pick.active=b.dataset.slot;renderMaterials();};
- for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();pick[pick.active]=b.dataset.mat;if(pick.active==='kawa'&&!pick.shin)pick.active='shin';renderMaterials();};
- el.controls.querySelector('.btn.primary').disabled=!c;
- if(!c)api.say(pick.active==='kawa'?'まず<b>皮鉄</b>をえらべ。外側を包んで、刃になる鉄だ。':'次は<b>心鉄</b>だ。内側の芯で、折れにくさを決める。');
- else{
-  const d=c.kawa.hard-c.shin.hard;
-  api.say({kobuse:d>=3?'いい組み合わせだ。硬い皮が刃になり、やわらかい芯が折れを防ぐ。':'甲伏せだな。悪くない組み合わせだ。',maru:'同じ鉄だけの丸鍛えか。素直だが、良さが片寄るぞ。',gyaku:'おいおい、あべこべだ。皮がやわらかいと刃がなまくらになる。'}[c.kind]+(c.kawa.id==='jou'?' 上玉鋼は熱する色にきびしいぞ。':''),c.kind==='kobuse'&&d>=3?'happy':'normal');
- }
+ for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();pick[pick.active]=b.dataset.mat;pick.last=b.dataset.mat;
+  const next=st.slots.find(k=>!pick[k]);if(next)pick.active=next;renderMaterials();};
+ const go=el.controls.querySelector('.btn.primary');go.disabled=!(ready&&enough);go.textContent=cost?`これで打つ（${yen(cost)}文）`:'これで打つ';
+ api.say(materialsTalk(st,c,cost,enough),c&&c.kind!=='gyaku'&&c.era&&enough?'happy':'normal');
+}
+function materialsTalk(st,c,cost,enough){
+ const last=pick.last?R.material(pick.last):null;
+ const about=last?`<b>${last.name}</b>：${last.note}。硬さ${last.hard}・粘り${last.tough}・美しさ${last.beauty}。`:'';
+ if(!c)return about+(pick.active?`次は<b>${R.SLOTS[pick.active].name}</b>だ（${R.SLOTS[pick.active].role}）。`:'');
+ if(!enough)return `材料代が足りない。無料の<b>卸し鉄・包丁鉄</b>なら、いつでも打てるぞ。`;
+ if(c.kind==='gyaku')return 'おいおい、あべこべだ。皮がやわらかいと刃がなまくらになる。名刀にはならないぞ。';
+ if(!c.era)return `${c.kawa.name}の皮鉄には時代の札がない。打てるが、名刀にはならないぞ。`;
+ if(c.kawa.id==='inseki')return `隕鉄はやわらかい。榎本武揚の流星刀は、<b>玉鋼をまぜて</b>打ったそうだ。`;
+ return `${c.kawa.name}の皮鉄で、<b>${R.ERAS[c.era].long}</b>の地鉄になる。${st.id==='shiho'?'四方詰めは手間だが、いい刀になりやすい。':st.id==='sanmai'?'刃鉄が切れ味を決めるぞ。':''}`;
 }
 
 function eraLine(){
  const F=R.form(pick.form).name;
- if(!(pick.kawa&&pick.shin))return `打つ形：<b>${F}</b>`;
- const era=R.eraOf(pick.kawa,pick.shin);
- if(!era)return `打つ形：<b>${F}</b>　地鉄：あべこべ（名刀にならない）`;
+ if(!R.buildReady(pick))return `打つ形：<b>${F}</b>　${R.structure(pick.structure).note}`;
+ const c=R.combine(pick),era=c.era;
+ if(!era)return `打つ形：<b>${F}</b>　地鉄：${c.kind==='gyaku'?'あべこべ':'時代なし'}（名刀にならない）`;
  const all=MEITO.filter(m=>m.t===pick.form&&m.e===era),got=all.filter(m=>save.collection[m.n]).length;
  return `打つ形：<b>${F}</b>　地鉄：<b>${R.ERAS[era].long}</b>　この名刀 ${got}/${all.length}`;
 }
 let forgeIndex=-1;
 function startForging(){
- api.run={form:pick.form,kawa:pick.kawa,shin:pick.shin};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
+ const build={structure:pick.structure,...Object.fromEntries(R.structure(pick.structure).slots.map(k=>[k,pick[k]]))};
+ const paid=pay(save,R.buildCost(build));if(!paid)return;
+ save=paid;writeSave(window.localStorage,save);
+ api.run={form:pick.form,...build};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
 }
 function forgeNext(){
  forgeIndex++;
@@ -185,11 +209,11 @@ function showResult(){
   <div class="sword-space"></div>
   ${m?`<p class="meito-badge">${isNew?'<b>NEW</b>':''}名刀を打ち上げた！</p>`:''}
   <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
-  <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}　<b class="des">${m.d}</b>`:`${R.HAMON_NAME[sword.hamon]}・${{kobuse:'甲伏せ',maru:'丸鍛え',gyaku:'あべこべ'}[sword.combo]}（${R.material(sword.kawa).name}＋${R.material(sword.shin).name}）`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
+  <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}　<b class="des">${m.d}</b>`:`${R.HAMON_NAME[sword.hamon]}・${{kobuse:'甲伏せ',maru:'丸鍛え',sanmai:'本三枚',shiho:'四方詰め',gyaku:'あべこべ'}[sword.combo]}（${[sword.kawa,sword.shin,sword.ha,sword.mune].filter(Boolean).map(id=>R.material(id).name).join('＋')}）`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
   ${m?`<p class="desc">${m.x}</p>`:`<p class="hint">${sword.hint}</p>`}
   <div class="stars s${sword.stars}">${starStr(sword.stars)}<span>${sword.rank}</span><em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
-  <p class="price">売値 <b>${yen(sword.price)}</b> 文</p>
+  <p class="price">売値 <b>${yen(sword.price)}</b> 文<small>所持金 ${yen(money())}文</small></p>
   <div class="chips">${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
@@ -237,7 +261,7 @@ function showMeito(name){
    <p class="mfound">はじめて打った日：${new Date(c.first).toLocaleDateString('ja-JP')}　打った数：${c.count}振</p>`
   :`<h3>？？？<small>まだ打っていない</small></h3>
    <p class="mtags">${F}・${R.ERAS[m.e].long}</p>
-   <ul class="mhint"><li>形：<b>${F}</b></li><li>素材：<b>${R.comboText(m.e)}</b></li><li>刃文：<b>${R.HAMON[m.h].name}</b>（${R.HAMON[m.h].how}）</li><li>成功：<b>${R.NEED[m.r]}/${R.SUCCESS_MAX}以上</b></li></ul>`}
+   <ul class="mhint"><li>形：<b>${F}</b></li><li>素材：<b>${R.comboText(m.e,m.mat)}</b></li><li>刃文：<b>${R.HAMON[m.h].name}</b>（${R.HAMON[m.h].how}）</li><li>成功：<b>${R.NEED[m.r]}/${R.SUCCESS_MAX}以上</b></li></ul>`}
   </div><button class="btn primary" data-close>とじる</button></div>`;
  closable(box);el.panel.append(box);
 }

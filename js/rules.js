@@ -1,31 +1,60 @@
 // The rules of 玉鋼工房 as pure functions: materials and their combination, how each forging step is scored,
 // and the finished sword (stats, stars, name, price). No DOM here; the screens only call these, and tests import them.
 
+// 素材 (#7, owner D18〜D21). era: the 地鉄 era it gives when used as 皮鉄 (a game rule, not a record of real steel);
+// null = no era (no 名刀 from it as 皮鉄). price: 文 per use, paid when the forging starts.
 export const MATERIALS=[
- {id:'jou',name:'上玉鋼',kana:'じょうたまはがね',hard:5,tough:1,beauty:5,note:'硬くて美しい。熱する色にきびしい'},
- {id:'nami',name:'並玉鋼',kana:'なみたまはがね',hard:4,tough:2,beauty:3,note:'扱いやすい玉鋼'},
- {id:'oroshi',name:'卸し鉄',kana:'おろしがね',hard:3,tough:3,beauty:2,note:'古い鉄を卸した、ほどほどの鉄'},
- {id:'houcho',name:'包丁鉄',kana:'ほうちょうてつ',hard:1,tough:5,beauty:1,note:'やわらかく、よくねばる'}
+ {id:'hakusai',name:'舶載鉄',kana:'はくさいてつ',hard:3,tough:3,beauty:2,era:'joko',price:3000,heat:60,note:'大陸から渡ってきた鉄の延べ板'},
+ {id:'chikusa',name:'千種鋼',kana:'ちくさはがね',hard:5,tough:2,beauty:5,era:'heian',price:2500,heat:40,note:'播磨・千種の、古くから名高い鋼'},
+ {id:'jou',name:'上玉鋼',kana:'じょうたまはがね',hard:5,tough:1,beauty:5,era:'kamakura',price:1500,heat:45,note:'硬くて美しい。熱する色にきびしい'},
+ {id:'kera',name:'鉧',kana:'けら',hard:4,tough:2,beauty:3,era:'nanbokucho',price:800,heat:70,note:'たたらで吹いたままの、荒い鋼の塊'},
+ {id:'nami',name:'並玉鋼',kana:'なみたまはがね',hard:4,tough:2,beauty:3,era:'muromachi',price:300,heat:60,note:'扱いやすい玉鋼'},
+ {id:'nanban',name:'南蛮鉄',kana:'なんばんてつ',hard:4,tough:3,beauty:3,era:'edo',price:2000,heat:55,note:'江戸の初め、越前康継が初めて刀に使った輸入の鉄'},
+ {id:'kugi',name:'古釘',kana:'ふるくぎ',hard:3,tough:3,beauty:3,era:'kindai',price:500,heat:65,note:'古い寺の釘。幕末の刀工は古い鉄を卸して使った'},
+ {id:'inseki',name:'隕鉄',kana:'いんてつ',hard:2,tough:4,beauty:5,era:'kindai',price:30000,heat:50,note:'隕石の鉄。やわらかく、扱いがむずかしい'},
+ {id:'oroshi',name:'卸し鉄',kana:'おろしがね',hard:3,tough:3,beauty:2,era:null,price:0,heat:70,note:'古い鉄を卸した、ほどほどの鉄。無料'},
+ {id:'houcho',name:'包丁鉄',kana:'ほうちょうてつ',hard:1,tough:5,beauty:1,era:null,price:0,heat:80,note:'やわらかく、よくねばる。芯に向く。無料'},
+ {id:'zuku',name:'銑',kana:'ずく',hard:5,tough:0,beauty:1,era:null,price:100,heat:50,note:'たたらの銑鉄。とても硬いが、もろい'}
 ];
 export const material=id=>{const m=MATERIALS.find(m=>m.id===id);if(!m)throw Error('unknown material '+id);return m;};
+// 造り込み: which pieces of steel go into the blade
+export const SLOTS={kawa:{name:'皮鉄',kana:'かわがね',role:'外側。地鉄の時代と美しさ'},shin:{name:'心鉄',kana:'しんがね',role:'芯。粘り'},ha:{name:'刃鉄',kana:'はがね',role:'刃。切れ味'},mune:{name:'棟鉄',kana:'むねがね',role:'背。粘りを足す'}};
+export const STRUCTURES=[
+ {id:'maru',name:'丸鍛え',slots:['kawa'],bonus:0,note:'1つの鉄だけで打つ'},
+ {id:'kobuse',name:'甲伏せ',slots:['kawa','shin'],bonus:0,note:'硬い皮鉄でやわらかい心鉄を包む'},
+ {id:'sanmai',name:'本三枚',slots:['kawa','shin','ha'],bonus:2,note:'皮鉄・心鉄に、刃鉄を足す'},
+ {id:'shiho',name:'四方詰め',slots:['kawa','shin','ha','mune'],bonus:4,note:'刃鉄・棟鉄・皮鉄で心鉄を四方から包む'}
+];
+export const structure=id=>STRUCTURES.find(s=>s.id===id)||STRUCTURES[1];
+// the steels a build uses, in its 造り込み's slots
+export const buildMats=b=>structure(b.structure).slots.map(k=>b[k]).filter(Boolean);
+export const buildCost=b=>buildMats(b).reduce((s,id)=>s+material(id).price,0);
+export const buildReady=b=>structure(b.structure).slots.every(k=>b[k]);
 
 const clamp=(v,lo=0,hi=1)=>Math.max(lo,Math.min(hi,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 
-// 皮鉄 (outer, becomes the edge) and 心鉄 (inner core). Hard outside and soft inside is the classic 甲伏せ.
-export function combine(kawaId,shinId){
- const kawa=material(kawaId),shin=material(shinId),diff=kawa.hard-shin.hard;
- let kind,bonus;
- if(diff>0){kind='kobuse';const b=Math.min(8,2*diff);bonus={sharp:b,tough:b,beauty:b};}
- else if(diff===0){kind='maru';bonus={sharp:0,tough:0,beauty:0};}
- else{kind='gyaku';bonus={sharp:-10,tough:-5,beauty:0};}
- return {kawa,shin,kind,label:COMBO_LABEL[kind],bonus,
-  base:{sharp:kawa.hard*8,tough:shin.tough*8,beauty:kawa.beauty*8},
-  heatHalf:HEAT_HALF[kawa.id]};
+// The pieces together: the edge's steel sets the 切れ味, the core the 粘り, the skin the 美しさ (and the era).
+// Hard outside and soft inside is the classic 甲伏せ; a soft skin over a hard core (あべこべ) is penalised and makes no 名刀.
+// combine(kawaId, shinId) is the older two-piece form.
+export function combine(build,shinId){
+ if(typeof build==='string')build={structure:shinId===build?'maru':'kobuse',kawa:build,shin:shinId===build?undefined:shinId};
+ const st=structure(build.structure),get=k=>st.slots.includes(k)&&build[k]?material(build[k]):null;
+ const kawa=get('kawa'),shin=get('shin'),ha=get('ha'),mune=get('mune');
+ const bonus={sharp:st.bonus,tough:st.bonus,beauty:st.bonus};
+ let kind=st.id;
+ if(shin){
+  const diff=kawa.hard-shin.hard;
+  if(diff>0){const b=Math.min(8,2*diff);bonus.sharp+=b;bonus.tough+=b;bonus.beauty+=b;}
+  else if(diff<0){kind='gyaku';bonus.sharp-=10;bonus.tough-=5;}
+ }
+ if(ha&&ha.hard>=kawa.hard)bonus.sharp+=4;
+ if(mune&&mune.tough>=3)bonus.tough+=4;
+ const base={sharp:(ha||kawa).hard*8,tough:(shin||kawa).tough*8+(mune?mune.tough*2:0),beauty:kawa.beauty*8};
+ return {kawa,shin,ha,mune,structure:st.id,kind,label:COMBO_LABEL[kind],bonus,base,heatHalf:kawa.heat,
+  era:kind==='gyaku'?null:kawa.era,mats:buildMats({...build,structure:st.id}),cost:buildCost({...build,structure:st.id})};
 }
-export const COMBO_LABEL={kobuse:'甲伏せ（硬い皮でやわらかい芯を包む）',maru:'丸鍛え（同じ鉄だけで打つ）',gyaku:'あべこべ（やわらかい皮で硬い芯を包む）'};
-// The harder and finer the outer steel, the narrower the right colour when heating.
-const HEAT_HALF={jou:45,nami:60,oroshi:70,houcho:80};
+export const COMBO_LABEL={maru:'丸鍛え（1つの鉄だけで打つ）',kobuse:'甲伏せ（硬い皮でやわらかい芯を包む）',sanmai:'本三枚（皮鉄・心鉄・刃鉄）',shiho:'四方詰め（刃鉄・棟鉄・皮鉄で芯を包む）',gyaku:'あべこべ（やわらかい皮で硬い芯を包む）'};
 
 // ---- 熱する: hold to blow the bellows, let go at the right colour.
 export const HEAT={start:650,center:1100,burn:1280,tooEarly:900};
@@ -162,7 +191,7 @@ export function canonicalHamon(type,seed=1){const f=canonicalHamonFn(type,seed);
 // ---- 焼き入れ: the blade heats by itself; tap at the right colour to plunge it into the water.
 export const QUENCH={start:600,center:800,crack:900,auto:960};
 export const quenchRate=temp=>80+(temp-600)*0.6;
-export const quenchHalf=kawaId=>kawaId==='jou'?35:45;
+export const quenchHalf=kawaId=>material(kawaId).hard>=5?35:45;
 export function quenchScore(temp,half){
  if(temp>=QUENCH.crack)return {score:0.1,grade:'crack',label:'焼き割れ',crack:true};
  const d=Math.abs(temp-QUENCH.center);
@@ -191,17 +220,17 @@ export const FORMS=[
 ];
 export const form=id=>FORMS.find(f=>f.id===id)||FORMS[1];
 export const ERAS={
- joko:{name:'上古',long:'古墳〜奈良時代'},heian:{name:'平安',long:'平安時代'},kamakura:{name:'鎌倉',long:'鎌倉時代'},
- nanbokucho:{name:'南北朝',long:'南北朝時代'},muromachi:{name:'室町',long:'室町時代'},edo:{name:'江戸',long:'安土桃山〜江戸時代'},kindai:{name:'幕末以降',long:'幕末以降'}
+ joko:{name:'上古',short:'上古',long:'古墳〜奈良時代'},heian:{name:'平安',short:'平安',long:'平安時代'},kamakura:{name:'鎌倉',short:'鎌倉',long:'鎌倉時代'},
+ nanbokucho:{name:'南北朝',short:'南北朝',long:'南北朝時代'},muromachi:{name:'室町',short:'室町',long:'室町時代'},edo:{name:'江戸',short:'江戸',long:'安土桃山〜江戸時代'},kindai:{name:'幕末以降',short:'幕末',long:'幕末以降'}
 };
-// The game's rule (not a record of real steel): which 地鉄 era a combination of 皮鉄 and 心鉄 makes.
-// Same steel both sides (丸鍛え) is the oldest way; the six 甲伏せ combinations run from 平安 to 幕末; あべこべ makes none.
-export const ERA_COMBO={heian:['jou','houcho'],kamakura:['jou','oroshi'],nanbokucho:['jou','nami'],muromachi:['nami','houcho'],edo:['nami','oroshi'],kindai:['oroshi','houcho']};
-export function eraOf(kawaId,shinId){
- if(kawaId===shinId)return 'joko';
- return Object.keys(ERA_COMBO).find(e=>ERA_COMBO[e][0]===kawaId&&ERA_COMBO[e][1]===shinId)||null;
+// The game's rule (not a record of real steel): the 皮鉄 decides the 地鉄 era (owner D21).
+export const eraOf=(kawaId,shinId)=>combine({structure:shinId?'kobuse':'maru',kawa:kawaId,shin:shinId}).era;
+export const eraMaterials=era=>MATERIALS.filter(m=>m.era===era&&m.id!=='inseki');
+// how to get a sword's steel, in words: the era's skin steel, or the special pieces some swords need
+export function comboText(era,mats=null){
+ if(mats?.length)return `皮鉄に${material(mats[0]).name}${mats.length>1?`、ほかの枠に${mats.slice(1).map(id=>material(id).name).join('・')}`:''}`;
+ return `皮鉄に${eraMaterials(era).map(m=>m.name).join('か')}`;
 }
-export const comboText=era=>era==='joko'?'皮鉄と心鉄に同じ素材（丸鍛え）':`皮鉄 ${material(ERA_COMBO[era][0]).name}＋心鉄 ${material(ERA_COMBO[era][1]).name}`;
 
 // 成功数: 熱する1・叩く12・土置き1・焼き入れ1・研ぐ1 の「会心・よし」の数（最大16）
 export const SUCCESS_MAX=16;
@@ -216,20 +245,20 @@ export const TIER_NAME={1:'名物',2:'重要美術品級',3:'重要文化財級'
 function hash(s){let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)>>>0;}return h;}
 // Which real sword this run made: same 形, same 刃文, same 地鉄 era, enough successes. Ones not yet in the 刀帳 come first,
 // then the more famous; among equals the run itself decides, so the same run always gives the same sword.
-export function pickMeito(list,{form,hamon,kawa,shin,successes,crack,seed=''},collection={}){
- if(crack)return null;
- const era=eraOf(kawa,shin);if(!era)return null;
- const c=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era&&successes>=NEED[m.r]);
+export const matsFit=(m,mats)=>!m.mat||(mats[0]===m.mat[0]&&m.mat.slice(1).every(id=>mats.slice(1).includes(id)));
+export function pickMeito(list,{form,hamon,era,mats=[],successes,crack,seed=''},collection={}){
+ if(crack||!era)return null;
+ const c=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era&&matsFit(m,mats)&&successes>=NEED[m.r]);
  if(!c.length)return null;
  return c.slice().sort((a,b)=>(!!collection[a.n]-!!collection[b.n])||(b.r-a.r)||(hash(seed+a.n)-hash(seed+b.n)))[0];
 }
 // one line on why no 名刀 came out, pointing at the nearest one
-export function meitoHint(list,{form,hamon,kawa,shin,successes,crack}){
+export function meitoHint(list,{form,hamon,era,mats=[],kind,successes,crack}){
  const F=FORMS.find(f=>f.id===form)?.name||'刀';
  if(crack)return '焼き割れた刀は、名刀にならない。';
- const era=eraOf(kawa,shin);
- if(!era)return 'あべこべの組み合わせ（やわらかい皮鉄）では、名刀にならない。';
- const same=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era);
+ if(kind==='gyaku')return 'あべこべの組み合わせ（やわらかい皮鉄）では、名刀にならない。';
+ if(!era)return `${material(mats[0]).name}の皮鉄には時代の札がない。名刀にするなら、時代のある鋼を皮鉄に。`;
+ const same=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era&&matsFit(m,mats));
  if(same.length){const need=Math.min(...same.map(m=>NEED[m.r]));return `この形・刃文・地鉄の名刀まで、成功があと${need-successes}つ。`;}
  const byEra=list.filter(m=>m.t===form&&m.e===era);
  if(byEra.length){const hs=[...new Set(byEra.map(m=>m.h))].map(h=>HAMON[h].name).slice(0,3);return `${ERAS[era].long}の${F}の名刀は、刃文が「${hs.join('・')}」。`;}
@@ -245,7 +274,7 @@ const PRICE_BASE=[200,900,3000,8000,20000];
 const MEITO_PRICE={1:20000,2:40000,3:80000,4:200000,5:600000};
 export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84?4:5;
 export function finishSword(run,list=[],collection={}){
- const c=combine(run.kawa,run.shin);
+ const c=combine(run.structure?run:{structure:run.shin?'kobuse':'maru',kawa:run.kawa,shin:run.shin});
  const H=clamp(run.heat.score),M=clamp(mean(run.hits)),T=clamp(run.hamon.score),Q=clamp(run.quench.score),P=clamp(run.polish.score);
  let sharp=c.base.sharp+55*(0.45*Q+0.25*M+0.30*P)+c.bonus.sharp;
  let tough=c.base.tough+55*(0.50*M+0.30*H+0.20*Q)+c.bonus.tough;
@@ -257,12 +286,12 @@ export function finishSword(run,list=[],collection={}){
  const overall=Math.round((stats.sharp+stats.tough+stats.beauty)/3);
  const stars=crack?1:starsFor(overall);
  const formId=run.form||'katana',successes=successCount(run);
- const pick={form:formId,hamon:run.hamon.type,kawa:c.kawa.id,shin:c.shin.id,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`};
+ const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`};
  const meito=pickMeito(list,pick,collection);
  const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BASE[stars-1]*(0.85+overall/200)/50)*50;
- return {name:meito?meito.n:`無銘の${form(formId).name}`,meito:meito?meito.n:null,tier:meito?meito.r:0,form:formId,era:eraOf(c.kawa.id,c.shin.id),successes,
+ return {name:meito?meito.n:`無銘の${form(formId).name}`,meito:meito?meito.n:null,tier:meito?meito.r:0,form:formId,era:c.era,successes,
   hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],stats,overall,price,crack,
-  hamon:run.hamon.type,profile:run.hamon.profile,sori:soriFor(Q),kawa:c.kawa.id,shin:c.shin.id,combo:c.kind,
+  hamon:run.hamon.type,profile:run.hamon.profile,sori:soriFor(Q),kawa:c.kawa.id,shin:c.shin?.id||null,ha:c.ha?.id||null,mune:c.mune?.id||null,structure:c.structure,combo:c.kind,cost:c.cost,
   steps:{heat:H,hammer:M,hamon:T,quench:Q,polish:P}};
 }
 
