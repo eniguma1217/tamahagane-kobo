@@ -1,1 +1,14 @@
-{}
+{
+ "bg-title": {"file": "bg-title.jpg", "box": [0.33, 0.68, 0.27, 0.14]},
+ "bg-heat": {"file": "bg-heat.jpg", "box": [0.33, 0.645, 0.57, 0.105]},
+ "bg-hammer": {"file": "bg-hammer.jpg", "box": [0.2, 0.595, 0.62, 0.06]},
+ "bg-quench": {"file": "bg-quench.jpg", "box": [0.12, 0.32, 0.77, 0.11], "box2": [0.03, 0.755, 0.94, 0.16]},
+ "bg-bench": {"file": "bg-bench.jpg"},
+ "bg-room": {"file": "bg-room.jpg"},
+ "oyakata": {"file": "oyakata.jpg"},
+ "oyakata-happy": {"file": "oyakata-happy.jpg"},
+ "mat-jou": {"file": "mat-jou.png"},
+ "mat-nami": {"file": "mat-nami.png"},
+ "mat-oroshi": {"file": "mat-oroshi.png"},
+ "mat-houcho": {"file": "mat-houcho.png"}
+}

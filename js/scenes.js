@@ -4,7 +4,7 @@
 import * as R from './rules.js';
 import * as D from './draw.js';
 import * as S from './sound.js';
-import {artBox} from './art.js';
+import {artBox,artImage} from './art.js';
 
 const after=(api,ms,fn)=>api.later(ms,fn);
 
@@ -43,14 +43,16 @@ export class Heat{
   const b=this.box(w,h);this.lastBox=b;
   D.backdrop(ctx,w,h,'heat');
   D.fireLight(ctx,b.x+b.w/2,b.y+b.h*0.5,Math.max(w,h)*0.7,this.blowing?1.2:0.7,t);
-  D.flames(ctx,b,t,this.blowing?1:0.25);
+  // over the owner's painted fire, the code flames only add the flicker and the bellows' roar
+  const own=!!artImage('bg-heat');
+  ctx.save();if(own)ctx.globalAlpha=this.blowing?0.75:0.35;D.flames(ctx,b,t,this.blowing?1:0.25);ctx.restore();
   // the steel in the coals, held by the tongs from the right
   const bar=R.form(this.api.run.form).bar,y=b.y+b.h*0.5,len=b.w*0.6*bar,x=b.x+b.w*0.78-len,th=Math.max(16,b.h*0.22);
   D.steelBar(ctx,x,y,len,th,this.temp);D.tongs(ctx,x+len-4,y,w+10,th*0.32);
   ctx.save();ctx.globalAlpha=0.45;D.flames(ctx,{x:b.x,y:b.y+b.h*0.45,w:b.w,h:b.h*0.55},t+1.3,this.blowing?0.4:0.05);ctx.restore();
-  // bellows handle
-  const f=D.bellowsBox(w,h),pull=this.blowing?(Math.sin(this.pump)*0.5+0.5)*f.w*0.6:0;
-  ctx.fillStyle='#2e2018';ctx.fillRect(f.x+f.w*0.2-pull,f.y+f.h*0.45,f.w*0.9,5);ctx.fillStyle='#6b4a33';ctx.fillRect(f.x-6-pull+f.w*0.2,f.y+f.h*0.3,7,f.h*0.4);
+  // bellows handle (the painted picture has its own bellows)
+  if(!own){const f=D.bellowsBox(w,h),pull=this.blowing?(Math.sin(this.pump)*0.5+0.5)*f.w*0.6:0;
+  ctx.fillStyle='#2e2018';ctx.fillRect(f.x+f.w*0.2-pull,f.y+f.h*0.45,f.w*0.9,5);ctx.fillStyle='#6b4a33';ctx.fillRect(f.x-6-pull+f.w*0.2,f.y+f.h*0.3,7,f.h*0.4);}
   this.sparks.draw(ctx);
   const gh=Math.min(h*0.4,b.y-h*0.08-14),gx=w-34,gy=Math.max(12,b.y-gh-26);
   D.gauge(ctx,gx,gy,16,gh,{lo:650,hi:1300,temp:this.temp,band:[R.HEAT.center-this.half,R.HEAT.center+this.half],danger:R.HEAT.burn,label:'いい色'});
@@ -221,7 +223,7 @@ export class Quench{
   const L=artBox('bg-quench',w,h)||D.longHearth(w,h),T=D.troughBox(w,h);
   D.backdrop(ctx,w,h,'quench');
   D.fireLight(ctx,L.x+L.w/2,L.y+L.h/2,Math.max(w,h)*0.6,0.9,t);
-  D.flames(ctx,L,t,0.55);
+  ctx.save();if(artImage('bg-quench'))ctx.globalAlpha=0.45;D.flames(ctx,L,t,0.55);ctx.restore();
   const hy=L.y+L.h*0.52,wy=T.y+T.h*0.55;
   let y=hy;if(this.phase==='plunge')y=hy+(wy-hy)*Math.min(1,this.k/0.8);else if(this.phase==='sori'||this.phase==='done')y=wy-T.h*0.95*Math.min(1,this.k*2);
   const S=D.SHAPE[this.api.run.form]||D.SHAPE.katana,bl=L.w*0.82*Math.max(0.45,S.len),x0=L.x+L.w*0.95-bl;
@@ -304,7 +306,9 @@ export class Polish{
   if(this.rubbing&&this.last){const sw=G.wid*0.84,sh=G.wid*0.38;ctx.save();ctx.translate(this.last.x,this.last.y);ctx.rotate(-0.08);ctx.fillStyle='rgba(0,0,0,0.25)';D.roundRect(ctx,-sw/2+3,-sh/2+5,sw,sh,6);ctx.fill();ctx.fillStyle='#c9b48f';D.roundRect(ctx,-sw/2,-sh/2,sw,sh,6);ctx.fill();ctx.fillStyle='#a8916b';ctx.fillRect(-sw/2+4,sh*0.18,sw-8,sh*0.24);ctx.restore();}
   // time
   const tw=w-32;ctx.fillStyle='rgba(0,0,0,0.4)';D.roundRect(ctx,16,12,tw,8,4);ctx.fill();ctx.fillStyle=this.left<4?'#e0604a':D.C.gold;D.roundRect(ctx,16,12,tw*(this.left/R.POLISH.seconds),8,4);ctx.fill();
-  ctx.fillStyle='rgba(255,240,215,0.9)';ctx.font='12px "Hiragino Sans","Yu Gothic",sans-serif';ctx.textAlign='right';ctx.fillText(this.started?`のこり ${Math.ceil(this.left)}秒`:'こすると時間が進む',w-16,36);
+  const label=this.started?`のこり ${Math.ceil(this.left)}秒`:'こすると時間が進む';ctx.font='12px "Hiragino Sans","Yu Gothic",sans-serif';
+  const lw=ctx.measureText(label).width;ctx.fillStyle='rgba(20,12,8,0.6)';D.roundRect(ctx,w-24-lw,24,lw+16,18,9);ctx.fill();
+  ctx.fillStyle='rgba(255,240,215,0.95)';ctx.textAlign='right';ctx.fillText(label,w-16,37);
  }
  qa(){const G=this.G;return G?{coverage:this.coverage(),scratches:this.scratches.length,done:this.done,left:this.left,pointAt:(u,s)=>({x:G.X(u),y:G.edge(u)-(G.edge(u)-G.back(u))*s})}:{};}
 }
