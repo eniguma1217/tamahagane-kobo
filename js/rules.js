@@ -299,7 +299,7 @@ export function finishSword(run,list=[],collection={}){
  const grade=gradeFor(overall,crack);
  const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BY_GRADE[grade.id]*(0.85+overall/200)/50)*50;
  return {name:meito?meito.n:`無銘の${form(formId).name}`,meito:meito?meito.n:null,tier:meito?meito.r:0,form:formId,era:c.era,successes,
-  hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],grade:grade.id,gradeName:grade.name,stats,overall,price,crack,
+  auto:!!run.auto,hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],grade:grade.id,gradeName:grade.name,stats,overall,price,crack,
   hamon:run.hamon.type,profile:run.hamon.profile,sori:soriFor(Q),kawa:c.kawa.id,shin:c.shin?.id||null,ha:c.ha?.id||null,mune:c.mune?.id||null,structure:c.structure,combo:c.kind,cost:c.cost,
   steps:{heat:H,hammer:M,hamon:T,quench:Q,polish:P}};
 }
@@ -325,6 +325,29 @@ export function smithRank({forged=0,meito=0}){
 }
 // which rank first opens a form, material or 造り込み
 export function opensAt(kind,id){const r=SMITH_RANKS.find(r=>r[kind].includes(id));return r?r.name:null;}
+
+// ---- おまかせで打つ (#11, owner D27・D28): every step succeeds (よし or better) with the rank's rate; the 刃文 is random.
+export const AUTO_RATE=[0.30,0.35,0.42,0.50,0.58,0.66,0.75];
+export const autoRate=rankIndex=>AUTO_RATE[Math.max(0,Math.min(AUTO_RATE.length-1,rankIndex))];
+export function seededRandom(seed){let s=(seed>>>0)||1;return ()=>((s=Math.imul(s^(s>>>15),2246822519)^Math.imul(s^(s>>>13),3266489917))>>>0)/4294967296;}
+// one step: success splits into 会心 and よし; failure into あまい and 空振り-like
+function autoStep(p,rng){const r=rng();return r<p*0.4?'best':r<p?'good':r<p+(1-p)*0.6?'weak':'bad';}
+export function autoForge(build,rankIndex,rng=Math.random){
+ const p=autoRate(rankIndex),c=combine(build);
+ const hg=autoStep(p,rng),heat=hg==='best'?{grade:'best',score:1,label:'会心'}:hg==='good'?{grade:'good',score:0.8,label:'よし'}
+  :hg==='weak'?{grade:'weak',score:0.5,label:rng()<0.5?'ぬるい':'熱い'}:rng()<0.3?{grade:'burn',score:0.15,label:'沸かしすぎ'}:{grade:'bad',score:0.15,label:'冷たい'};
+ heat.temp=Math.round(HEAT.center+(heat.grade==='best'?0:heat.grade==='good'?c.heatHalf*0.7:c.heatHalf*2));
+ const hitGrades=[],hits=[];
+ for(let i=0;i<HAMMER.hits;i++){const g=autoStep(p,rng);const gg=g==='bad'?'miss':g;hitGrades.push(gg);hits.push({best:1,good:0.7,weak:0.35,miss:0}[gg]);}
+ const types=Object.keys(HAMON),type=types[Math.floor(rng()*types.length)],ok=rng()<p;
+ const hamon={type,name:HAMON[type].name,score:ok?0.75+rng()*0.25:0.3+rng()*0.35,profile:canonicalHamon(type,1+Math.floor(rng()*9999))};
+ const qg=autoStep(p,rng);
+ const quench=qg==='best'?{grade:'best',score:1,label:'会心',crack:false}:qg==='good'?{grade:'good',score:0.8,label:'よし',crack:false}
+  :qg==='weak'||rng()>0.25?{grade:'weak',score:0.45,label:rng()<0.5?'焼きが甘い':'熱すぎ',crack:false}:{grade:'crack',score:0.1,label:'焼き割れ',crack:true};
+ const pg=autoStep(p,rng);
+ const polish=pg==='best'||pg==='good'?{coverage:0.99,scratches:0,score:polishScore(0.99,0)}:{coverage:pg==='weak'?0.92:0.8,scratches:pg==='weak'?1:2,score:polishScore(pg==='weak'?0.92:0.8,pg==='weak'?1:2)};
+ return {...build,auto:true,autoRate:p,heat,hits,hitGrades,hamon,quench,polish,sori:soriFor(quench.score)};
+}
 
 // ---- 鋼の色: temperature (°C) to the colour the steel glows.
 const GLOW=[[500,[42,40,44]],[650,[92,26,16]],[800,[176,37,15]],[950,[232,87,26]],[1100,[255,180,58]],[1200,[255,240,138]],[1300,[255,255,255]]];

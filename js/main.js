@@ -148,7 +148,7 @@ function showMaterials(){
  if(!pick.form)return showForms();
  mode('materials');steps(0);el.meter.hidden=true;
  setScene(new Ambient(api,'materials','title',{dim:0.8}));
- api.controls([{label:'形を選び直す',onClick:showForms},{label:'これで打つ',primary:true,disabled:true,onClick:startForging}]);
+ api.controls([{label:'戻る',onClick:showForms},{label:'おまかせ',onClick:()=>startForging(true)},{label:'これで打つ',primary:true,disabled:true,onClick:()=>startForging(false)}]);
  renderMaterials();
 }
 const yenOr=n=>n?`${yen(n)}文`:'無料';
@@ -174,7 +174,9 @@ function renderMaterials(){
  for(const b of el.panel.querySelectorAll('[data-slot]'))b.onclick=()=>{S.tick();pick.active=b.dataset.slot;renderMaterials();};
  for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();if(locked(b))return;pick[pick.active]=b.dataset.mat;pick.last=b.dataset.mat;
   const next=st.slots.find(k=>!pick[k]);if(next)pick.active=next;renderMaterials();};
- const go=el.controls.querySelector('.btn.primary');go.disabled=!(ready&&enough);go.textContent=cost?`これで打つ（${yen(cost)}文）`:'これで打つ';
+ const btns=el.controls.querySelectorAll('.btn'),go=btns[2],auto=btns[1];
+ go.disabled=auto.disabled=!(ready&&enough);go.textContent=cost?`打つ ${yen(cost)}文`:'これで打つ';
+ auto.textContent=`おまかせ ${Math.round(R.autoRate(rankNow().index)*100)}%`;
  api.say(materialsTalk(st,c,cost,enough),c&&c.kind!=='gyaku'&&c.era&&enough?'happy':'normal');
 }
 function materialsTalk(st,c,cost,enough){
@@ -197,11 +199,12 @@ function eraLine(){
  return `打つ形：<b>${F}</b>　地鉄：<b>${R.ERAS[era].long}</b>　この名刀 ${got}/${all.length}`;
 }
 let forgeIndex=-1;
-function startForging(){
+function startForging(auto=false){
  const build={structure:pick.structure,...Object.fromEntries(R.structure(pick.structure).slots.map(k=>[k,pick[k]]))};
  const paid=pay(save,R.buildCost(build));if(!paid)return;
  save=paid;writeSave(window.localStorage,save);
- api.run={form:pick.form,...build};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
+ api.run={form:pick.form,...build};forgeIndex=-1;
+ if(auto)return autoForging(build);el.panel.innerHTML='';forgeNext();
 }
 function forgeNext(){
  forgeIndex++;
@@ -212,6 +215,14 @@ function forgeNext(){
  setScene(new ({heat:Heat,hammer:Hammer,hamon:Hamon,quench:Quench,polish:Polish}[name])(api));
 }
 
+// おまかせ (#11): no steps to play; a short moment at the anvil, then the result
+function autoForging(build){
+ const rank=rankNow();api.run=R.autoForge({form:pick.form,...build},rank.index);
+ mode('result');setScene(new Ambient(api,'auto','hammer',{dim:0.35}));api.controls([]);
+ el.panel.innerHTML=`<div class="auto-forge"><p>おまかせで打っています…</p><small>${rank.name}の成功率 ${Math.round(R.autoRate(rank.index)*100)}%・刃文は運まかせ</small><i><b></b></i></div>`;
+ [0,350,700].forEach((t,i)=>api.later(t,()=>S.clang(0.6+i*0.15)));
+ api.later(1100,showResult);
+}
 function showResult(){
  const sword=R.finishSword(api.run,MEITO,save.collection);
  const isNew=!!sword.meito&&!save.collection[sword.meito];
@@ -230,10 +241,11 @@ function showResult(){
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
   <p class="price">売値 <b>${yen(sword.price)}</b> 文<small>所持金 ${yen(money())}文</small></p>
-  <div class="chips">${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
+  <div class="chips">${g.auto?chip('打ち方',`おまかせ${Math.round(g.autoRate*100)}%`):''}${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
- api.controls([{label:'刀帳',onClick:()=>showZukan(sword.meito)},{label:'もう一振り',primary:true,onClick:showForms}]);
+ const again=R.buildReady(pick)&&R.buildCost(pick)<=money();
+ api.controls([{label:'刀帳',onClick:()=>showZukan(sword.meito)},{label:'おまかせ',disabled:!again,onClick:()=>startForging(true)},{label:'もう一振り',primary:true,onClick:showForms}]);
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
  if(isNew)api.pop('名刀','best');
  if(after.index>before.index)api.later(isNew?1300:300,()=>showRankUp(before,after));
@@ -295,8 +307,10 @@ function showMeito(name){
 }
 function resultComment(s){
  if(s.crack)return '親方「焼き割れだ……。焼き入れの色が熱すぎたな。次は月夜の色をよく見ろ」';
- return '親方「'+['まあ、最初はこんなものだ。上の工程のどこでつまずいたか見てみろ','並の刀だ。売り物にはなる','なかなかの良品だ。腕が上がってきたな','業物だ！ これは高く売れるぞ','……見事だ。名刀と呼んでいい'][s.stars-1]+'」';
+ return '親方「'+{E:'まあ、最初はこんなものだ。どの工程でつまずいたか見てみろ',D:'並の刀だ。売り物にはなる',C:'なかなかの良品だ。腕が上がってきたな',
+  B:'業物だ。これなら胸を張って売れる',A:'良業物か。いい仕事をしたな',S:'大業物だ！ これは高く売れるぞ',SS:'……最上大業物。見事というほかない'}[gradeOf(s).id]+'」';
 }
+
 
 function showRecords(){
  mode('records');setScene(new Ambient(api,'records','plain',{dim:0.45}));

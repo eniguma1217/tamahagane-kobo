@@ -185,7 +185,8 @@ button{font:inherit;color:inherit}
 
 /* materials (#7) */
 .mats-screen{gap:7px}
-.structs{display:flex;gap:6px}.structs .chip-btn{flex:1;padding:6px 2px;font-family:var(--mincho);font-weight:700;font-size:14px}
+.structs{display:flex;gap:6px}.structs .chip-btn{flex:1;padding:6px 2px;font-family:var(--mincho);font-weight:700;font-size:14px;white-space:nowrap}
+@media (max-width:400px){.structs .chip-btn{font-size:12.5px;letter-spacing:-.02em}}
 .slots .slot{padding:6px 4px}.slots .slot b{font-size:16px}.slots .slot em{font-size:10px;line-height:1.2}
 .mat b{display:flex;align-items:center;gap:3px;font-size:14.5px;white-space:nowrap}
 .mat b i{font-style:normal;font-family:var(--gothic);font-size:10px;padding:0 4px;border-radius:4px;background:var(--shu);color:#fff}
@@ -218,3 +219,11 @@ button{font:inherit;color:inherit}
 .rankup{align-items:center;text-align:center}.rankup h3{justify-content:center;font-size:30px;color:#ffe08a}
 .rankup-head{margin:0;font-family:var(--mincho);font-size:16px;color:var(--paper)}
 .records .grade{flex:none}
+
+/* おまかせ (#11) */
+.auto-forge{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.auto-forge p{margin:0;font-family:var(--mincho);font-size:22px;color:#fff;text-shadow:0 2px 8px #000}
+.auto-forge small{font-size:12.5px;color:#ffe08a}
+.auto-forge i{width:60%;height:8px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden}
+.auto-forge i b{display:block;height:100%;background:linear-gradient(90deg,#9a6b25,var(--gold));animation:fill 1.1s linear forwards}
+@keyframes fill{from{width:0}to{width:100%}}
