@@ -2,6 +2,8 @@
 import * as R from './rules.js';
 import {loadSave,writeSave,addSword,bestSword,pay,payBuild,sell,START_MONEY} from './save.js';
 import * as M from './market.js';
+import * as J from './journey.js';
+import {ownerOf} from './owners.js';
 import * as S from './sound.js';
 import * as D from './draw.js';
 import {MEITO} from './meito.js';
@@ -97,8 +99,8 @@ function showSamples(){
 }
 
 // an overlay closes with its button or a tap on the dark space around it
-function closable(box){
- const close=()=>{S.tick();box.remove();};
+function closable(box,onClose){
+ const close=()=>{S.tick();box.remove();onClose?.();};
  box.querySelector('[data-close]').onclick=close;
  // taps on the overlay never reach the blade underneath
  box.addEventListener('pointerdown',e=>{e.stopPropagation();if(e.target===box)close();});
@@ -114,6 +116,7 @@ function steps(index){
  el.steps.innerHTML=STEP_NAMES.map((n,i)=>`<span class="${i<index?'done':i===index?'now':''}">${n}</span>`).join('<i>›</i>');
 }
 
+const letterCount=()=>J.travelling(save).filter(p=>p.journey.left<=0).length;
 function showTitle(){
  mode('title');setScene(new Ambient(api,'title','title'));
  const n=save.forged||0;
@@ -122,6 +125,7 @@ function showTitle(){
   <p class="title-sub">たまはがね こうぼう</p>
   <p class="title-money">所持金 ${yen(money())}文</p>
   <p class="title-rank">鍛冶師ランク <b>${rankNow().name}</b>${rankNow().next?`<small>次の「${rankNow().next}」まで：${rankNow().toNext}</small>`:''}</p>
+  <p class="title-rank">店の名声 <b>Lv${fameNow().lv} ${fameNow().name}</b>${letterCount()?`<small>✉ 便りが${letterCount()}通届いている（店へ）</small>`:J.travelling(save).length?`<small>旅に出ている持ち主 ${J.travelling(save).length}人</small>`:''}</p>
   <div class="menu"><button class="btn primary big" data-go="forge">刀を打つ</button>
   <div class="menu-row"><button class="btn" data-go="shop">店（蔵${(save.kura||[]).length}）</button><button class="btn" data-go="zukan">刀帳 ${found()}/${MEITO.length}</button>
   <button class="btn" data-go="records" ${n?'':'disabled'}>記録</button></div></div>
@@ -245,7 +249,7 @@ function showResult(){
   ${m?`<p class="desc">${m.x}</p>`:`<p class="hint">${sword.hint}</p>`}
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
-  <p class="price">相場 <b>${yen(sword.price)}</b> 文<small>蔵に入れた（蔵 ${(save.kura||[]).length}振・所持金 ${yen(money())}文）${(save.requests||[]).some(q=>M.matchesRequest(sword,q))?'<em class="req-hit">依頼に合う！</em>':''}</small></p>
+  <p class="price">相場 <b>${yen(sword.price)}</b> 文<small>蔵に入れた（蔵 ${(save.kura||[]).length}振・所持金 ${yen(money())}文）${(save.requests||[]).some(q=>M.matchesRequest(sword,q))?'<em class="req-hit">依頼に合う！</em>':''}${sword.meito&&ownerOf(sword.meito)?`<em class="req-hit">ゆかりの${ownerOf(sword.meito).o}が店に来るかも</em>`:''}</small></p>
   <div class="chips">${g.auto?chip('打ち方',`おまかせ${Math.round(g.autoRate*100)}%`):''}${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
@@ -265,12 +269,29 @@ function showRankUp(before,after){
  closable(box);el.panel.append(box);S.phrase(5);api.pop(after.name,'best');
 }
 
-// ---------- 店 (#12): 依頼・店先・競り・蔵 ----------
-let shopTab='irai',customer=null,auction=null,auctionPick=null,auctionReserve=0,kuraPick=null;
+// ---------- 店 (#12・#15): 依頼・店先・競り・蔵・常連。売った刀は持ち主と旅に出て、便りで名声が動く ----------
+let shopTab='irai',customer=null,auction=null,auctionPick=null,auctionReserve=0,kuraPick=null,fameFlash=null;
 const rngNext=()=>{const r=R.seededRandom((save.seq||1)*7919+13);save={...save,seq:(save.seq||1)+1};return r;};
+const fameNow=()=>M.fameLevel(save.fame||0);
+const starLine=(n,max=5)=>`<span class="stars">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0,max-n))}</i></span>`;
+const skillText=k=>`${J.SKILLS[k].name}（${J.SKILLS[k].stat}）`;
+const giftable=()=>[...rankNow().open.materials].filter(id=>R.material(id).price>=500);
+const pct=x=>Math.round(x*100);
 function ensureRequests(){
- const reqs=[...(save.requests||[])];let changed=false;
- while(reqs.length<M.REQUESTS_MAX){reqs.push({id:save.seq||1,...M.makeRequest(rngNext(),rankNow().index,MEITO)});changed=true;}
+ const L=fameNow(),reqs=[...(save.requests||[])];let changed=false;
+ // requests made before #15 get the person who will carry them
+ for(let i=0;i<reqs.length;i++)if(!reqs[i].person&&!reqs[i].ownerId){const rng=rngNext(),person=J.newPerson(rng,reqs[i].client in M.CLIENTS?reqs[i].client:'bushi',L.index);reqs[i]={...reqs[i],person,journey:J.planJourney(rng,person,L.index)};changed=true;}
+ while(reqs.filter(q=>!q.real).length<M.requestsMax(L.index)){
+  const regs=J.idleRegulars(save).filter(p=>!reqs.some(q=>q.ownerId===p.id));
+  reqs.push({id:save.seq||1,...M.makeRequest(rngNext(),rankNow().index,MEITO,L.index,regs)});changed=true;
+ }
+ // 名指しの依頼 (D37): the real owner of a 名刀 in the 蔵 comes for it
+ for(const s of save.kura||[]){
+  if(!s.meito||reqs.filter(q=>q.real).length>=M.NAMED_MAX)continue;
+  const o=ownerOf(s.meito);if(!o||reqs.some(q=>q.real&&q.need.meito===s.meito))continue;
+  const p=J.personById(save,'r:'+o.o);if(!p||p.journey||(p.got||[]).includes(s.meito))continue;
+  reqs.push({id:save.seq||1,...M.namedRequest(MEITO.find(x=>x.n===s.meito),L.index)});rngNext();changed=true;
+ }
  if(changed){save={...save,requests:reqs};writeSave(window.localStorage,save);}
 }
 function showShop(tab){
@@ -279,43 +300,70 @@ function showShop(tab){
  if(auction&&!auction.done)auction=null;
  mode('shop');setScene(new Ambient(api,'shop','plain',{dim:0.55}));
  api.controls([{label:'タイトルへ',onClick:showTitle},{label:'刀を打つ',primary:true,onClick:showForms}]);
+ // 便り (D34): the journeys that have ended are told when the shop is opened
+ const before=fameNow(),out=J.deliverLetters(save);
+ if(out.letters.length){save=out.save;writeSave(window.localStorage,save);}
  ensureRequests();renderShop();
+ if(out.letters.length)showLetters(out.letters,before);
 }
 function swordLine(s,extra=''){const m=s.meito?MEITO.find(x=>x.n===s.meito):null;
- return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.era?'・'+R.ERAS[s.era].name:''}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}</small><em>相場 ${yen(s.price)}文</em>${extra}</span>`;}
+ return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.era?'・'+R.ERAS[s.era].name:''}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}</small><em>相場 ${yen(s.price)}文${s.stats?`<i class="st">切${s.stats.sharp}・粘${s.stats.tough}・美${s.stats.beauty}</i>`:''}</em>${extra}</span>`;}
+function personLine(p,tag){
+ return `<p class="who">${p.face} <b>${p.name}</b>${p.real?'<small class="real">実在</small>':''}<small>${tag?tag+'・':''}腕前${starLine(p.lv)}・得意 ${skillText(p.skill)}</small></p>`;
+}
+// the journey and, for a given sword, its 見こみ (D32: seen before selling)
+function tripBox(journey,ch){
+ const info=J.journeyInfo(journey),need=Object.entries(info.w).filter(([,v])=>v>=0.3).map(([k])=>J.SKILLS[k].stat).join('・');
+ return `<div class="trip"><p><b>旅：${info.title}</b>${starLine(journey.star)}${journey.type==='real'?`<small class="eb">${info.eb}</small>`:''}</p>
+  ${journey.type==='real'?`<p class="tx">${info.x}</p>`:''}<p class="tx">いる力：${need}・便りは刀を${J.journeyLength(journey.star)}振打つと届く</p>
+  ${ch?`<p class="pros">見こみ <b class="p-${J.prospect(ch)}">${J.prospect(ch)}</b><span class="pbar"><i class="great" style="width:${pct(ch.great)}%"></i><i class="good" style="width:${pct(ch.good)}%"></i><i class="hard" style="width:${pct(ch.hard)}%"></i><i class="broke" style="width:${pct(ch.broke)}%"></i></span><small>大活躍${pct(ch.great)}%・折れる${pct(ch.broke)}%</small></p>`:''}</div>`;
+}
+function fameBar(){
+ const F=fameNow(),flash=fameFlash;fameFlash=null;
+ return `<div class="fame"><span class="fame-lv">名声 Lv${F.lv}</span><b>${F.name}</b><i><b style="width:${Math.round(F.progress*100)}%"></b></i><small>${F.next?`次まで${yen(F.toNext)}`:'最高'}</small>${flash?`<em class="fame-delta ${flash>0?'up':'down'}">${flash>0?'+':''}${flash}</em>`:''}</div>`;
+}
 function renderShop(){
- const kura=save.kura||[],tabs=[['irai','依頼'],['mise','店先'],['seri','競り'],['kura',`蔵 ${kura.length}`]];
+ const kura=save.kura||[],owners=save.owners||[],tabs=[['irai','依頼'],['mise','店先'],['seri','競り'],['kura',`蔵 ${kura.length}`],['jouren',`常連 ${owners.filter(p=>p.regular).length}`]];
+ const L=fameNow();
  let body='';
- if(shopTab==='irai')body=`<ul class="reqs">${save.requests.map(q=>{const c=M.CLIENTS[q.client],fit=kura.filter(s=>M.matchesRequest(s,q));
-  return `<li class="req ${fit.length?'fit':''}"><p class="who">${c.face} <b>${c.name}</b>「${c.hello}」</p><p class="what">${M.requestText(q)}</p>
+ if(shopTab==='irai')body=`<ul class="reqs">${save.requests.slice().sort((a,b)=>!!b.real-!!a.real).map(q=>{const p=q.person||J.personById(save,q.ownerId),fit=kura.filter(s=>M.matchesRequest(s,q));
+  const tag=q.real?'名指し':q.ownerId?'常連':M.CLIENTS[q.client]?.name,away=!!p.journey;
+  return `<li class="req ${fit.length?'fit':''} ${q.real?'named':''}">${personLine(p,tag)}<p class="what">${M.requestText(q)}</p>${tripBox(q.journey)}
    <p class="reward">お礼 <b>${yen(q.reward)}</b>文${q.gift?`＋<b>${R.material(q.gift).name}</b>の無料券`:''}</p>
-   <div class="row"><button class="btn small" data-skip="${q.id}">見送る</button><button class="btn small primary" data-give="${q.id}" ${fit.length?'':'disabled'}>${fit.length?`納める（蔵に${fit.length}振）`:'合う刀がない'}</button></div></li>`;}).join('')}</ul>`;
+   <div class="row"><button class="btn small" data-skip="${q.id}">見送る</button><button class="btn small primary" data-give="${q.id}" ${fit.length&&!away?'':'disabled'}>${away?'旅に出ている':fit.length?`納める（蔵に${fit.length}振）`:'合う刀がない'}</button></div></li>`;}).join('')}</ul>`;
  if(shopTab==='mise'){
-  if(!customer)body=`<div class="mise"><p class="mise-note">お客さんが蔵の刀に値をつける。<br>高く売りたいなら「上げる」「ふっかける」。ただし、しつこいと帰ってしまう。</p>
+  if(!customer)body=`<div class="mise"><p class="mise-note">お客さんが蔵の刀に値をつける。買った人はその刀で旅に出て、活躍すると名声が上がる。<br>高く売るか、活躍しそうな人に売るか。しつこく値を上げると帰ってしまう。</p>
    <p>来てくれるお客さん：<b>${save.customers??0}人</b>（刀を1振打つと2人増える）</p>
    <button class="btn primary" data-call ${(save.customers??0)>0&&kura.length?'':'disabled'}>${kura.length?'お客さんを呼ぶ':'蔵に刀がない'}</button></div>`;
-  else{const c=M.CLIENTS[customer.client],s=kura.find(x=>x.no===customer.swordId)||save.swords.find(x=>x.no===customer.swordId);
-   const said={hello:`「この刀、${yen(customer.offer)}文でどうだ」`,close:`「うーむ……それは少し高いな。${yen(customer.offer)}文なら」`,far:`「高すぎる！ ${yen(customer.offer)}文がせいぜいだ」`,
+  else{const c=M.CLIENTS[customer.client],p=customer.person,s=kura.find(x=>x.no===customer.swordId)||save.swords.find(x=>x.no===customer.swordId);
+   const said={hello:`「この刀、${yen(customer.offer)}文でどうだ」`,again:`「また来たぞ。今度はこれを見せてくれ。${yen(customer.offer)}文でどうだ」`,close:`「うーむ……それは少し高いな。${yen(customer.offer)}文なら」`,far:`「高すぎる！ ${yen(customer.offer)}文がせいぜいだ」`,
     happy:`「よし、買った！」`,angry:'「話にならん。帰る！」',bye:'「そうか……邪魔したな」'}[customer.mood];
    const over=customer.sold||customer.left;
-   body=`<div class="mise"><p class="who big">${c.face} <b>${c.name}</b></p>${s?swordLine(s):''}<p class="say ${customer.mood}">${said}</p>
-    ${over?`<p class="deal">${customer.sold?`<b>${yen(customer.price)}文</b>で売れた！`:'売れなかった。'}</p><button class="btn primary" data-next ${(save.customers??0)>0&&kura.length?'':'disabled'}>次のお客さん（あと${save.customers??0}人）</button>`
+   body=`<div class="mise">${personLine(p,customer.regular?'常連':c.name)}${s?swordLine(s):''}${tripBox(customer.journey,s&&!over?J.chances(p,s,customer.journey):null)}<p class="say ${customer.mood}">${said}</p>
+    ${over?`<p class="deal">${customer.sold?`<b>${yen(customer.price)}文</b>で売れた！<small>${p.name}は「${J.journeyInfo(customer.journey).title}」へ旅立った。</small>`:'売れなかった。'}</p><button class="btn primary" data-next ${(save.customers??0)>0&&kura.length?'':'disabled'}>次のお客さん（あと${save.customers??0}人）</button>`
     :`<p class="patience">がまん ${'●'.repeat(customer.patience)}${'○'.repeat(Math.max(0,3-customer.patience))}</p>
      <div class="row4"><button class="btn small" data-h="refuse">断る</button><button class="btn small" data-h="push">ふっかける</button><button class="btn small" data-h="nudge">少し上げる</button><button class="btn small primary" data-h="sell">売る ${yen(customer.offer)}</button></div>`}</div>`;}
  }
  if(shopTab==='seri'){
-  if(!auction)body=`<div class="seri"><p class="mise-note">蔵の刀を競りに出す。名刀や出来のいい刀ほど、大物が来て値がつり上がる（手数料1割）。</p>
+  if(!auction)body=`<div class="seri"><p class="mise-note">蔵の刀を「${M.houseFor(L.index).name}」に出す。名刀や出来のいい刀ほど、大物が来て値がつり上がる（手数料1割）。名声が上がると、もっと大きな競りに出せる。競りの刀は旅に出ない。</p>
    <ul class="kura pick">${kura.map(s=>`<li><button class="kura-row ${auctionPick===s.no?'on':''}" data-apick="${s.no}">${swordLine(s)}</button></li>`).join('')||'<li class="empty">蔵に刀がない</li>'}</ul>
    <div class="row"><span class="lbl">最低価格</span>${[[0,'なし'],[1,'相場'],[1.5,'相場×1.5']].map(([k,n])=>`<button class="chip-btn ${auctionReserve===k?'on':''}" data-res="${k}">${n}</button>`).join('')}</div>
    <button class="btn primary" data-start ${auctionPick&&kura.some(s=>s.no===auctionPick)?'':'disabled'}>競りに出す</button></div>`;
   else{const s=save.swords.find(x=>x.no===auction.swordId);
-   body=`<div class="seri"><p class="who big">競り：<b>${s?.name||''}</b></p><p class="bid">${yen(auction.price)}<small>文</small></p>
+   body=`<div class="seri"><p class="who big">${auction.house||'競り'}：<b>${s?.name||''}</b></p><p class="bid">${yen(auction.price)}<small>文</small></p>
     <ul class="bidders">${auction.bidders.map((b,i)=>`<li class="${b.out?'out':''} ${auction.leader===i?'lead':''}">${b.name}<b>${b.last?yen(b.last)+'文':'—'}</b></li>`).join('')}</ul>
     ${auction.done?`<p class="deal">${auction.sold?`落札！ <b>${yen(auction.price)}文</b>（手取り ${yen(auction.net)}文）`:`不成立（最低価格 ${yen(auction.reserve)}文に届かず）`}</p><button class="btn primary" data-aend>とじる</button>`:'<p class="mise-note">値が上がっていく……</p>'}</div>`;}
  }
  if(shopTab==='kura')body=`<ul class="kura">${kura.slice().reverse().map(s=>{const fit=(save.requests||[]).some(q=>M.matchesRequest(s,q));
   return `<li><button class="kura-row ${kuraPick===s.no?'on':''}" data-kpick="${s.no}">${swordLine(s,fit?'<i class="req-hit">依頼に合う</i>':'')}</button>${kuraPick===s.no?`<div class="row"><button class="btn small" data-quick="${s.no}">売り払う ${yen(Math.round(s.price*M.QUICK_RATE/50)*50)}文</button><button class="btn small" data-tosel="${s.no}">競りへ</button></div>`:''}</li>`;}).join('')||'<li class="empty">蔵に刀がない。打てばここにたまる。</li>'}</ul>`;
- el.panel.innerHTML=`<div class="shop"><div class="shop-head"><b>所持金 ${yen(money())}文</b><small>蔵 ${kura.length}/${M.KURA_MAX}・${rankNow().name}</small></div>
+ if(shopTab==='jouren'){
+  const list=owners.slice().sort((a,b)=>(!!b.journey-!!a.journey)||(b.real-a.real)||(b.lv-a.lv));
+  body=`<ul class="regs">${list.map(p=>`<li class="reg ${p.journey?'away':''}">${personLine(p,p.regular?'常連':'初めての客')}
+   <p class="status">${p.journey?`🧭 旅の途中：「${p.journey.title}」${starLine(p.journey.star)}　${p.journey.left?`あと${p.journey.left}振打つと便りが届く`:'便りが届いている'}`:'🏠 店に来るのを待っている'}</p>
+   <p class="hold">刀：${p.journey?p.journey.swordName:p.sword?p.sword.name:'なし（新しい刀がほしい）'}</p>
+   ${(p.story||[]).length?`<p class="story">武勇伝：${p.story.slice(0,3).map(x=>`「${x.t}」<b class="o-${x.r}">${J.OUTCOME[x.r]}</b>`).join('・')}</p>`:''}</li>`).join('')||'<li class="empty">まだ誰もいない。店先や依頼で刀を売ると、持ち主が旅に出る。活躍すると常連になって、また店に来る。</li>'}</ul>`;
+ }
+ el.panel.innerHTML=`<div class="shop"><div class="shop-head"><b>所持金 ${yen(money())}文</b><small>蔵 ${kura.length}/${M.KURA_MAX}・${rankNow().name}</small></div>${fameBar()}
   <div class="filters tabs">${tabs.map(([id,n])=>`<button class="chip-btn ${shopTab===id?'on':''}" data-tab="${id}">${n}</button>`).join('')}</div><div class="shop-body">${body}</div></div>`;
  const on=(sel,fn)=>{for(const b of el.panel.querySelectorAll(sel))b.onclick=()=>{S.unlock();S.tick();fn(b);};};
  on('[data-tab]',b=>{if(auction&&!auction.done)return;shopTab=b.dataset.tab;renderShop();});
@@ -323,7 +371,9 @@ function renderShop(){
  on('[data-give]',b=>giveRequest(+b.dataset.give));
  on('[data-call]',()=>callCustomer());on('[data-next]',()=>callCustomer());
  on('[data-h]',b=>{customer=M.haggle(customer,b.dataset.h);
-  if(customer.sold){save=sell(save,customer.swordId,customer.price,'shop',{client:customer.client});writeSave(window.localStorage,save);S.phrase(3);api.pop(`${yen(customer.price)}文`,'best');}
+  if(customer.sold){const before=fameNow(),s=sellNow(customer.swordId,customer.price,'shop',{client:customer.client,owner:customer.person.name});
+   save=J.depart(save,customer.person,s,customer.journey,rngNext(),giftable());writeSave(window.localStorage,save);
+   S.phrase(3);api.pop(`${yen(customer.price)}文`,'best');api.later(900,()=>afterFame(before));}
   renderShop();});
  on('[data-apick]',b=>{auctionPick=+b.dataset.apick;renderShop();});
  on('[data-res]',b=>{auctionReserve=+b.dataset.res;renderShop();});
@@ -331,34 +381,79 @@ function renderShop(){
  on('[data-aend]',()=>{auction=null;auctionPick=null;renderShop();});
  on('[data-kpick]',b=>{kuraPick=kuraPick===+b.dataset.kpick?null:+b.dataset.kpick;renderShop();});
  on('[data-quick]',b=>{const s=save.kura.find(x=>x.no===+b.dataset.quick);const amt=Math.round(s.price*M.QUICK_RATE/50)*50;
-  save=sell(save,s.no,amt,'quick');writeSave(window.localStorage,save);kuraPick=null;api.pop(`${yen(amt)}文`,'good');renderShop();});
+  sellNow(s.no,amt,'quick');writeSave(window.localStorage,save);kuraPick=null;api.pop(`${yen(amt)}文`,'good');renderShop();});
  on('[data-tosel]',b=>{auctionPick=+b.dataset.tosel;shopTab='seri';renderShop();});
+}
+// every sale: money, the ledger and the little 名声 of the sale (D31); returns the sword sold
+function sellNow(no,amount,kind,extra={}){
+ const s=save.kura.find(x=>x.no===no);if(!s)return null;
+ const fame=M.saleFame(s,kind);
+ save=sell(save,no,amount,kind,{...extra,fame});if(fame)fameFlash=fame;
+ return s;
 }
 function callCustomer(){
  if(!(save.customers>0)||!save.kura.length)return;
- customer=M.newCustomer(rngNext(),save.kura);save={...save,customers:save.customers-1};writeSave(window.localStorage,save);renderShop();
+ customer=M.newCustomer(rngNext(),save.kura,fameNow().index,J.idleRegulars(save).filter(p=>!(save.requests||[]).some(q=>q.ownerId===p.id)));save={...save,customers:save.customers-1};writeSave(window.localStorage,save);renderShop();
 }
+// 依頼: choose which of the fitting swords to give, seeing each one's 見こみ
 function giveRequest(id){
  const q=save.requests.find(x=>x.id===id),fit=save.kura.filter(s=>M.matchesRequest(s,q));if(!fit.length)return;
- // the plainest sword that fits goes (keep the better ones)
- const s=fit.slice().sort((a,b)=>a.price-b.price)[0];
- save=sell(save,s.no,q.reward,'request',{client:q.client});
- const vouchers={...(save.vouchers||{})};if(q.gift)vouchers[q.gift]=(vouchers[q.gift]||0)+1;
- save={...save,vouchers,requests:save.requests.filter(x=>x.id!==id)};ensureRequests();writeSave(window.localStorage,save);
- S.phrase(4);api.pop(`${yen(q.reward)}文`,'best');
- api.say?.('');renderShop();
+ const p=q.person||J.personById(save,q.ownerId);if(p.journey)return;
+ const rows=fit.map(s=>({s,c:J.chances(p,s,q.journey)})).sort((a,b)=>b.c.m-a.c.m||a.s.price-b.s.price);
  const box=document.createElement('div');box.className='overlay';
- box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${M.CLIENTS[q.client].face} ${M.CLIENTS[q.client].name}「ありがたい。いい刀だ」</p><h3>${yen(q.reward)}文</h3><p class="mtags">納めた刀：<b>${s.name}</b>${q.gift?`<br>お礼に <b>${R.material(q.gift).name}の無料券</b> をもらった`:''}</p><button class="btn primary" data-close>とじる</button></div>`;
+ box.innerHTML=`<div class="sheet give"><p class="rankup-head">${p.face} ${p.name}に、どれを納める？</p>${tripBox(q.journey)}
+  <div class="sheet-body"><ul class="kura pick">${rows.map(({s,c})=>`<li><button class="kura-row" data-pickgive="${s.no}">${swordLine(s,`<span class="pros">見こみ <b class="p-${J.prospect(c)}">${J.prospect(c)}</b><small>大活躍${pct(c.great)}%・折れる${pct(c.broke)}%</small></span>`)}</button></li>`).join('')}</ul></div>
+  <button class="btn" data-close>やめる</button></div>`;
  closable(box);el.panel.append(box);
+ for(const b of box.querySelectorAll('[data-pickgive]'))b.onclick=()=>{S.tick();box.remove();deliverRequest(q,p,save.kura.find(x=>x.no===+b.dataset.pickgive));};
+}
+function deliverRequest(q,p,s){
+ const before=fameNow();
+ sellNow(s.no,q.reward,'request',{client:q.client,owner:p.name});
+ const vouchers={...(save.vouchers||{})};if(q.gift)vouchers[q.gift]=(vouchers[q.gift]||0)+1;
+ save=J.depart({...save,vouchers},p,s,q.journey,rngNext(),giftable());
+ save={...save,requests:save.requests.filter(x=>x.id!==q.id)};ensureRequests();writeSave(window.localStorage,save);
+ S.phrase(4);api.pop(`${yen(q.reward)}文`,'best');
+ renderShop();
+ const info=J.journeyInfo(q.journey);
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${p.face} ${p.name}「ありがたい。この刀で「${info.title}」へ行ってくる」</p><h3>${yen(q.reward)}文</h3><p class="mtags">納めた刀：<b>${s.name}</b>${q.gift?`<br>お礼に <b>${R.material(q.gift).name}の無料券</b> をもらった`:''}<br>便りは、刀を${J.journeyLength(q.journey.star)}振打ってから店に来ると届く。</p><button class="btn primary" data-close>とじる</button></div>`;
+ closable(box,()=>afterFame(before));el.panel.append(box);
 }
 function startAuction(){
  const s=save.kura.find(x=>x.no===auctionPick);if(!s)return;
- const rng=rngNext();auction=M.newAuction(rng,s,Math.round(s.price*auctionReserve));renderShop();
+ const rng=rngNext();auction=M.newAuction(rng,s,Math.round(s.price*auctionReserve),fameNow().index);renderShop();
  const tick=()=>{if(!auction||auction.done)return;auction=M.auctionStep(auction,rng);S.tick();
-  if(auction.done){if(auction.sold){save=sell(save,auction.swordId,auction.net,'auction',{price:auction.price});S.phrase(5);api.pop('落札','best');}writeSave(window.localStorage,save);}
+  if(auction.done){if(auction.sold){const before=fameNow();sellNow(auction.swordId,auction.net,'auction',{price:auction.price});S.phrase(5);api.pop('落札','best');api.later(900,()=>afterFame(before));}writeSave(window.localStorage,save);}
   else api.later(420,tick);
   if(el.app.dataset.mode==='shop')renderShop();};
  api.later(600,tick);
+}
+// ---- 便り (D34・D35) and the 名声 level changing
+function showLetters(letters,before){
+ const L=letters[0],rest=letters.slice(1),info=J.journeyInfo(L.journey);
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet letter o-${L.outcome}"><p class="rankup-head">✉ 便りが届いた${rest.length?`（あと${rest.length}通）`:''}</p>
+  <p class="who big">${L.face} <b>${L.name}</b>${L.real?'<small class="real">実在</small>':''}</p>
+  <p class="trip-t">「${L.journey.title}」${starLine(L.journey.star)}</p>
+  <p class="say">${L.swordName}：${info[L.outcome]||info.hard}</p>
+  <h3 class="outcome">${J.OUTCOME[L.outcome]}</h3>
+  <p class="mtags">${L.fame>0?`名声 <b>+${L.fame}</b>`:L.fame<0?`名声 <b class="bad">${L.fame}</b>`:'名声はそのまま'}${L.reward?.money?`<br>お礼に <b>${yen(L.reward.money)}文</b> が届いた`:''}${L.reward?.voucher?`<br>お礼に <b>${R.material(L.reward.voucher).name}の無料券</b> が届いた`:''}${L.lvUp?`<br>腕前が上がった！ ${starLine(L.lv)}`:''}${L.newRegular?'<br><b>常連になった！</b> また店に来てくれる':''}${L.goesHome?'<br>（郷里へ帰っていった）':''}</p>
+  <button class="btn primary" data-close>${rest.length?'次の便り':'とじる'}</button></div>`;
+ closable(box,()=>{if(rest.length)showLetters(rest,before);else afterFame(before);});
+ el.panel.append(box);
+ S.phrase(L.outcome==='great'?5:L.outcome==='good'?4:2);
+}
+function afterFame(before){
+ const after=fameNow();
+ if(el.app.dataset.mode==='shop')renderShop();
+ if(after.index===before.index)return;
+ const up=after.index>before.index,news=up?M.fameNews(before.index,after.index):[];
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${up?'店の名声が上がった！':'店の評判が落ちた……'}</p><h3>Lv${after.lv} ${after.name}</h3>
+  ${news.length?`<ul class="fame-news">${news.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}${after.next?`<p class="mfound">次の「${after.next}」まで：名声あと${yen(after.toNext)}</p>`:'<p class="mfound">いちばん上の名声です。</p>'}
+  <button class="btn primary" data-close>とじる</button></div>`;
+ closable(box);el.panel.append(box);if(up)S.phrase(5);
 }
 
 // ---------- 刀帳 ----------
@@ -418,7 +513,7 @@ function showRecords(){
  const best=bestSword(save),sum=save.swords.reduce((s,x)=>s+x.price,0);
  el.panel.innerHTML=`<div class="records">
   <h2>打った刀 <small>${save.forged}振</small></h2>
-  <p class="rec-sum">鍛冶師ランク <b>${rankNow().name}</b>　売り上げ <b>${yen((save.ledger||[]).reduce((t,x)=>t+x.amount,0))}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
+  <p class="rec-sum">鍛冶師ランク <b>${rankNow().name}</b>　名声 <b>Lv${fameNow().lv}</b>（${yen(save.fame||0)}）　常連 <b>${(save.owners||[]).filter(p=>p.regular).length}人</b><br>売り上げ <b>${yen((save.ledger||[]).reduce((t,x)=>t+x.amount,0))}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
   <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}${s.crack?'・割れ':''}</small></span>${gradeBadge(gradeOf(s))}<span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
  </div>`;
  api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);

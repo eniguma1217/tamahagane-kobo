@@ -7,7 +7,8 @@ export const MAX_SWORDS=200;
 export const START_MONEY=3000;
 // kura: unsold swords; requests: the open orders; vouchers: free uses of a steel {id: count}; customers: how many may still
 // come to the shop; ledger: what was sold, newest first; seq: drives the save's own random draws (#12)
-export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},money:START_MONEY,kura:[],requests:[],vouchers:{},customers:2,ledger:[],seq:1,settings:{sound:true}});
+// fame: the shop's 名声; owners: the people who took swords on journeys, and the regulars (#15; older saves start with none)
+export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},money:START_MONEY,kura:[],requests:[],vouchers:{},customers:2,ledger:[],seq:1,fame:0,owners:[],settings:{sound:true}});
 
 export function parseSave(text){
  if(!text)return emptySave();
@@ -31,7 +32,9 @@ export function addSword(save,sword,at=Date.now()){
  if(sword.meito){const was=collection[sword.meito];collection[sword.meito]=was?{...was,count:was.count+1}:{first:at,count:1,no:forged};}
  // the finished sword goes into the 蔵 (owner D26: no longer sold at once); two more customers may come
  const kura=[...(save.kura||[]),entry];
- return {...save,forged,collection,kura,customers:Math.min(5,(save.customers??2)+2),swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
+ // every sword forged brings the journeys one step nearer their end (#15, D34)
+ const owners=(save.owners||[]).map(p=>p.journey&&p.journey.left>0?{...p,journey:{...p.journey,left:p.journey.left-1}}:p);
+ return {...save,forged,collection,kura,owners,customers:Math.min(5,(save.customers??2)+2),swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
 }
 export function pay(save,cost){
  const money=save.money??START_MONEY;
@@ -45,10 +48,11 @@ export function payBuild(save,mats,priceOf){
  const paid=pay(save,cost);
  return paid?{...paid,vouchers,used,cost}:null;
 }
-// sell one sword from the 蔵; kind: quick | shop | auction | request
+// sell one sword from the 蔵; kind: quick | shop | auction | request. extra.fame: the 名声 the sale brings (#15)
 export function sell(save,no,amount,kind,extra={}){
  const s=(save.kura||[]).find(x=>x.no===no);if(!s)return null;
  const ledger=[{at:Date.now(),no,name:s.name,kind,amount,...extra},...(save.ledger||[])].slice(0,100);
- return {...save,money:(save.money??START_MONEY)+amount,kura:save.kura.filter(x=>x.no!==no),ledger};
+ const fame=Math.max(0,(save.fame||0)+(extra.fame||0));
+ return {...save,money:(save.money??START_MONEY)+amount,fame,kura:save.kura.filter(x=>x.no!==no),ledger};
 }
 export const bestSword=save=>save.swords.reduce((best,s)=>!best||s.overall>best.overall?s:best,null);

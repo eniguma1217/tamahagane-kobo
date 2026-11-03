@@ -240,7 +240,8 @@ export function successCount(run){
   +(ok(run.quench?.grade)?1:0)+((run.polish?.coverage??0)>=0.95&&(run.polish?.scratches??1)===0?1:0);
 }
 // 格 (r) 5 天下五剣・天下三名槍など, 4 国宝, 3 重要文化財・御物, 2 重要美術品など, 1 そのほかの名物
-export const NEED={1:8,2:10,3:12,4:14,5:16};
+// owner D29 (#15) 「少し簡単に高い刀が作れすぎる」: raised from 8/10/12/14/16
+export const NEED={1:10,2:12,3:14,4:15,5:16};
 export const TIER_NAME={1:'名物',2:'重要美術品級',3:'重要文化財級',4:'国宝級',5:'天下の名刀'};
 function hash(s){let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)>>>0;}return h;}
 // Which real sword this run made: same 形, same 刃文, same 地鉄 era, enough successes. Ones not yet in the 刀帳 come first,

@@ -259,3 +259,45 @@ button{font:inherit;color:inherit}
 .bidders li.out{opacity:.4;text-decoration:line-through}.bidders li.lead{border:1px solid var(--gold)}.bidders b{color:#ffe08a}
 .voucher{margin-left:4px;padding:0 4px;border-radius:4px;background:#3d7a4a;color:#fff;font-style:normal;font-size:9.5px}
 .price em.req-hit{margin-left:6px}
+
+/* 名声と持ち主の旅 (#15) */
+.fame{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(239,230,210,.85);position:relative}
+.fame-lv{flex:none;padding:1px 6px;border-radius:5px;background:var(--gold);color:#1b1512;font-weight:800;font-size:11px}
+.fame>b{flex:none;font-family:var(--mincho);font-size:14px;color:#ffe08a}
+.fame>i{flex:1;min-width:30px;height:7px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden}
+.fame>i b{display:block;height:100%;background:linear-gradient(90deg,#9a6b25,var(--gold))}
+.fame small{flex:none;font-size:11px}
+.fame-delta{position:absolute;right:0;top:-14px;font-style:normal;font-weight:800;font-size:14px;animation:rise 1.4s ease-out forwards}
+.fame-delta.up{color:#b9f0b0}.fame-delta.down{color:#ff9f8a}
+@keyframes rise{from{opacity:1;transform:translateY(6px)}to{opacity:0;transform:translateY(-10px)}}
+.stars{color:#ffd56a;letter-spacing:-1px;font-size:.95em}.stars i{font-style:normal;color:rgba(239,230,210,.25)}
+.who small{margin-left:6px;font-size:11px;color:rgba(239,230,210,.75)}.who small.real{padding:0 5px;border-radius:4px;background:#8a2a1f;color:#fff;font-weight:700}
+.who{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 4px}
+.trip{margin:4px 0;padding:6px 8px;border-radius:9px;background:rgba(0,0,0,.32);border:1px dashed rgba(212,170,82,.35);display:flex;flex-direction:column;gap:2px}
+.trip p{margin:0;font-size:12px;line-height:1.5}.trip b{font-family:var(--mincho);font-size:14px;color:var(--paper);margin-right:4px}
+.trip .tx{color:rgba(239,230,210,.75);font-size:11.5px}
+.trip .eb{margin-left:6px;padding:0 5px;border-radius:4px;border:1px solid rgba(239,230,210,.4);font-size:10.5px}
+.pros{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;font-size:12px}
+.pros b{font-family:var(--mincho);font-size:14px}.pros small{font-size:11px;color:rgba(239,230,210,.75)}
+.p-とても高い,.p-高い{color:#b9f0b0}.p-ふつう{color:#ffe08a}.p-低い{color:#ffb38a}.p-あぶない{color:#ff8a7a}
+.pbar{display:flex;flex:1;min-width:70px;max-width:160px;height:7px;border-radius:4px;overflow:hidden;background:rgba(0,0,0,.4)}
+.pbar i{display:block;height:100%}.pbar .great{background:#ffd56a}.pbar .good{background:#7fcf7a}.pbar .hard{background:#8a8f99}.pbar .broke{background:#d0503c}
+.sw em .st{font-style:normal;margin-left:6px;color:rgba(239,230,210,.7);font-size:11px}
+.sw .pros{margin-top:2px}
+.req.named{border-color:#c0503c;box-shadow:0 0 0 2px rgba(192,80,60,.25)}
+.regs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.reg{padding:8px 10px;border-radius:12px;border:1px solid rgba(239,230,210,.18);background:rgba(20,13,10,.72);display:flex;flex-direction:column;gap:3px}
+.reg.away{border-color:rgba(212,170,82,.5)}
+.reg p{margin:0;font-size:12px;line-height:1.5}.reg .who b{font-family:var(--mincho);font-size:15px}
+.reg .status{color:var(--paper)}.reg .hold{color:rgba(239,230,210,.75)}.reg .story{color:rgba(239,230,210,.75);font-size:11.5px}
+.o-great{color:#ffd56a}.o-good{color:#b9f0b0}.o-hard{color:#c9cdd4}.o-broke{color:#ff8a7a}
+.letter{align-items:center;text-align:center}
+.letter .who{justify-content:center}.letter .trip-t{margin:0;font-family:var(--mincho);font-size:15px}
+.letter .say{text-align:left;font-size:15px}
+.letter .outcome{justify-content:center;font-size:34px;margin:0}
+.letter.o-great .outcome{color:#ffd56a;text-shadow:0 0 16px rgba(255,190,60,.6)}.letter.o-good .outcome{color:#b9f0b0}.letter.o-hard .outcome{color:#c9cdd4}.letter.o-broke .outcome{color:#ff8a7a}
+.mtags b.bad{color:#ff8a7a}
+.fame-news{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.7;color:var(--paper)}
+.give .trip{text-align:left}
+.deal small{display:block;font-family:var(--gothic);font-size:12px;color:rgba(239,230,210,.8);margin-top:2px}
+@media (max-width:380px){.tabs .chip-btn{font-size:13px;padding-left:2px;padding-right:2px}}
