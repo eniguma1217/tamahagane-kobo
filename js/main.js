@@ -1,6 +1,7 @@
 // The app shell: screens (title, form, materials, the forging steps, result, 刀帳, records), the canvas loop, input and the save.
 import * as R from './rules.js';
-import {loadSave,writeSave,addSword,bestSword,pay,START_MONEY} from './save.js';
+import {loadSave,writeSave,addSword,bestSword,pay,payBuild,sell,START_MONEY} from './save.js';
+import * as M from './market.js';
 import * as S from './sound.js';
 import * as D from './draw.js';
 import {MEITO} from './meito.js';
@@ -122,11 +123,12 @@ function showTitle(){
   <p class="title-money">所持金 ${yen(money())}文</p>
   <p class="title-rank">鍛冶師ランク <b>${rankNow().name}</b>${rankNow().next?`<small>次の「${rankNow().next}」まで：${rankNow().toNext}</small>`:''}</p>
   <div class="menu"><button class="btn primary big" data-go="forge">刀を打つ</button>
-  <div class="menu-row"><button class="btn" data-go="zukan">刀帳（${found()}/${MEITO.length}）</button>
-  <button class="btn" data-go="records" ${n?'':'disabled'}>打った刀（${n}振）</button></div></div>
+  <div class="menu-row"><button class="btn" data-go="shop">店（蔵${(save.kura||[]).length}）</button><button class="btn" data-go="zukan">刀帳 ${found()}/${MEITO.length}</button>
+  <button class="btn" data-go="records" ${n?'':'disabled'}>記録</button></div></div>
  </div>`;
  el.panel.querySelector('[data-go=forge]').onclick=()=>{S.unlock();S.tick();showForms();};
  el.panel.querySelector('[data-go=zukan]').onclick=()=>{S.unlock();S.tick();showZukan();};
+ el.panel.querySelector('[data-go=shop]').onclick=()=>{S.unlock();S.tick();showShop();};
  el.panel.querySelector('[data-go=records]').onclick=()=>{S.tick();showRecords();};
 }
 
@@ -152,13 +154,15 @@ function showMaterials(){
  renderMaterials();
 }
 const yenOr=n=>n?`${yen(n)}文`:'無料';
+// what a build costs after the free vouchers (one per piece)
+function costWithVouchers(mats){const v={...(save.vouchers||{})};let c=0;for(const id of mats){if(v[id]>0)v[id]--;else c+=R.material(id).price;}return c;}
 function renderMaterials(){
  const open=rankNow().open;
  if(!open.structures.has(pick.structure))pick.structure='kobuse';
  for(const k of ['kawa','shin','ha','mune'])if(pick[k]&&!open.materials.has(pick[k]))pick[k]=null;
  const st=R.structure(pick.structure);
  if(!st.slots.includes(pick.active))pick.active=st.slots.find(k=>!pick[k])||st.slots[0];
- const ready=R.buildReady(pick),c=ready?R.combine(pick):null,cost=R.buildCost(pick),enough=cost<=money();
+ const ready=R.buildReady(pick),c=ready?R.combine(pick):null,cost=costWithVouchers(R.buildMats(pick)),enough=cost<=money();
  const used=st.slots.filter(k=>pick[k]);
  el.panel.innerHTML=`<div class="mats-screen">
   <div class="structs">${R.STRUCTURES.map(t=>{const lk=!open.structures.has(t.id);return `<button class="chip-btn ${t.id===st.id?'on':''} ${lk?'locked':''}" data-struct="${t.id}" ${lk?`data-lock="${R.opensAt('structures',t.id)}"`:''}>${lk?'🔒':''}${t.name}</button>`;}).join('')}</div>
@@ -166,7 +170,7 @@ function renderMaterials(){
   <p class="era-line">${eraLine()}</p>
   <div class="mats">${R.MATERIALS.map(m=>{const marks=used.filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');
    const lk=!open.materials.has(m.id);
-   return `<button class="mat ${marks?'picked':''} ${lk?'locked':''}" data-mat="${m.id}" ${lk?`data-lock="${R.opensAt('materials',m.id)}"`:''}><em class="era-tag ${m.era?'':'none'}">${lk?lockText('materials',m.id):m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}</small></span></button>`;}).join('')}</div>
+   return `<button class="mat ${marks?'picked':''} ${lk?'locked':''}" data-mat="${m.id}" ${lk?`data-lock="${R.opensAt('materials',m.id)}"`:''}><em class="era-tag ${m.era?'':'none'}">${lk?lockText('materials',m.id):m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}${save.vouchers?.[m.id]?`<i class="voucher">無料券${save.vouchers[m.id]}</i>`:''}</small></span></button>`;}).join('')}</div>
   <p class="cost-line ${enough?'':'short'}">材料代 <b>${yen(cost)}</b>文　所持金 <b>${yen(money())}</b>文</p>
  </div>`;
  const locked=b=>{if(!b.dataset.lock)return false;api.say(`まだ使えない。鍛冶師ランク「<b>${b.dataset.lock}</b>」になると使える。`);return true;};
@@ -201,8 +205,9 @@ function eraLine(){
 let forgeIndex=-1;
 function startForging(auto=false){
  const build={structure:pick.structure,...Object.fromEntries(R.structure(pick.structure).slots.map(k=>[k,pick[k]]))};
- const paid=pay(save,R.buildCost(build));if(!paid)return;
- save=paid;writeSave(window.localStorage,save);
+ if((save.kura||[]).length>=M.KURA_MAX)return api.say(`蔵がいっぱいだ（${M.KURA_MAX}振）。<b>店</b>で売ってから打て。`);
+ const paid=payBuild(save,R.buildMats(build),id=>R.material(id).price);if(!paid)return;
+ const {used,cost,...rest}=paid;save=rest;writeSave(window.localStorage,save);
  api.run={form:pick.form,...build};forgeIndex=-1;
  if(auto)return autoForging(build);el.panel.innerHTML='';forgeNext();
 }
@@ -240,12 +245,12 @@ function showResult(){
   ${m?`<p class="desc">${m.x}</p>`:`<p class="hint">${sword.hint}</p>`}
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
-  <p class="price">売値 <b>${yen(sword.price)}</b> 文<small>所持金 ${yen(money())}文</small></p>
+  <p class="price">相場 <b>${yen(sword.price)}</b> 文<small>蔵に入れた（蔵 ${(save.kura||[]).length}振・所持金 ${yen(money())}文）${(save.requests||[]).some(q=>M.matchesRequest(sword,q))?'<em class="req-hit">依頼に合う！</em>':''}</small></p>
   <div class="chips">${g.auto?chip('打ち方',`おまかせ${Math.round(g.autoRate*100)}%`):''}${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
- const again=R.buildReady(pick)&&R.buildCost(pick)<=money();
- api.controls([{label:'刀帳',onClick:()=>showZukan(sword.meito)},{label:'おまかせ',disabled:!again,onClick:()=>startForging(true)},{label:'もう一振り',primary:true,onClick:showForms}]);
+ const again=R.buildReady(pick)&&costWithVouchers(R.buildMats(pick))<=money()&&(save.kura||[]).length<M.KURA_MAX;
+ api.controls([{label:'店へ',onClick:()=>showShop()},{label:'おまかせ',disabled:!again,onClick:()=>startForging(true)},{label:'もう一振り',primary:true,onClick:showForms}]);
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
  if(isNew)api.pop('名刀','best');
  if(after.index>before.index)api.later(isNew?1300:300,()=>showRankUp(before,after));
@@ -258,6 +263,102 @@ function showRankUp(before,after){
   ${names.length?`<p class="mtags">新しく使える：<b>${names.join('・')}</b></p>`:''}${after.next?`<p class="mfound">次の「${after.next}」まで：${after.toNext}</p>`:'<p class="mfound">いちばん上のランクです。</p>'}
   <button class="btn primary" data-close>とじる</button></div>`;
  closable(box);el.panel.append(box);S.phrase(5);api.pop(after.name,'best');
+}
+
+// ---------- 店 (#12): 依頼・店先・競り・蔵 ----------
+let shopTab='irai',customer=null,auction=null,auctionPick=null,auctionReserve=0,kuraPick=null;
+const rngNext=()=>{const r=R.seededRandom((save.seq||1)*7919+13);save={...save,seq:(save.seq||1)+1};return r;};
+function ensureRequests(){
+ const reqs=[...(save.requests||[])];let changed=false;
+ while(reqs.length<M.REQUESTS_MAX){reqs.push({id:save.seq||1,...M.makeRequest(rngNext(),rankNow().index,MEITO)});changed=true;}
+ if(changed){save={...save,requests:reqs};writeSave(window.localStorage,save);}
+}
+function showShop(tab){
+ if(tab)shopTab=tab;
+ // an auction left half-way is called off; the sword stays in the 蔵
+ if(auction&&!auction.done)auction=null;
+ mode('shop');setScene(new Ambient(api,'shop','plain',{dim:0.55}));
+ api.controls([{label:'タイトルへ',onClick:showTitle},{label:'刀を打つ',primary:true,onClick:showForms}]);
+ ensureRequests();renderShop();
+}
+function swordLine(s,extra=''){const m=s.meito?MEITO.find(x=>x.n===s.meito):null;
+ return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.era?'・'+R.ERAS[s.era].name:''}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}</small><em>相場 ${yen(s.price)}文</em>${extra}</span>`;}
+function renderShop(){
+ const kura=save.kura||[],tabs=[['irai','依頼'],['mise','店先'],['seri','競り'],['kura',`蔵 ${kura.length}`]];
+ let body='';
+ if(shopTab==='irai')body=`<ul class="reqs">${save.requests.map(q=>{const c=M.CLIENTS[q.client],fit=kura.filter(s=>M.matchesRequest(s,q));
+  return `<li class="req ${fit.length?'fit':''}"><p class="who">${c.face} <b>${c.name}</b>「${c.hello}」</p><p class="what">${M.requestText(q)}</p>
+   <p class="reward">お礼 <b>${yen(q.reward)}</b>文${q.gift?`＋<b>${R.material(q.gift).name}</b>の無料券`:''}</p>
+   <div class="row"><button class="btn small" data-skip="${q.id}">見送る</button><button class="btn small primary" data-give="${q.id}" ${fit.length?'':'disabled'}>${fit.length?`納める（蔵に${fit.length}振）`:'合う刀がない'}</button></div></li>`;}).join('')}</ul>`;
+ if(shopTab==='mise'){
+  if(!customer)body=`<div class="mise"><p class="mise-note">お客さんが蔵の刀に値をつける。<br>高く売りたいなら「上げる」「ふっかける」。ただし、しつこいと帰ってしまう。</p>
+   <p>来てくれるお客さん：<b>${save.customers??0}人</b>（刀を1振打つと2人増える）</p>
+   <button class="btn primary" data-call ${(save.customers??0)>0&&kura.length?'':'disabled'}>${kura.length?'お客さんを呼ぶ':'蔵に刀がない'}</button></div>`;
+  else{const c=M.CLIENTS[customer.client],s=kura.find(x=>x.no===customer.swordId)||save.swords.find(x=>x.no===customer.swordId);
+   const said={hello:`「この刀、${yen(customer.offer)}文でどうだ」`,close:`「うーむ……それは少し高いな。${yen(customer.offer)}文なら」`,far:`「高すぎる！ ${yen(customer.offer)}文がせいぜいだ」`,
+    happy:`「よし、買った！」`,angry:'「話にならん。帰る！」',bye:'「そうか……邪魔したな」'}[customer.mood];
+   const over=customer.sold||customer.left;
+   body=`<div class="mise"><p class="who big">${c.face} <b>${c.name}</b></p>${s?swordLine(s):''}<p class="say ${customer.mood}">${said}</p>
+    ${over?`<p class="deal">${customer.sold?`<b>${yen(customer.price)}文</b>で売れた！`:'売れなかった。'}</p><button class="btn primary" data-next ${(save.customers??0)>0&&kura.length?'':'disabled'}>次のお客さん（あと${save.customers??0}人）</button>`
+    :`<p class="patience">がまん ${'●'.repeat(customer.patience)}${'○'.repeat(Math.max(0,3-customer.patience))}</p>
+     <div class="row4"><button class="btn small" data-h="refuse">断る</button><button class="btn small" data-h="push">ふっかける</button><button class="btn small" data-h="nudge">少し上げる</button><button class="btn small primary" data-h="sell">売る ${yen(customer.offer)}</button></div>`}</div>`;}
+ }
+ if(shopTab==='seri'){
+  if(!auction)body=`<div class="seri"><p class="mise-note">蔵の刀を競りに出す。名刀や出来のいい刀ほど、大物が来て値がつり上がる（手数料1割）。</p>
+   <ul class="kura pick">${kura.map(s=>`<li><button class="kura-row ${auctionPick===s.no?'on':''}" data-apick="${s.no}">${swordLine(s)}</button></li>`).join('')||'<li class="empty">蔵に刀がない</li>'}</ul>
+   <div class="row"><span class="lbl">最低価格</span>${[[0,'なし'],[1,'相場'],[1.5,'相場×1.5']].map(([k,n])=>`<button class="chip-btn ${auctionReserve===k?'on':''}" data-res="${k}">${n}</button>`).join('')}</div>
+   <button class="btn primary" data-start ${auctionPick&&kura.some(s=>s.no===auctionPick)?'':'disabled'}>競りに出す</button></div>`;
+  else{const s=save.swords.find(x=>x.no===auction.swordId);
+   body=`<div class="seri"><p class="who big">競り：<b>${s?.name||''}</b></p><p class="bid">${yen(auction.price)}<small>文</small></p>
+    <ul class="bidders">${auction.bidders.map((b,i)=>`<li class="${b.out?'out':''} ${auction.leader===i?'lead':''}">${b.name}<b>${b.last?yen(b.last)+'文':'—'}</b></li>`).join('')}</ul>
+    ${auction.done?`<p class="deal">${auction.sold?`落札！ <b>${yen(auction.price)}文</b>（手取り ${yen(auction.net)}文）`:`不成立（最低価格 ${yen(auction.reserve)}文に届かず）`}</p><button class="btn primary" data-aend>とじる</button>`:'<p class="mise-note">値が上がっていく……</p>'}</div>`;}
+ }
+ if(shopTab==='kura')body=`<ul class="kura">${kura.slice().reverse().map(s=>{const fit=(save.requests||[]).some(q=>M.matchesRequest(s,q));
+  return `<li><button class="kura-row ${kuraPick===s.no?'on':''}" data-kpick="${s.no}">${swordLine(s,fit?'<i class="req-hit">依頼に合う</i>':'')}</button>${kuraPick===s.no?`<div class="row"><button class="btn small" data-quick="${s.no}">売り払う ${yen(Math.round(s.price*M.QUICK_RATE/50)*50)}文</button><button class="btn small" data-tosel="${s.no}">競りへ</button></div>`:''}</li>`;}).join('')||'<li class="empty">蔵に刀がない。打てばここにたまる。</li>'}</ul>`;
+ el.panel.innerHTML=`<div class="shop"><div class="shop-head"><b>所持金 ${yen(money())}文</b><small>蔵 ${kura.length}/${M.KURA_MAX}・${rankNow().name}</small></div>
+  <div class="filters tabs">${tabs.map(([id,n])=>`<button class="chip-btn ${shopTab===id?'on':''}" data-tab="${id}">${n}</button>`).join('')}</div><div class="shop-body">${body}</div></div>`;
+ const on=(sel,fn)=>{for(const b of el.panel.querySelectorAll(sel))b.onclick=()=>{S.unlock();S.tick();fn(b);};};
+ on('[data-tab]',b=>{if(auction&&!auction.done)return;shopTab=b.dataset.tab;renderShop();});
+ on('[data-skip]',b=>{save={...save,requests:save.requests.filter(q=>q.id!==+b.dataset.skip)};ensureRequests();renderShop();});
+ on('[data-give]',b=>giveRequest(+b.dataset.give));
+ on('[data-call]',()=>callCustomer());on('[data-next]',()=>callCustomer());
+ on('[data-h]',b=>{customer=M.haggle(customer,b.dataset.h);
+  if(customer.sold){save=sell(save,customer.swordId,customer.price,'shop',{client:customer.client});writeSave(window.localStorage,save);S.phrase(3);api.pop(`${yen(customer.price)}文`,'best');}
+  renderShop();});
+ on('[data-apick]',b=>{auctionPick=+b.dataset.apick;renderShop();});
+ on('[data-res]',b=>{auctionReserve=+b.dataset.res;renderShop();});
+ on('[data-start]',()=>startAuction());
+ on('[data-aend]',()=>{auction=null;auctionPick=null;renderShop();});
+ on('[data-kpick]',b=>{kuraPick=kuraPick===+b.dataset.kpick?null:+b.dataset.kpick;renderShop();});
+ on('[data-quick]',b=>{const s=save.kura.find(x=>x.no===+b.dataset.quick);const amt=Math.round(s.price*M.QUICK_RATE/50)*50;
+  save=sell(save,s.no,amt,'quick');writeSave(window.localStorage,save);kuraPick=null;api.pop(`${yen(amt)}文`,'good');renderShop();});
+ on('[data-tosel]',b=>{auctionPick=+b.dataset.tosel;shopTab='seri';renderShop();});
+}
+function callCustomer(){
+ if(!(save.customers>0)||!save.kura.length)return;
+ customer=M.newCustomer(rngNext(),save.kura);save={...save,customers:save.customers-1};writeSave(window.localStorage,save);renderShop();
+}
+function giveRequest(id){
+ const q=save.requests.find(x=>x.id===id),fit=save.kura.filter(s=>M.matchesRequest(s,q));if(!fit.length)return;
+ // the plainest sword that fits goes (keep the better ones)
+ const s=fit.slice().sort((a,b)=>a.price-b.price)[0];
+ save=sell(save,s.no,q.reward,'request',{client:q.client});
+ const vouchers={...(save.vouchers||{})};if(q.gift)vouchers[q.gift]=(vouchers[q.gift]||0)+1;
+ save={...save,vouchers,requests:save.requests.filter(x=>x.id!==id)};ensureRequests();writeSave(window.localStorage,save);
+ S.phrase(4);api.pop(`${yen(q.reward)}文`,'best');
+ api.say?.('');renderShop();
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${M.CLIENTS[q.client].face} ${M.CLIENTS[q.client].name}「ありがたい。いい刀だ」</p><h3>${yen(q.reward)}文</h3><p class="mtags">納めた刀：<b>${s.name}</b>${q.gift?`<br>お礼に <b>${R.material(q.gift).name}の無料券</b> をもらった`:''}</p><button class="btn primary" data-close>とじる</button></div>`;
+ closable(box);el.panel.append(box);
+}
+function startAuction(){
+ const s=save.kura.find(x=>x.no===auctionPick);if(!s)return;
+ const rng=rngNext();auction=M.newAuction(rng,s,Math.round(s.price*auctionReserve));renderShop();
+ const tick=()=>{if(!auction||auction.done)return;auction=M.auctionStep(auction,rng);S.tick();
+  if(auction.done){if(auction.sold){save=sell(save,auction.swordId,auction.net,'auction',{price:auction.price});S.phrase(5);api.pop('落札','best');}writeSave(window.localStorage,save);}
+  else api.later(420,tick);
+  if(el.app.dataset.mode==='shop')renderShop();};
+ api.later(600,tick);
 }
 
 // ---------- 刀帳 ----------
@@ -317,7 +418,7 @@ function showRecords(){
  const best=bestSword(save),sum=save.swords.reduce((s,x)=>s+x.price,0);
  el.panel.innerHTML=`<div class="records">
   <h2>打った刀 <small>${save.forged}振</small></h2>
-  <p class="rec-sum">鍛冶師ランク <b>${rankNow().name}</b>　売値の合計 <b>${yen(sum)}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
+  <p class="rec-sum">鍛冶師ランク <b>${rankNow().name}</b>　売り上げ <b>${yen((save.ledger||[]).reduce((t,x)=>t+x.amount,0))}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
   <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}${s.crack?'・割れ':''}</small></span>${gradeBadge(gradeOf(s))}<span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
  </div>`;
  api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);

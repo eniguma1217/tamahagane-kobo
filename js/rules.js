@@ -277,9 +277,11 @@ export const GRADES=[
 ];
 export const gradeFor=(overall,crack=false)=>crack?GRADES[0]:GRADES.slice().reverse().find(g=>overall>=g.min);
 const PRICE_BY_GRADE={E:200,D:700,C:2000,B:5000,A:10000,S:18000,SS:30000};
+export const GRADE_VALUE=PRICE_BY_GRADE;
 // 名刀ランク (#9, owner D23)
 export const MEITO_RANK={1:{name:'名物',color:'#b7c0c8'},2:{name:'名品',color:'#7fb8ff'},3:{name:'重文級',color:'#c79bff'},4:{name:'国宝級',color:'#ff8a6a'},5:{name:'天下',color:'#ffd56a'}};
 const MEITO_PRICE={1:20000,2:40000,3:80000,4:200000,5:600000};
+export const MEITO_VALUE=MEITO_PRICE;
 export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84?4:5;
 export function finishSword(run,list=[],collection={}){
  const c=combine(run.structure?run:{structure:run.shin?'kobuse':'maru',kawa:run.kawa,shin:run.shin});
