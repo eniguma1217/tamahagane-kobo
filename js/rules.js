@@ -270,7 +270,15 @@ export function meitoHint(list,{form,hamon,era,mats=[],kind,successes,crack}){
 
 // ---- 仕上がり
 export const RANKS=['なまくら','並物','良品','業物','名刀'];
-const PRICE_BASE=[200,900,3000,8000,20000];
+// 出来ランク (#9, owner D22): the top four are the names of the Edo-period cutting ranks (懐宝剣尺)
+export const GRADES=[
+ {id:'E',name:'なまくら',min:0},{id:'D',name:'並物',min:30},{id:'C',name:'良品',min:45},{id:'B',name:'業物',min:60},
+ {id:'A',name:'良業物',min:72},{id:'S',name:'大業物',min:84},{id:'SS',name:'最上大業物',min:94}
+];
+export const gradeFor=(overall,crack=false)=>crack?GRADES[0]:GRADES.slice().reverse().find(g=>overall>=g.min);
+const PRICE_BY_GRADE={E:200,D:700,C:2000,B:5000,A:10000,S:18000,SS:30000};
+// 名刀ランク (#9, owner D23)
+export const MEITO_RANK={1:{name:'名物',color:'#b7c0c8'},2:{name:'名品',color:'#7fb8ff'},3:{name:'重文級',color:'#c79bff'},4:{name:'国宝級',color:'#ff8a6a'},5:{name:'天下',color:'#ffd56a'}};
 const MEITO_PRICE={1:20000,2:40000,3:80000,4:200000,5:600000};
 export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84?4:5;
 export function finishSword(run,list=[],collection={}){
@@ -288,12 +296,35 @@ export function finishSword(run,list=[],collection={}){
  const formId=run.form||'katana',successes=successCount(run);
  const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`};
  const meito=pickMeito(list,pick,collection);
- const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BASE[stars-1]*(0.85+overall/200)/50)*50;
+ const grade=gradeFor(overall,crack);
+ const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BY_GRADE[grade.id]*(0.85+overall/200)/50)*50;
  return {name:meito?meito.n:`無銘の${form(formId).name}`,meito:meito?meito.n:null,tier:meito?meito.r:0,form:formId,era:c.era,successes,
-  hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],stats,overall,price,crack,
+  hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],grade:grade.id,gradeName:grade.name,stats,overall,price,crack,
   hamon:run.hamon.type,profile:run.hamon.profile,sori:soriFor(Q),kawa:c.kawa.id,shin:c.shin?.id||null,ha:c.ha?.id||null,mune:c.mune?.id||null,structure:c.structure,combo:c.kind,cost:c.cost,
   steps:{heat:H,hammer:M,hamon:T,quench:Q,polish:P}};
 }
+
+// ---- 鍛冶師ランク (#9, owner D24; the thresholds and what each opens are Claude's proposal, GAME_SPEC G13)
+// A rank is reached when its condition holds (by swords forged, by real swords in the 刀帳); what it opens adds up.
+export const SMITH_RANKS=[
+ {name:'見習い',forged:0,meito:0,forms:['katana','wakizashi','tanto'],structures:['maru','kobuse'],materials:['nami','jou','oroshi','houcho','zuku']},
+ {name:'鍛冶',forged:3,meito:0,forms:['tachi'],structures:[],materials:['kera']},
+ {name:'刀工',forged:0,meito:1,forms:['odachi'],structures:['sanmai'],materials:['chikusa','kugi']},
+ {name:'名工',forged:0,meito:10,forms:['naginata','yari'],structures:['shiho'],materials:['nanban']},
+ {name:'名匠',forged:0,meito:30,forms:['ken','chokuto'],structures:[],materials:['hakusai']},
+ {name:'刀聖',forged:0,meito:80,forms:[],structures:[],materials:['inseki']},
+ {name:'人間国宝',forged:0,meito:150,forms:[],structures:[],materials:[]}
+];
+export function smithRank({forged=0,meito=0}){
+ let i=0;SMITH_RANKS.forEach((r,k)=>{if(forged>=r.forged&&meito>=r.meito)i=k;});
+ const open={forms:new Set(),structures:new Set(),materials:new Set()};
+ for(const r of SMITH_RANKS.slice(0,i+1))for(const k of ['forms','structures','materials'])r[k].forEach(x=>open[k].add(x));
+ const next=SMITH_RANKS.slice(i+1).find(r=>r);
+ const toNext=next?(next.meito>meito?`名刀あと${next.meito-meito}振`:`あと${next.forged-forged}振打つ`):null;
+ return {index:i,name:SMITH_RANKS[i].name,next:next?.name||null,toNext,open};
+}
+// which rank first opens a form, material or 造り込み
+export function opensAt(kind,id){const r=SMITH_RANKS.find(r=>r[kind].includes(id));return r?r.name:null;}
 
 // ---- 鋼の色: temperature (°C) to the colour the steel glows.
 const GLOW=[[500,[42,40,44]],[650,[92,26,16]],[800,[176,37,15]],[950,[232,87,26]],[1100,[255,180,58]],[1200,[255,240,138]],[1300,[255,255,255]]];

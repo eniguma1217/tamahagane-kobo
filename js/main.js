@@ -65,7 +65,12 @@ function matIcon(id,size=40){
  return `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true">${body}</svg>`;
 }
 const yen=n=>n.toLocaleString('ja-JP');
-const starStr=n=>'★'.repeat(n)+'☆'.repeat(5-n);
+// ranks (#9)
+const rankNow=()=>R.smithRank({forged:save.forged||0,meito:found()});
+const gradeOf=s=>s.grade?R.GRADES.find(g=>g.id===s.grade):R.gradeFor(s.overall??0,s.crack);
+const gradeBadge=(g,big=false)=>`<span class="grade g-${g.id}${big?' big':''}"><b>${g.id}</b>${g.name}</span>`;
+const meitoBadge=r=>`<span class="mrank" style="--c:${R.MEITO_RANK[r].color}">${R.MEITO_RANK[r].name}</span>`;
+const lockText=(kind,id)=>`🔒${R.opensAt(kind,id)}`;
 
 // ---------- small pictures of swords (drawn once, kept as images) ----------
 const thumbs=new Map(),thumbCv=document.createElement('canvas');
@@ -115,6 +120,7 @@ function showTitle(){
   <div class="title-name"><h1>玉鋼工房</h1><span class="seal">工房</span></div>
   <p class="title-sub">たまはがね こうぼう</p>
   <p class="title-money">所持金 ${yen(money())}文</p>
+  <p class="title-rank">鍛冶師ランク <b>${rankNow().name}</b>${rankNow().next?`<small>次の「${rankNow().next}」まで：${rankNow().toNext}</small>`:''}</p>
   <div class="menu"><button class="btn primary big" data-go="forge">刀を打つ</button>
   <div class="menu-row"><button class="btn" data-go="zukan">刀帳（${found()}/${MEITO.length}）</button>
   <button class="btn" data-go="records" ${n?'':'disabled'}>打った刀（${n}振）</button></div></div>
@@ -132,8 +138,11 @@ function showForms(){
  api.controls([{label:'タイトルへ',onClick:showTitle}]);
  el.panel.innerHTML=`<div class="forms-screen"><div class="forms">${R.FORMS.map(f=>{
   const all=MEITO.filter(m=>m.t===f.id),got=all.filter(m=>save.collection[m.n]).length;
-  return `<button class="form-card ${pick.form===f.id?'on':''}" data-form="${f.id}"><img alt="" src="${swordPic(f.id,null,160,40,'f:'+f.id+':c',{widScale:1.7})}"><b>${f.name}</b><span>${f.note}</span><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
- for(const b of el.panel.querySelectorAll('[data-form]'))b.onclick=()=>{S.unlock();S.tick();pick.form=b.dataset.form;showMaterials();};
+  const locked=!rankNow().open.forms.has(f.id);
+  return `<button class="form-card ${pick.form===f.id?'on':''} ${locked?'locked':''}" data-form="${f.id}" ${locked?`data-lock="${R.opensAt('forms',f.id)}"`:''}>${locked?`<em class="lock">${lockText('forms',f.id)}</em>`:''}<img alt="" src="${swordPic(f.id,null,160,40,'f:'+f.id+':c',{widScale:1.7})}"><b>${f.name}</b><span>${f.note}</span><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
+ for(const b of el.panel.querySelectorAll('[data-form]'))b.onclick=()=>{S.unlock();S.tick();
+  if(b.dataset.lock)return api.say(`${R.form(b.dataset.form).name}は、鍛冶師ランク「<b>${b.dataset.lock}</b>」になると打てる。`);
+  pick.form=b.dataset.form;showMaterials();};
 }
 function showMaterials(){
  if(!pick.form)return showForms();
@@ -144,21 +153,26 @@ function showMaterials(){
 }
 const yenOr=n=>n?`${yen(n)}文`:'無料';
 function renderMaterials(){
+ const open=rankNow().open;
+ if(!open.structures.has(pick.structure))pick.structure='kobuse';
+ for(const k of ['kawa','shin','ha','mune'])if(pick[k]&&!open.materials.has(pick[k]))pick[k]=null;
  const st=R.structure(pick.structure);
  if(!st.slots.includes(pick.active))pick.active=st.slots.find(k=>!pick[k])||st.slots[0];
  const ready=R.buildReady(pick),c=ready?R.combine(pick):null,cost=R.buildCost(pick),enough=cost<=money();
  const used=st.slots.filter(k=>pick[k]);
  el.panel.innerHTML=`<div class="mats-screen">
-  <div class="structs">${R.STRUCTURES.map(t=>`<button class="chip-btn ${t.id===st.id?'on':''}" data-struct="${t.id}">${t.name}</button>`).join('')}</div>
+  <div class="structs">${R.STRUCTURES.map(t=>{const lk=!open.structures.has(t.id);return `<button class="chip-btn ${t.id===st.id?'on':''} ${lk?'locked':''}" data-struct="${t.id}" ${lk?`data-lock="${R.opensAt('structures',t.id)}"`:''}>${lk?'🔒':''}${t.name}</button>`;}).join('')}</div>
   <div class="slots">${st.slots.map(k=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${R.SLOTS[k].name}</small><b>${m?m.name:'えらぶ'}</b><em>${R.SLOTS[k].role}</em></button>`;}).join('')}</div>
   <p class="era-line">${eraLine()}</p>
   <div class="mats">${R.MATERIALS.map(m=>{const marks=used.filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');
-   return `<button class="mat ${marks?'picked':''}" data-mat="${m.id}"><em class="era-tag ${m.era?'':'none'}">${m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}</small></span></button>`;}).join('')}</div>
+   const lk=!open.materials.has(m.id);
+   return `<button class="mat ${marks?'picked':''} ${lk?'locked':''}" data-mat="${m.id}" ${lk?`data-lock="${R.opensAt('materials',m.id)}"`:''}><em class="era-tag ${m.era?'':'none'}">${lk?lockText('materials',m.id):m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}</small></span></button>`;}).join('')}</div>
   <p class="cost-line ${enough?'':'short'}">材料代 <b>${yen(cost)}</b>文　所持金 <b>${yen(money())}</b>文</p>
  </div>`;
- for(const b of el.panel.querySelectorAll('[data-struct]'))b.onclick=()=>{S.tick();pick.structure=b.dataset.struct;renderMaterials();};
+ const locked=b=>{if(!b.dataset.lock)return false;api.say(`まだ使えない。鍛冶師ランク「<b>${b.dataset.lock}</b>」になると使える。`);return true;};
+ for(const b of el.panel.querySelectorAll('[data-struct]'))b.onclick=()=>{S.tick();if(locked(b))return;pick.structure=b.dataset.struct;renderMaterials();};
  for(const b of el.panel.querySelectorAll('[data-slot]'))b.onclick=()=>{S.tick();pick.active=b.dataset.slot;renderMaterials();};
- for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();pick[pick.active]=b.dataset.mat;pick.last=b.dataset.mat;
+ for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();if(locked(b))return;pick[pick.active]=b.dataset.mat;pick.last=b.dataset.mat;
   const next=st.slots.find(k=>!pick[k]);if(next)pick.active=next;renderMaterials();};
  const go=el.controls.querySelector('.btn.primary');go.disabled=!(ready&&enough);go.textContent=cost?`これで打つ（${yen(cost)}文）`:'これで打つ';
  api.say(materialsTalk(st,c,cost,enough),c&&c.kind!=='gyaku'&&c.era&&enough?'happy':'normal');
@@ -201,7 +215,9 @@ function forgeNext(){
 function showResult(){
  const sword=R.finishSword(api.run,MEITO,save.collection);
  const isNew=!!sword.meito&&!save.collection[sword.meito];
+ const before=rankNow();
  save=addSword(save,sword);writeSave(window.localStorage,save);
+ const after=rankNow();
  mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.meito?Math.max(4,sword.stars):sword.stars);
  const g=api.run,chip=(k,v)=>`<span><small>${k}</small>${v}</span>`,m=sword.meito?MEITO.find(x=>x.n===sword.meito):null;
  const hits=(g.hitGrades||[]).filter(x=>x==='best').length,F=R.form(sword.form).name;
@@ -211,7 +227,7 @@ function showResult(){
   <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
   <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}　<b class="des">${m.d}</b>`:`${R.HAMON_NAME[sword.hamon]}・${{kobuse:'甲伏せ',maru:'丸鍛え',sanmai:'本三枚',shiho:'四方詰め',gyaku:'あべこべ'}[sword.combo]}（${[sword.kawa,sword.shin,sword.ha,sword.mune].filter(Boolean).map(id=>R.material(id).name).join('＋')}）`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
   ${m?`<p class="desc">${m.x}</p>`:`<p class="hint">${sword.hint}</p>`}
-  <div class="stars s${sword.stars}">${starStr(sword.stars)}<span>${sword.rank}</span><em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
+  <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
   <p class="price">売値 <b>${yen(sword.price)}</b> 文<small>所持金 ${yen(money())}文</small></p>
   <div class="chips">${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
@@ -220,10 +236,20 @@ function showResult(){
  api.controls([{label:'刀帳',onClick:()=>showZukan(sword.meito)},{label:'もう一振り',primary:true,onClick:showForms}]);
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
  if(isNew)api.pop('名刀','best');
+ if(after.index>before.index)api.later(isNew?1300:300,()=>showRankUp(before,after));
+}
+function showRankUp(before,after){
+ const opened=R.SMITH_RANKS.slice(before.index+1,after.index+1);
+ const names=[...opened.flatMap(r=>r.forms.map(f=>R.form(f).name)),...opened.flatMap(r=>r.structures.map(t=>R.structure(t).name)),...opened.flatMap(r=>r.materials.map(x=>R.material(x).name))];
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">鍛冶師ランクが上がった！</p><h3>${after.name}</h3>
+  ${names.length?`<p class="mtags">新しく使える：<b>${names.join('・')}</b></p>`:''}${after.next?`<p class="mfound">次の「${after.next}」まで：${after.toNext}</p>`:'<p class="mfound">いちばん上のランクです。</p>'}
+  <button class="btn primary" data-close>とじる</button></div>`;
+ closable(box);el.panel.append(box);S.phrase(5);api.pop(after.name,'best');
 }
 
 // ---------- 刀帳 ----------
-let zukanFilter='all';
+let zukanFilter='all',zukanRank=0;
 function showZukan(open=null){
  mode('zukan');setScene(new Ambient(api,'zukan','plain',{dim:0.5}));
  api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
@@ -231,16 +257,18 @@ function showZukan(open=null){
  if(open)showMeito(open);
 }
 function renderZukan(){
- const list=MEITO.filter(m=>zukanFilter==='all'||m.t===zukanFilter);
+ const list=MEITO.filter(m=>(zukanFilter==='all'||m.t===zukanFilter)&&(!zukanRank||m.r===zukanRank));
  const got=list.filter(m=>save.collection[m.n]).length;
  el.panel.innerHTML=`<div class="zukan">
   <h2>刀帳 <small>${found()}/${MEITO.length}振</small></h2>
   <div class="filters">${[['all','全部'],...R.FORMS.map(f=>[f.id,f.name])].map(([id,n])=>`<button class="chip-btn ${zukanFilter===id?'on':''}" data-filter="${id}">${n}</button>`).join('')}</div>
+  <div class="filters">${[[0,'全ランク'],...[5,4,3,2,1].map(r=>[r,R.MEITO_RANK[r].name])].map(([r,n])=>`<button class="chip-btn ${zukanRank===r?'on':''}" data-rank="${r}" ${r?`style="--c:${R.MEITO_RANK[r].color}"`:''}>${n}</button>`).join('')}</div>
   <p class="zukan-sum">${zukanFilter==='all'?'すべて':R.form(zukanFilter).name}：${got}/${list.length}振</p>
   <ul class="zgrid">${list.map(m=>{const c=save.collection[m.n];return `<li><button class="zcell ${c?'got':''}" data-meito="${m.n}">
-   <span class="zpic" data-pic="${m.n}"></span><b>${c?m.n:'？？？'}</b><small>${R.form(m.t).name}・${R.ERAS[m.e].name}${m.r>=4?`・${m.r>=5?'★':''}${m.d}`:''}</small></button></li>`;}).join('')}</ul>
+   <span class="zpic" data-pic="${m.n}"></span><b>${c?m.n:'？？？'}</b><small>${meitoBadge(m.r)} ${R.form(m.t).name}・${R.ERAS[m.e].name}</small></button></li>`;}).join('')}</ul>
  </div>`;
  for(const b of el.panel.querySelectorAll('[data-filter]'))b.onclick=()=>{S.tick();zukanFilter=b.dataset.filter;renderZukan();};
+ for(const b of el.panel.querySelectorAll('[data-rank]'))b.onclick=()=>{S.tick();zukanRank=+b.dataset.rank;renderZukan();};
  for(const b of el.panel.querySelectorAll('[data-meito]'))b.onclick=()=>{S.tick();showMeito(b.dataset.meito);};
  // pictures only for the cells that come into view
  const io=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const sp=e.target,m=MEITO.find(x=>x.n===sp.dataset.pic);
@@ -255,12 +283,12 @@ function showMeito(name){
  box.innerHTML=`<div class="sheet meito-sheet"><div class="sheet-body">
   <img class="big-pic" alt="" src="${c?meitoPic(m,320,56):swordPic(m.t,null,320,56,'f:'+m.t+':b')}">
   ${c?`<h3>${m.n}<small>${m.k}</small></h3>
-   <p class="mtags">${F}・${R.ERAS[m.e].long}・${m.s}${m.sc?`（${m.sc}）`:''}<br><b>${m.d}</b>${size?`・${size}`:''}</p>
+   <p class="mtags">${meitoBadge(m.r)} ${F}・${R.ERAS[m.e].long}・${m.s}${m.sc?`（${m.sc}）`:''}<br><b>${m.d}</b>${size?`・${size}`:''}</p>
    <p class="mhamon">刃文：<b>${R.HAMON[m.h].name}</b>（${basisText(m.b)}）</p>
    <p class="desc">${m.x}</p>
    <p class="mfound">はじめて打った日：${new Date(c.first).toLocaleDateString('ja-JP')}　打った数：${c.count}振</p>`
   :`<h3>？？？<small>まだ打っていない</small></h3>
-   <p class="mtags">${F}・${R.ERAS[m.e].long}</p>
+   <p class="mtags">${meitoBadge(m.r)} ${F}・${R.ERAS[m.e].long}</p>
    <ul class="mhint"><li>形：<b>${F}</b></li><li>素材：<b>${R.comboText(m.e,m.mat)}</b></li><li>刃文：<b>${R.HAMON[m.h].name}</b>（${R.HAMON[m.h].how}）</li><li>成功：<b>${R.NEED[m.r]}/${R.SUCCESS_MAX}以上</b></li></ul>`}
   </div><button class="btn primary" data-close>とじる</button></div>`;
  closable(box);el.panel.append(box);
@@ -275,8 +303,8 @@ function showRecords(){
  const best=bestSword(save),sum=save.swords.reduce((s,x)=>s+x.price,0);
  el.panel.innerHTML=`<div class="records">
   <h2>打った刀 <small>${save.forged}振</small></h2>
-  <p class="rec-sum">売値の合計 <b>${yen(sum)}</b> 文${best?`　いちばんの刀：${best.name}（${starStr(best.stars)}）`:''}</p>
-  <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}・${s.rank}${s.crack?'・割れ':''}</small></span><span class="st s${s.stars}">${starStr(s.stars)}</span><span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
+  <p class="rec-sum">鍛冶師ランク <b>${rankNow().name}</b>　売値の合計 <b>${yen(sum)}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
+  <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}${s.crack?'・割れ':''}</small></span>${gradeBadge(gradeOf(s))}<span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
  </div>`;
  api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
 }
