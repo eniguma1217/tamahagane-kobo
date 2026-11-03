@@ -184,18 +184,42 @@ export function tongs(ctx,x,y,toX,spread){
 
 // ---------- the blade ----------
 // u runs 0 (元, by the 鎺) … 1 (切っ先). Edge (刃) down, back (棟) up. sori bows the blade.
-export function bladeGeom(x0,x1,y,wid,sori=0){
+// opt: widen (wider toward the tip, 薙刀), double (両刃: 剣・槍), leaf (槍の穂), hira (平造: no 鎬 line), fukura (短刀の丸い切っ先), kiriha (切刃造: 鎬が刃寄り)
+export function bladeGeom(x0,x1,y,wid,sori=0,opt={}){
  const len=x1-x0,sag=len*0.05*sori;
  const cy=u=>y+sag*4*u*(1-u)-sag*0.6*u;
- const hw=u=>wid*0.5*(1-0.28*u);
+ let hw=u=>wid*0.5*(1-0.28*u+(opt.widen||0)*u);
+ if(opt.double)hw=opt.leaf?(u=>wid*0.5*(u<0.3?0.55+0.45*u/0.3:Math.max(0,(1-u)/0.7))):(u=>wid*0.5*(u<0.8?1-0.15*u:Math.max(0,(1-u)/0.2*0.88)));
  const back=u=>cy(u)-hw(u);
- const edge=u=>{const e=cy(u)+hw(u);if(u<0.88)return e;const k=(u-0.88)/0.12;return e-(e-back(u)-hw(u)*0.15)*Math.pow(k,1.7);};
- const shinogi=u=>edge(u)-(edge(u)-back(u))*0.7;
+ const tipFrom=opt.fukura?0.72:0.88;
+ const edge=opt.double?(u=>cy(u)+hw(u)):(u=>{const e=cy(u)+hw(u);if(u<tipFrom)return e;const k=(u-tipFrom)/(1-tipFrom);return e-(e-back(u)-hw(u)*0.15)*Math.pow(k,opt.fukura?1.3:1.7);});
+ const ratio=opt.kiriha?0.3:0.7;
+ const shinogi=opt.double?cy:(u=>edge(u)-(edge(u)-back(u))*ratio);
  const X=u=>x0+len*u;
- // a point in the 刃文 band: v 0 at the edge … 1 at the 鎬
- const band=(u,v)=>edge(u)-(edge(u)-shinogi(u))*v;
- return {x0,x1,len,wid,cy,back,edge,shinogi,X,band};
+ // a point in the 刃文 band: v 0 at the edge … 1 at the 鎬 (for 両刃, toward the middle ridge)
+ const band=opt.double?((u,v)=>edge(u)-(edge(u)-cy(u))*v*0.85):((u,v)=>edge(u)-(edge(u)-shinogi(u))*v);
+ return {x0,x1,len,wid,cy,back,edge,shinogi,X,band,yokote:opt.double||opt.hira?null:tipFrom,double:!!opt.double,hira:!!opt.hira,tangLen:opt.tangLen,tangWid:opt.tangWid};
 }
+// each 形 seen whole: share of tang, width (of the blade length), bow, length (of the widest), and the shape options
+export const SHAPE={
+ tachi:{tang:0.24,wid:0.04,sori:0.9,len:1},
+ katana:{tang:0.24,wid:0.044,sori:0.55,len:0.88},
+ wakizashi:{tang:0.26,wid:0.055,sori:0.45,len:0.64},
+ tanto:{tang:0.45,wid:0.11,sori:0,len:0.4,hira:true,fukura:true},
+ odachi:{tang:0.22,wid:0.03,sori:0.7,len:1},
+ naginata:{tang:0.75,wid:0.075,sori:1.4,len:0.62,widen:0.75},
+ yari:{tang:1.2,wid:0.12,sori:0,len:0.4,double:true,leaf:true},
+ ken:{tang:0.32,wid:0.09,sori:0,len:0.58,double:true},
+ chokuto:{tang:0.22,wid:0.045,sori:0,len:0.86,kiriha:true}
+};
+// the whole sword, fitted into box. opt.sori overrides the form's bow (from the real sword's numbers).
+export function fullSwordGeom(formId,box,opt={}){
+ const S=SHAPE[formId]||SHAPE.katana,lenF=opt.len??S.len;
+ const blade=box.w*lenF/(1+S.tang),total=blade*(1+S.tang),x0=box.x+(box.w-total)/2+blade*S.tang;
+ const wid=Math.max(5,Math.min(box.h*0.6,blade*S.wid*(opt.widScale||1)));
+ return bladeGeom(x0,x0+blade,box.y+box.h*0.5,wid,opt.sori??S.sori,{...S,tangLen:blade*S.tang,tangWid:S.double?0.32:0.6});
+}
+export function fullSword(ctx,formId,box,opt={}){const G=fullSwordGeom(formId,box,opt);blade(ctx,G,{...opt,tang:true});return G;}
 function bladeOutline(ctx,G,from=0){
  ctx.beginPath();const N=48;
  for(let i=0;i<=N;i++){const u=from+(1-from)*i/N;i?ctx.lineTo(G.X(u),G.back(u)):ctx.moveTo(G.X(u),G.back(u));}
@@ -214,9 +238,9 @@ function hamonPath(ctx,G,profile){
 export function blade(ctx,G,{profile=null,temp=0,crack=false,tang=true,gleam=-1,dull=false}={}){
  ctx.save();
  if(tang){
-  const tl=G.len*0.2,ty=G.cy(0)+G.wid*0.08;
-  ctx.fillStyle='#4a3326';ctx.beginPath();ctx.moveTo(G.x0,G.back(0)+2);ctx.lineTo(G.x0-tl,ty-G.wid*0.28);ctx.lineTo(G.x0-tl-G.wid*0.2,ty+G.wid*0.1);ctx.lineTo(G.x0,G.edge(0)-2);ctx.closePath();ctx.fill();
-  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.arc(G.x0-tl*0.55,G.cy(0)+G.wid*0.02,Math.max(2,G.wid*0.1),0,Math.PI*2);ctx.fill();
+  const tl=G.tangLen??G.len*0.2,ty=G.cy(0)+(G.double?0:G.wid*0.08),tw=(G.tangWid??0.6)*(G.edge(0)-G.back(0));
+  ctx.fillStyle='#4a3326';ctx.beginPath();ctx.moveTo(G.x0,ty-tw/2-1);ctx.lineTo(G.x0-tl,ty-tw*0.3);ctx.lineTo(G.x0-tl-Math.min(tw*0.4,6),ty+tw*0.12);ctx.lineTo(G.x0,ty+tw/2+1);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.arc(G.x0-tl*0.55,ty,Math.max(1.5,tw*0.18),0,Math.PI*2);ctx.fill();
   // 鎺
   const hw=Math.max(8,G.wid*0.45);const hg=ctx.createLinearGradient(0,G.back(0)-3,0,G.edge(0)+3);hg.addColorStop(0,'#f2d27a');hg.addColorStop(0.5,'#c9962f');hg.addColorStop(1,'#8a6420');
   ctx.fillStyle=hg;roundRect(ctx,G.x0-hw,G.back(0)-3,hw,G.edge(0)-G.back(0)+6,3);ctx.fill();
@@ -234,14 +258,19 @@ export function blade(ctx,G,{profile=null,temp=0,crack=false,tang=true,gleam=-1,
  ctx.fillStyle=g;bladeOutline(ctx,G);ctx.fill();
  ctx.save();bladeOutline(ctx,G);ctx.clip();
  if(profile&&!dull){
-  ctx.fillStyle='rgba(236,242,248,0.9)';hamonPath(ctx,G,profile);ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=Math.max(1,G.wid*0.05);ctx.shadowColor='rgba(255,255,255,0.9)';ctx.shadowBlur=6;
-  // 匂口 (the bright line of the hamon)
-  ctx.beginPath();const n=profile.length;for(let i=0;i<=80;i++){const u=i/80*0.88,p=u/0.88*(n-1),k=Math.floor(p),f=p-k,v=profile[k]*(1-f)+(profile[Math.min(n-1,k+1)])*f;ctx.lineTo(G.X(u),G.band(u,v));}ctx.stroke();ctx.shadowBlur=0;
+  const side=()=>{
+   ctx.fillStyle='rgba(236,242,248,0.9)';hamonPath(ctx,G,profile);ctx.fill();
+   ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=Math.max(1,G.wid*0.05);ctx.shadowColor='rgba(255,255,255,0.9)';ctx.shadowBlur=6;
+   // 匂口 (the bright line of the hamon)
+   ctx.beginPath();const n=profile.length;for(let i=0;i<=80;i++){const u=i/80*0.88,p=u/0.88*(n-1),k=Math.floor(p),f=p-k,v=profile[k]*(1-f)+(profile[Math.min(n-1,k+1)])*f;ctx.lineTo(G.X(u),G.band(u,v));}ctx.stroke();ctx.shadowBlur=0;
+  };
+  side();
+  if(G.double){const c=G.cy(0.5);ctx.save();ctx.translate(0,2*c);ctx.scale(1,-1);side();ctx.restore();}
  }
- // 鎬 line and 横手
- ctx.strokeStyle='rgba(30,35,45,0.45)';ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<=40;i++){const u=i/40*0.88;ctx.lineTo(G.X(u),G.shinogi(u));}ctx.stroke();
- ctx.beginPath();ctx.moveTo(G.X(0.88),G.shinogi(0.88));ctx.lineTo(G.X(0.88),G.edge(0.88));ctx.stroke();
+ // 鎬 line and 横手 (none on 平造; the middle ridge on 両刃)
+ ctx.strokeStyle='rgba(30,35,45,0.45)';ctx.lineWidth=1;
+ if(!G.hira){ctx.beginPath();for(let i=0;i<=40;i++){const u=i/40*(G.double?0.97:0.88);ctx.lineTo(G.X(u),G.shinogi(u));}ctx.stroke();}
+ if(G.yokote){ctx.beginPath();ctx.moveTo(G.X(G.yokote),G.shinogi(G.yokote));ctx.lineTo(G.X(G.yokote),G.edge(G.yokote));ctx.stroke();}
  if(gleam>=0){const gx=G.X(gleam),gg=ctx.createLinearGradient(gx-G.wid*2,0,gx+G.wid*2,0);gg.addColorStop(0,'rgba(255,255,255,0)');gg.addColorStop(0.5,'rgba(255,255,255,0.55)');gg.addColorStop(1,'rgba(255,255,255,0)');ctx.fillStyle=gg;ctx.fillRect(gx-G.wid*2,G.back(gleam)-G.wid,G.wid*4,G.wid*3);}
  if(crack){ctx.strokeStyle='rgba(15,10,10,0.9)';ctx.lineWidth=Math.max(1.5,G.wid*0.06);ctx.beginPath();const u=0.55;ctx.moveTo(G.X(u),G.edge(u));ctx.lineTo(G.X(u+0.012),G.band(u,0.4));ctx.lineTo(G.X(u-0.006),G.band(u,0.75));ctx.lineTo(G.X(u+0.01),G.band(u,1.05));ctx.stroke();}
  ctx.restore();

@@ -2,13 +2,14 @@
 // a broken save is kept aside under a backup key and play starts fresh.
 export const SAVE_KEY='tamahagane-kobo.save.v1';
 export const MAX_SWORDS=200;
-export const emptySave=()=>({version:1,swords:[],forged:0,settings:{sound:true}});
+// collection: the 刀帳 — real swords forged so far, {name: {first, count}} (added for #4; older saves start with none)
+export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},settings:{sound:true}});
 
 export function parseSave(text){
  if(!text)return emptySave();
  const data=JSON.parse(text);
  if(!data||data.version!==1||!Array.isArray(data.swords))throw Error('not a v1 save');
- return {...emptySave(),...data,settings:{...emptySave().settings,...data.settings}};
+ return {...emptySave(),...data,collection:{...(data.collection||{})},settings:{...emptySave().settings,...data.settings}};
 }
 export function loadSave(storage){
  let text=null;
@@ -22,6 +23,8 @@ export function writeSave(storage,save){try{storage.setItem(SAVE_KEY,JSON.string
 export function addSword(save,sword,at=Date.now()){
  const forged=(save.forged||save.swords.length)+1;
  const entry={no:forged,at,...sword};
- return {...save,forged,swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
+ const collection={...(save.collection||{})};
+ if(sword.meito){const was=collection[sword.meito];collection[sword.meito]=was?{...was,count:was.count+1}:{first:at,count:1,no:forged};}
+ return {...save,forged,collection,swords:[entry,...save.swords].slice(0,MAX_SWORDS)};
 }
 export const bestSword=save=>save.swords.reduce((best,s)=>!best||s.overall>best.overall?s:best,null);

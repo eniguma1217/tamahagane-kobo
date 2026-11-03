@@ -1,14 +1,16 @@
-// The app shell: screens (title, materials, the forging steps, result, records), the canvas loop, input and the save.
+// The app shell: screens (title, form, materials, the forging steps, result, 刀帳, records), the canvas loop, input and the save.
 import * as R from './rules.js';
 import {loadSave,writeSave,addSword,bestSword} from './save.js';
 import * as S from './sound.js';
-import {setDPR} from './draw.js';
+import * as D from './draw.js';
+import {MEITO} from './meito.js';
 import {loadArt,artSrc} from './art.js';
 import {Heat,Hammer,Hamon,Quench,Polish,Ambient} from './scenes.js';
 
 const $=s=>document.querySelector(s);
 const el={app:$('#app'),bar:$('#bar'),steps:$('#steps'),meter:$('#meter'),stage:$('#stage'),cv:$('#cv'),panel:$('#panel'),pop:$('#pop'),talk:$('#talk'),face:$('#face'),line:$('#line'),controls:$('#controls'),sound:$('#sound')};
 const ctx=el.cv.getContext('2d');
+const {setDPR}=D;
 let save=loadSave(window.localStorage);
 S.setSound(save.settings.sound);
 let scene=null,timers=[],W=360,H=480,last=performance.now(),runTime=0;
@@ -37,6 +39,7 @@ const api={
   el.meter.querySelector('span').textContent=label?`${label} ${Math.round(100*v/max)}%`:`${v} / ${max}`;
  },
  next(){forgeNext();},
+ samples(){showSamples();},
  swordTop:()=>null
 };
 
@@ -56,6 +59,37 @@ const pips=(n,label)=>`<span class="pips" title="${label}">${label}<b>${'●'.re
 const yen=n=>n.toLocaleString('ja-JP');
 const starStr=n=>'★'.repeat(n)+'☆'.repeat(5-n);
 
+// ---------- small pictures of swords (drawn once, kept as images) ----------
+const thumbs=new Map(),thumbCv=document.createElement('canvas');
+function swordPic(formId,profile,w,h,key,opt={}){
+ const k=`${key}:${w}x${h}`;if(thumbs.has(k))return thumbs.get(k);
+ const r=Math.min(2,window.devicePixelRatio||1);thumbCv.width=Math.round(w*r);thumbCv.height=Math.round(h*r);
+ const g=thumbCv.getContext('2d');g.setTransform(r,0,0,r,0,0);g.clearRect(0,0,w,h);
+ D.fullSword(g,formId,{x:2,y:2,w:w-4,h:h-4},{profile,dull:!profile,...opt});
+ const url=thumbCv.toDataURL('image/png');thumbs.set(k,url);return url;
+}
+const meitoProfile=m=>R.canonicalHamon(m.h,[...m.n].reduce((a,c)=>a+c.codePointAt(0),0));
+const meitoSori=m=>m.l&&m.so!=null?Math.max(0,Math.min(1.5,m.so/m.l/0.04)):undefined;
+const meitoPic=(m,w,h)=>swordPic(m.t,meitoProfile(m),w,h,'m:'+m.n,{sori:meitoSori(m),widScale:w<200?1.5:1.2});
+const found=()=>Object.keys(save.collection||{}).length;
+const basisText=b=>b.startsWith('資料')?'資料による':b==='作風'?'刀工・流派の作風から':'推定（資料なし）';
+
+function showSamples(){
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet"><h3>刃文の見本 <small>なぞる線の形で決まる</small></h3><div class="sheet-body"><ul class="samples">${Object.entries(R.HAMON).map(([k,v])=>
+  `<li><img alt="" src="${swordPic('tachi',R.canonicalHamon(k,7),150,30,'s:'+k,{len:1,widScale:1.6})}"><b>${v.name}<small>${v.kana}</small></b><span>${v.how}</span></li>`).join('')}</ul></div>
+  <button class="btn primary" data-close>とじる</button></div>`;
+ closable(box);el.panel.append(box);
+}
+
+// an overlay closes with its button or a tap on the dark space around it
+function closable(box){
+ const close=()=>{S.tick();box.remove();};
+ box.querySelector('[data-close]').onclick=close;
+ // taps on the overlay never reach the blade underneath
+ box.addEventListener('pointerdown',e=>{e.stopPropagation();if(e.target===box)close();});
+}
+
 // ---------- screens ----------
 function setScene(s){
  for(const t of timers)clearTimeout(t);timers=[];S.stopBlow();
@@ -73,17 +107,30 @@ function showTitle(){
   <div class="title-name"><h1>玉鋼工房</h1><span class="seal">工房</span></div>
   <p class="title-sub">たまはがね こうぼう</p>
   <div class="menu"><button class="btn primary big" data-go="forge">刀を打つ</button>
-  <button class="btn" data-go="records" ${n?'':'disabled'}>打った刀（${n}振）</button></div>
+  <div class="menu-row"><button class="btn" data-go="zukan">刀帳（${found()}/${MEITO.length}）</button>
+  <button class="btn" data-go="records" ${n?'':'disabled'}>打った刀（${n}振）</button></div></div>
  </div>`;
- el.panel.querySelector('[data-go=forge]').onclick=()=>{S.unlock();S.tick();showMaterials();};
+ el.panel.querySelector('[data-go=forge]').onclick=()=>{S.unlock();S.tick();showForms();};
+ el.panel.querySelector('[data-go=zukan]').onclick=()=>{S.unlock();S.tick();showZukan();};
  el.panel.querySelector('[data-go=records]').onclick=()=>{S.tick();showRecords();};
 }
 
-let pick={kawa:null,shin:null,active:'kawa'};
+let pick={form:null,kawa:null,shin:null,active:'kawa'};
+function showForms(){
+ mode('forms');steps(0);el.meter.hidden=true;
+ setScene(new Ambient(api,'forms','title',{dim:0.78}));
+ api.say('まず、<b>何を打つか</b>を決めろ。形ごとに、打てる名刀がちがうぞ。');
+ api.controls([{label:'タイトルへ',onClick:showTitle}]);
+ el.panel.innerHTML=`<div class="forms-screen"><div class="forms">${R.FORMS.map(f=>{
+  const all=MEITO.filter(m=>m.t===f.id),got=all.filter(m=>save.collection[m.n]).length;
+  return `<button class="form-card ${pick.form===f.id?'on':''}" data-form="${f.id}"><img alt="" src="${swordPic(f.id,null,160,40,'f:'+f.id+':c',{widScale:1.7})}"><b>${f.name}</b><span>${f.note}</span><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
+ for(const b of el.panel.querySelectorAll('[data-form]'))b.onclick=()=>{S.unlock();S.tick();pick.form=b.dataset.form;showMaterials();};
+}
 function showMaterials(){
+ if(!pick.form)return showForms();
  mode('materials');steps(0);el.meter.hidden=true;
  setScene(new Ambient(api,'materials','title',{dim:0.78}));
- api.controls([{label:'これで打つ',primary:true,disabled:true,onClick:()=>{if(pick.kawa&&pick.shin)startForging();}}]);
+ api.controls([{label:'形を選び直す',onClick:showForms},{label:'これで打つ',primary:true,disabled:true,onClick:()=>{if(pick.kawa&&pick.shin)startForging();}}]);
  renderMaterials();
 }
 function renderMaterials(){
@@ -92,12 +139,13 @@ function renderMaterials(){
  const cross=`<svg class="cross" viewBox="0 0 40 100" aria-hidden="true"><path d="M20 4 30 18 26 86 20 97 14 86 10 18z" fill="${pick.kawa?MAT_COLOR[pick.kawa]:'#3a302a'}" stroke="#d4aa52" stroke-width="1"/><path d="M20 14 25.5 23 23 60 20 66 17 60 14.5 23z" fill="${pick.shin?MAT_COLOR[pick.shin]:'#2a221d'}" stroke="rgba(0,0,0,.4)"/></svg>`;
  el.panel.innerHTML=`<div class="mats-screen">
   <div class="slots">${slot('kawa','皮鉄（かわがね）','外側・刃になる')}${cross}${slot('shin','心鉄（しんがね）','内側・折れにくさ')}</div>
+  <p class="era-line">${eraLine()}</p>
   <div class="mats">${R.MATERIALS.map(m=>`<button class="mat ${pick.kawa===m.id?'is-kawa':''} ${pick.shin===m.id?'is-shin':''}" data-mat="${m.id}">
    ${matIcon(m.id)}<span class="mat-text"><b>${m.name}</b><small>${m.note}</small><span class="mat-pips">${pips(m.hard,'硬さ')}${pips(m.tough,'粘り')}${pips(m.beauty,'美しさ')}</span></span></button>`).join('')}</div>
  </div>`;
  for(const b of el.panel.querySelectorAll('[data-slot]'))b.onclick=()=>{S.tick();pick.active=b.dataset.slot;renderMaterials();};
  for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();pick[pick.active]=b.dataset.mat;if(pick.active==='kawa'&&!pick.shin)pick.active='shin';renderMaterials();};
- el.controls.querySelector('button').disabled=!c;
+ el.controls.querySelector('.btn.primary').disabled=!c;
  if(!c)api.say(pick.active==='kawa'?'まず<b>皮鉄</b>をえらべ。外側を包んで、刃になる鉄だ。':'次は<b>心鉄</b>だ。内側の芯で、折れにくさを決める。');
  else{
   const d=c.kawa.hard-c.shin.hard;
@@ -105,37 +153,93 @@ function renderMaterials(){
  }
 }
 
+function eraLine(){
+ const F=R.form(pick.form).name;
+ if(!(pick.kawa&&pick.shin))return `打つ形：<b>${F}</b>`;
+ const era=R.eraOf(pick.kawa,pick.shin);
+ if(!era)return `打つ形：<b>${F}</b>　地鉄：あべこべ（名刀にならない）`;
+ const all=MEITO.filter(m=>m.t===pick.form&&m.e===era),got=all.filter(m=>save.collection[m.n]).length;
+ return `打つ形：<b>${F}</b>　地鉄：<b>${R.ERAS[era].long}</b>　この名刀 ${got}/${all.length}`;
+}
 let forgeIndex=-1;
 function startForging(){
- api.run={kawa:pick.kawa,shin:pick.shin};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
+ api.run={form:pick.form,kawa:pick.kawa,shin:pick.shin};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
 }
 function forgeNext(){
  forgeIndex++;
  if(forgeIndex>=FORGE.length)return showResult();
- const [name]=FORGE[forgeIndex];mode('forge');
+ const [name]=FORGE[forgeIndex];mode('forge');el.panel.innerHTML='';
  steps(STEP_NAMES.indexOf(FORGE[forgeIndex][1]));api.progress(null);
  el.stage.classList.remove('fade');void el.stage.offsetWidth;el.stage.classList.add('fade');
  setScene(new ({heat:Heat,hammer:Hammer,hamon:Hamon,quench:Quench,polish:Polish}[name])(api));
 }
 
 function showResult(){
- const sword=R.finishSword(api.run);
+ const sword=R.finishSword(api.run,MEITO,save.collection);
+ const isNew=!!sword.meito&&!save.collection[sword.meito];
  save=addSword(save,sword);writeSave(window.localStorage,save);
- mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.stars);
- const g=api.run,chip=(k,v)=>`<span><small>${k}</small>${v}</span>`;
- const hits=(g.hitGrades||[]).filter(x=>x==='best').length;
+ mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.meito?Math.max(4,sword.stars):sword.stars);
+ const g=api.run,chip=(k,v)=>`<span><small>${k}</small>${v}</span>`,m=sword.meito?MEITO.find(x=>x.n===sword.meito):null;
+ const hits=(g.hitGrades||[]).filter(x=>x==='best').length,F=R.form(sword.form).name;
  el.panel.innerHTML=`<div class="result">
   <div class="sword-space"></div>
-  <div class="stars s${sword.stars}">${starStr(sword.stars)}<span>${sword.rank}</span></div>
-  <h2 class="mei">${sword.name}</h2>
-  <p class="tags">${R.HAMON_NAME[sword.hamon]}・${{kobuse:'甲伏せ',maru:'丸鍛え',gyaku:'あべこべ'}[sword.combo]}（${R.material(sword.kawa).name}＋${R.material(sword.shin).name}）${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
+  ${m?`<p class="meito-badge">${isNew?'<b>NEW</b>':''}名刀を打ち上げた！</p>`:''}
+  <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
+  <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}　<b class="des">${m.d}</b>`:`${R.HAMON_NAME[sword.hamon]}・${{kobuse:'甲伏せ',maru:'丸鍛え',gyaku:'あべこべ'}[sword.combo]}（${R.material(sword.kawa).name}＋${R.material(sword.shin).name}）`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
+  ${m?`<p class="desc">${m.x}</p>`:`<p class="hint">${sword.hint}</p>`}
+  <div class="stars s${sword.stars}">${starStr(sword.stars)}<span>${sword.rank}</span><em>成功 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
   <p class="price">売値 <b>${yen(sword.price)}</b> 文</p>
   <div class="chips">${chip('熱する',g.heat.label)}${chip('叩く',`会心${hits}/12`)}${chip('土置き',g.hamon.name)}${chip('焼き入れ',g.quench.label)}${chip('研ぐ',g.polish.scratches?`キズ${g.polish.scratches}`:g.polish.coverage>=0.985?'会心':`曇り${Math.round((1-g.polish.coverage)*100)}%`)}</div>
-  <p class="comment">${resultComment(sword)}</p>
+  ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
- api.controls([{label:'タイトルへ',onClick:showTitle},{label:'もう一振り打つ',primary:true,onClick:showMaterials}]);
+ api.controls([{label:'刀帳',onClick:()=>showZukan(sword.meito)},{label:'もう一振り',primary:true,onClick:showForms}]);
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
+ if(isNew)api.pop('名刀','best');
+}
+
+// ---------- 刀帳 ----------
+let zukanFilter='all';
+function showZukan(open=null){
+ mode('zukan');setScene(new Ambient(api,'zukan','plain',{dim:0.5}));
+ api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
+ renderZukan();
+ if(open)showMeito(open);
+}
+function renderZukan(){
+ const list=MEITO.filter(m=>zukanFilter==='all'||m.t===zukanFilter);
+ const got=list.filter(m=>save.collection[m.n]).length;
+ el.panel.innerHTML=`<div class="zukan">
+  <h2>刀帳 <small>${found()}/${MEITO.length}振</small></h2>
+  <div class="filters">${[['all','全部'],...R.FORMS.map(f=>[f.id,f.name])].map(([id,n])=>`<button class="chip-btn ${zukanFilter===id?'on':''}" data-filter="${id}">${n}</button>`).join('')}</div>
+  <p class="zukan-sum">${zukanFilter==='all'?'すべて':R.form(zukanFilter).name}：${got}/${list.length}振</p>
+  <ul class="zgrid">${list.map(m=>{const c=save.collection[m.n];return `<li><button class="zcell ${c?'got':''}" data-meito="${m.n}">
+   <span class="zpic" data-pic="${m.n}"></span><b>${c?m.n:'？？？'}</b><small>${R.form(m.t).name}・${R.ERAS[m.e].name}${m.r>=4?`・${m.r>=5?'★':''}${m.d}`:''}</small></button></li>`;}).join('')}</ul>
+ </div>`;
+ for(const b of el.panel.querySelectorAll('[data-filter]'))b.onclick=()=>{S.tick();zukanFilter=b.dataset.filter;renderZukan();};
+ for(const b of el.panel.querySelectorAll('[data-meito]'))b.onclick=()=>{S.tick();showMeito(b.dataset.meito);};
+ // pictures only for the cells that come into view
+ const io=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const sp=e.target,m=MEITO.find(x=>x.n===sp.dataset.pic);
+  sp.innerHTML=`<img alt="" src="${save.collection[m.n]?meitoPic(m,140,30):swordPic(m.t,null,140,30,'f:'+m.t+':s',{widScale:1.5})}">`;io.unobserve(sp);}},{root:el.panel.querySelector('.zgrid')});
+ for(const sp of el.panel.querySelectorAll('[data-pic]'))io.observe(sp);
+}
+function showMeito(name){
+ const m=MEITO.find(x=>x.n===name);if(!m)return;
+ const c=save.collection[m.n],F=R.form(m.t).name;
+ const box=document.createElement('div');box.className='overlay';
+ const size=[m.l?`刃長 ${m.l}cm`:'',m.so?`反り ${m.so}cm`:''].filter(Boolean).join('・');
+ box.innerHTML=`<div class="sheet meito-sheet"><div class="sheet-body">
+  <img class="big-pic" alt="" src="${c?meitoPic(m,320,56):swordPic(m.t,null,320,56,'f:'+m.t+':b')}">
+  ${c?`<h3>${m.n}<small>${m.k}</small></h3>
+   <p class="mtags">${F}・${R.ERAS[m.e].long}・${m.s}${m.sc?`（${m.sc}）`:''}<br><b>${m.d}</b>${size?`・${size}`:''}</p>
+   <p class="mhamon">刃文：<b>${R.HAMON[m.h].name}</b>（${basisText(m.b)}）</p>
+   <p class="desc">${m.x}</p>
+   <p class="mfound">はじめて打った日：${new Date(c.first).toLocaleDateString('ja-JP')}　打った数：${c.count}振</p>`
+  :`<h3>？？？<small>まだ打っていない</small></h3>
+   <p class="mtags">${F}・${R.ERAS[m.e].long}</p>
+   <ul class="mhint"><li>形：<b>${F}</b></li><li>素材：<b>${R.comboText(m.e)}</b></li><li>刃文：<b>${R.HAMON[m.h].name}</b>（${R.HAMON[m.h].how}）</li><li>成功：<b>${R.NEED[m.r]}/${R.SUCCESS_MAX}以上</b></li></ul>`}
+  </div><button class="btn primary" data-close>とじる</button></div>`;
+ closable(box);el.panel.append(box);
 }
 function resultComment(s){
  if(s.crack)return '親方「焼き割れだ……。焼き入れの色が熱すぎたな。次は月夜の色をよく見ろ」';
@@ -148,7 +252,7 @@ function showRecords(){
  el.panel.innerHTML=`<div class="records">
   <h2>打った刀 <small>${save.forged}振</small></h2>
   <p class="rec-sum">売値の合計 <b>${yen(sum)}</b> 文${best?`　いちばんの刀：${best.name}（${starStr(best.stars)}）`:''}</p>
-  <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${R.HAMON_NAME[s.hamon]}・${s.rank}${s.crack?'・割れ':''}</small></span><span class="st s${s.stars}">${starStr(s.stars)}</span><span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
+  <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}・${s.rank}${s.crack?'・割れ':''}</small></span><span class="st s${s.stars}">${starStr(s.stars)}</span><span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
  </div>`;
  api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
 }

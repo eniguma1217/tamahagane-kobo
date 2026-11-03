@@ -45,7 +45,7 @@ export class Heat{
   D.fireLight(ctx,b.x+b.w/2,b.y+b.h*0.5,Math.max(w,h)*0.7,this.blowing?1.2:0.7,t);
   D.flames(ctx,b,t,this.blowing?1:0.25);
   // the steel in the coals, held by the tongs from the right
-  const y=b.y+b.h*0.5,x=b.x+b.w*0.2,len=b.w*0.52,th=Math.max(16,b.h*0.22);
+  const bar=R.form(this.api.run.form).bar,y=b.y+b.h*0.5,len=b.w*0.6*bar,x=b.x+b.w*0.78-len,th=Math.max(16,b.h*0.22);
   D.steelBar(ctx,x,y,len,th,this.temp);D.tongs(ctx,x+len-4,y,w+10,th*0.32);
   ctx.save();ctx.globalAlpha=0.45;D.flames(ctx,{x:b.x,y:b.y+b.h*0.45,w:b.w,h:b.h*0.55},t+1.3,this.blowing?0.4:0.05);ctx.restore();
   // bellows handle
@@ -103,7 +103,7 @@ export class Hammer{
   D.backdrop(ctx,w,h,'hammer');
   D.fireLight(ctx,w*0.15,h*0.45,w*0.8,0.6,t);
   // the steel on the anvil; folding squeezes it to half and back
-  let len=a.w*0.62,th=Math.max(16,a.h*0.42);
+  let len=a.w*0.7*R.form(this.api.run.form).bar,th=Math.max(16,a.h*0.42);
   if(this.phase==='fold'){const k=Math.min(1,this.phaseT/1.0),s=Math.sin(k*Math.PI);len*=1-0.45*s;th*=1+0.8*s;}
   const cx=a.x+a.w/2,y=a.y-th/2+2;
   D.steelBar(ctx,cx-len/2,y,len,th,this.temp);
@@ -134,12 +134,13 @@ export class Hamon{
  constructor(api){this.api=api;this.name='hamon';}
  enter(){
   Object.assign(this,{line:[],drawing:false,result:null});
-  this.api.say('刀の上を、<b>左（元）から右（先）まで</b>指でなぞれ。その線が刃文になる。まっすぐなら直刃、波なら互の目だ。');
+  const dbl=D.SHAPE[this.api.run.form]?.double;
+  this.api.say(`刀の上を、<b>左（元）から右（先）まで</b>指でなぞれ。その線が刃文になる。線の形で刃文が決まるぞ（「見本」で8種類）。${dbl?'両刃なので、両側に同じ刃文が入る。':''}`);
   this.setControls();
  }
  setControls(){
   const ok=!!this.result;
-  this.api.controls([{label:'やり直す',disabled:!this.line.length,onClick:()=>{this.line=[];this.result=null;this.setControls();this.api.say('もう一度、左から右へなぞれ。');}},
+  this.api.controls([{label:'見本',onClick:()=>this.api.samples()},{label:'やり直す',disabled:!this.line.length,onClick:()=>{this.line=[];this.result=null;this.setControls();this.api.say('もう一度、左から右へなぞれ。');}},
    {label:'これでよし',primary:true,disabled:!ok,onClick:()=>this.finish()}]);
  }
  geom(w,h){return D.bladeGeom(-w*0.08,w*0.94,h*0.5,Math.min(h*0.3,w*0.34,150),0);}
@@ -156,7 +157,7 @@ export class Hamon{
   const r=R.analyzeHamon(this.line.filter(p=>p.u<=0.9));
   if(!r.ok){this.result=null;this.api.say('途中で止まったな。<b>右の先まで</b>一気になぞれ。');this.setControls();return;}
   this.result=r;S.tick();this.api.pop(r.name,'info');
-  this.api.say(`${r.name}だな。${r.outside>0.25?'線が刃先や鎬に寄りすぎだ。真ん中あたりを通せ。':r.score>0.8?'きれいな線だ。':'悪くない。'}これでよければ「これでよし」。`,r.score>0.8?'happy':'normal');
+  this.api.say(`<b>${r.name}</b>（${R.HAMON[r.type].kana}）だな。${r.outside>0.25?'線が刃先や鎬に寄りすぎだ。':r.score>=0.7?'いい線だ。':'線が少し乱れている。'}よければ「これでよし」。`,r.score>=0.7?'happy':'normal');
   this.setControls();
  }
  finish(){
@@ -223,7 +224,8 @@ export class Quench{
   D.flames(ctx,L,t,0.55);
   const hy=L.y+L.h*0.52,wy=T.y+T.h*0.55;
   let y=hy;if(this.phase==='plunge')y=hy+(wy-hy)*Math.min(1,this.k/0.8);else if(this.phase==='sori'||this.phase==='done')y=wy-T.h*0.95*Math.min(1,this.k*2);
-  const G=D.bladeGeom(L.x+L.w*0.12,L.x+L.w*0.95,y,Math.min(L.h*0.32,30),this.sori);
+  const S=D.SHAPE[this.api.run.form]||D.SHAPE.katana,bl=L.w*0.82*Math.max(0.45,S.len),x0=L.x+L.w*0.95-bl;
+  const G=D.bladeGeom(x0,x0+bl,y,Math.min(L.h*0.32,30)*(S.double?1.4:S.hira?1.3:1),S.double?0:this.sori*Math.max(0.3,S.sori),{...S,tangLen:Math.min(bl*S.tang,x0-L.x+8),tangWid:S.double?0.32:0.6});
   const hot=this.phase==='heat'||this.phase==='wait'||(this.phase==='plunge'&&this.k<0.8);
   if(hot){D.blade(ctx,G,{temp:this.temp,tang:true});D.clayFromProfile(ctx,G,this.api.run.hamon.profile,0.85);}
   else{D.blade(ctx,G,{dull:true});D.clayFromProfile(ctx,G,this.api.run.hamon.profile,Math.max(0.3,0.85-this.k));}
@@ -319,9 +321,9 @@ export class Ambient{
   if(this.dim){ctx.fillStyle=`rgba(10,6,4,${this.dim})`;ctx.fillRect(0,0,w,h);}
   if(this.sword){
    const s=this.sword,top=this.api.swordTop?.()??h*0.16;
-   const G=D.bladeGeom(w*0.24,w*0.95,top,Math.max(14,Math.min(w*0.05,26)),s.sori??0.6);
-   const sp=ctx.createRadialGradient(w*0.6,top,10,w*0.6,top,w*0.6);sp.addColorStop(0,'rgba(255,230,190,0.22)');sp.addColorStop(1,'rgba(255,230,190,0)');ctx.fillStyle=sp;ctx.fillRect(0,0,w,h);
-   D.blade(ctx,G,{profile:s.profile,crack:s.crack,gleam:this.gleam<1?this.gleam:-1});
+   const sp=ctx.createRadialGradient(w*0.55,top,10,w*0.55,top,w*0.6);sp.addColorStop(0,'rgba(255,230,190,0.22)');sp.addColorStop(1,'rgba(255,230,190,0)');ctx.fillStyle=sp;ctx.fillRect(0,0,w,h);
+   const S=D.SHAPE[s.form]||D.SHAPE.katana;
+   D.fullSword(ctx,s.form||'katana',{x:w*0.04,y:top-Math.min(70,w*0.16)/2,w:w*0.92,h:Math.min(70,w*0.16)},{profile:s.profile,crack:s.crack,gleam:this.gleam<1?this.gleam:-1,sori:S.sori*(s.sori??0.6)/0.8});
   }
  }
  down(){}move(){}up(){}
