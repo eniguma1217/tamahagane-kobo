@@ -127,6 +127,8 @@ function paintBench(g,w,h){
 }
 
 export function backdrop(ctx,w,h,kind){
+ // the dive places (#21) show their own picture once it has come in; until then the plain room
+ if(['touge','kosenjo','oniyama'].includes(kind)&&!artImage('bg-'+kind))kind='plain';
  const own=artImage('bg-'+({hamon:'bench',polish:'bench',plain:'room',materials:'room'}[kind]||kind));
  if(own){const r=coverRect(own,w,h);ctx.fillStyle=C.night;ctx.fillRect(0,0,w,h);ctx.drawImage(own,r.dx,r.dy,r.dw,r.dh);return;}
  const img=painted(kind,w,h,(g,w,h)=>{

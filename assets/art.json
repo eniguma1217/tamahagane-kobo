@@ -10,5 +10,20 @@
  "mat-jou": {"file": "mat-jou.png"},
  "mat-nami": {"file": "mat-nami.png"},
  "mat-oroshi": {"file": "mat-oroshi.png"},
- "mat-houcho": {"file": "mat-houcho.png"}
+ "mat-houcho": {"file": "mat-houcho.png"},
+ "foe-sanzoku": {"file": "foe-sanzoku.webp", "later": true},
+ "foe-ookami": {"file": "foe-ookami.webp", "later": true},
+ "foe-kitsunebi": {"file": "foe-kitsunebi.webp", "later": true},
+ "foe-kashira": {"file": "foe-kashira.webp", "later": true},
+ "foe-ochimusha": {"file": "foe-ochimusha.webp", "later": true},
+ "foe-inoshishi": {"file": "foe-inoshishi.webp", "later": true},
+ "foe-onryo": {"file": "foe-onryo.webp", "later": true},
+ "foe-taisho": {"file": "foe-taisho.webp", "later": true},
+ "foe-akaoni": {"file": "foe-akaoni.webp", "later": true},
+ "foe-orochi": {"file": "foe-orochi.webp", "later": true},
+ "foe-tengu": {"file": "foe-tengu.webp", "later": true},
+ "foe-ooni": {"file": "foe-ooni.webp", "later": true},
+ "bg-touge": {"file": "bg-touge.jpg", "later": true},
+ "bg-kosenjo": {"file": "bg-kosenjo.jpg", "later": true},
+ "bg-oniyama": {"file": "bg-oniyama.jpg", "later": true}
 }

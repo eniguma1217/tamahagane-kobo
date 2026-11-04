@@ -6,7 +6,7 @@ export const RACK_MAX=12,CARRY_MAX=3;
 export const SHOP={nami:300,zuku:100,oroshi:0,houcho:0};
 export const KINDS={
  yoroi:{name:'鎧',weak:'sharp',hint:'鎧が厚い。切れ味の鋭い刀で'},
- kemono:{name:'獣',weak:'tough',hint:'すばやく、噛みついてくる。粘りのある刀で受けて斬れ'},
+ kemono:{name:'獣',weak:'tough',hint:'力が強く、荒々しい。粘りのある刀で受けて斬れ'},
  mononoke:{name:'もののけ',weak:'beauty',hint:'この世のものではない。美しい刀でなければ斬れぬ'}
 };
 export const STAT_NAME={sharp:'切れ味',tough:'粘り',beauty:'美しさ'};

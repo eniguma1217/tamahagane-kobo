@@ -9,7 +9,7 @@ import * as V from './dive.js';
 import * as S from './sound.js';
 import * as D from './draw.js';
 import {MEITO} from './meito.js';
-import {loadArt,artSrc} from './art.js';
+import {loadArt,artSrc,artUrl} from './art.js';
 import {Heat,Hammer,Hamon,Quench,Ambient} from './scenes.js';
 
 const $=s=>document.querySelector(s);
@@ -278,12 +278,12 @@ function showRack(){
 let divePlace='touge',carryPick=[];
 function showDivePrep(){
  if(save.dive)return showDive();
- mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.5}));
  const lv=fameNow().index;
  carryPick=carryPick.filter(no=>rack().some(s=>s.no===no));
  if(!V.placesFor(lv).some(p=>p.id===divePlace))divePlace='touge';
+ mode('shop');setScene(new Ambient(api,'records',divePlace,{dim:0.55}));
  el.panel.innerHTML=`<div class="shop prep"><div class="shop-head"><b>出陣</b><small>刀を${V.CARRY_MAX}振まで背負っていく</small></div>
-  <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small><em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
+  <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}${artUrl('bg-'+p.id)?` style="--bg:url(${artUrl('bg-'+p.id)})"`:''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small><em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
   <p class="mise-note">鎧の敵には切れ味、獣には粘り、もののけには美しさが効く。いろいろな刀を持っていこう。</p>
   <ul class="kura pick">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${carryPick.includes(s.no)?'on':''}" data-carry="${s.no}">${swordRow(s,carryPick.includes(s.no)?'<i class="req-hit">背負う</i>':'')}</button></li>`).join('')||'<li class="empty">刀掛けに刀がない。まず刀を打とう。</li>'}</ul></div>`;
  api.controls([{label:'工房へ',onClick:showTitle},{label:`出陣する（${carryPick.length}振）`,primary:true,disabled:!carryPick.length,onClick:startDive}]);
@@ -296,22 +296,23 @@ function startDive(){
  save={...save,dive:V.startDive(rngNext(),divePlace,swords)};carryPick=[];save_();
  showDive();
 }
-let diveFlash=null;
+let diveFlash=null,diveHit=false;
 function showDive(){
  const d=save.dive;if(!d)return showTitle();
- mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.6}));
+ mode('shop');setScene(new Ambient(api,'records',d.place,{dim:0.25}));
+ const art=artUrl('foe-'+d.foe.key);
  const P_=V.placeOf(d.place),f=d.foe,K=V.KINDS[f.kind],w=K.weak,last=d.log.at(-1);
  const bag=Object.entries(d.bag.mats);
  el.panel.innerHTML=`<div class="shop dive"><div class="shop-head"><b>${P_.name}</b><small>深さ <b class="depth">${d.depth}</b>　戦利品 ${yen(d.bag.money)}文${bag.length?'・'+bag.map(([id,n])=>`${R.material(id).name}${n}`).join('・'):''}</small></div>
-  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''}"><span class="foe-face">${f.face}</span><div class="foe-body"><p class="foe-name">${f.name}<small>${K.name}</small>${f.boss?'<em>強敵</em>':''}</p>
+  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''} ${diveHit?'hit':''}">${art?`<img class="foe-art" src="${art}" alt="${f.name}">`:`<span class="foe-face">${f.face}</span>`}<div class="foe-body"><p class="foe-name">${f.name}<small>${K.name}</small>${f.boss?'<em>強敵</em>':''}</p>
    <p class="foe-weak">弱点：<b>${V.STAT_NAME[w]}</b>　<small>${K.hint}</small></p><i class="hp"><b style="width:${Math.round(100*f.hp/f.maxHp)}%"></b></i><small>体力 ${f.hp}/${f.maxHp}・強さ ${f.atk}（粘りがこれより低い刀は刃こぼれしやすい）</small></div></div>
   <p class="dive-log">${diveFlash||(last?`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}${last.chip?'　刃こぼれ…':''}${last.broke?'　<b class="bad">刀が折れた</b>':''}`:'どの刀で斬る？')}</p>
   ${d.won?`<div class="loot"><p>${f.name}を倒した！</p><p>${d.loot.mats.map(id=>`<b>${R.material(id).name}</b>`).join('・')||'素材はなかった'}・${yen(d.loot.money)}文</p><small>このまま帰れば、すべて持ち帰れる。奥へ進んで刀が尽きると、戦利品の半分を失う。</small></div>`:''}
   ${d.over?`<div class="loot lost"><p>刀が尽きた……</p><small>戦利品の半分を置いて、逃げ帰るしかない。</small></div>`:''}
   <div class="carry">${d.carry.map((c,i)=>`<button class="csw ${c.dur<=0?'broken':''} ${c.stats?.[w]>=70?'good':''}" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${statLine(c.stats,w)}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span></button>`).join('')}</div></div>`;
- diveFlash=null;
+ diveFlash=null;diveHit=false;
  for(const b of el.panel.querySelectorAll('[data-strike]'))b.onclick=()=>{S.unlock();
-  const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext())};save_();
+  const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext())};save_();diveHit=true;
   const ev=save.dive.log.at(-1);S.clang(ev?.crit?1.2:0.8);api.pop(`${ev?.dmg??''}`,ev?.crit?'best':'good');
   if(save.dive.won&&!before.won)S.phrase(3);
   showDive();};
