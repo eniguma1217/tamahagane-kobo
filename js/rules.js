@@ -44,9 +44,9 @@ export function combine(build,shinId){
  const bonus={sharp:st.bonus,tough:st.bonus,beauty:st.bonus};
  let kind=st.id;
  if(shin){
-  const diff=kawa.hard-shin.hard;
+  const diff=kawa.hard-shin.hard,fix=SYNERGIES.some(x=>x.fixes&&x.kawa===kawa.id&&x.shin===shin.id);
   if(diff>0){const b=Math.min(8,2*diff);bonus.sharp+=b;bonus.tough+=b;bonus.beauty+=b;}
-  else if(diff<0){kind='gyaku';bonus.sharp-=10;bonus.tough-=5;}
+  else if(diff<0&&!fix){kind='gyaku';bonus.sharp-=10;bonus.tough-=5;}
  }
  if(ha&&ha.hard>=kawa.hard)bonus.sharp+=4;
  if(mune&&mune.tough>=3)bonus.tough+=4;
@@ -71,9 +71,9 @@ export function heatScore(temp,half){
  return {score:0.15,grade:'bad',label:side==='ぬるい'?'冷たい':'熱すぎ'};
 }
 
-// ---- 叩く: a ring shrinks onto the target; tap when it meets. 12 hits, a fold after every 4.
-export const HAMMER={hits:12,foldEvery:4,startR:118,targetR:30};
-export const hammerDuration=i=>1000-i*25;          // ms for the ring to reach the target on hit i (0-based)
+// ---- 叩く: a ring shrinks onto the target; tap when it meets. Five hits (#17, D39: a sword in about 30 seconds).
+export const HAMMER={hits:5,foldEvery:99,startR:118,targetR:30};
+export const hammerDuration=i=>950-i*40;           // ms for the ring to reach the target on hit i (0-based)
 export const hammerWindow=heat=>70+50*clamp(heat); // a well-heated steel is more forgiving
 export function hitScore(errMs,windowMs){
  const e=Math.abs(errMs);
@@ -232,13 +232,15 @@ export function comboText(era,mats=null){
  return `皮鉄に${eraMaterials(era).map(m=>m.name).join('か')}`;
 }
 
-// 成功数: 熱する1・叩く12・土置き1・焼き入れ1・研ぐ1 の「会心・よし」の数（最大16）
+// 技の点（#17、D39）：熱する1・叩く5・土置き1・焼き入れ1 の8つで、会心2点・よし1点（最大16）。研ぎは自動で点にならない。
 export const SUCCESS_MAX=16;
 export function successCount(run){
- const ok=g=>g==='best'||g==='good';
- return (ok(run.heat?.grade)?1:0)+(run.hitGrades||[]).filter(ok).length+((run.hamon?.score??0)>=0.7?1:0)
-  +(ok(run.quench?.grade)?1:0)+((run.polish?.coverage??0)>=0.95&&(run.polish?.scratches??1)===0?1:0);
+ const pt=g=>g==='best'?2:g==='good'?1:0;
+ const hamon=run.hamon?.score??0;
+ return pt(run.heat?.grade)+(run.hitGrades||[]).reduce((t,g)=>t+pt(g),0)+(hamon>=0.9?2:hamon>=0.7?1:0)+pt(run.quench?.grade);
 }
+// 研ぐ: done by the 弟子 now (D39); as good as the rest of the work
+export const autoPolish=run=>{const m=mean([clamp(run.heat?.score??0),clamp(mean(run.hits||[])),clamp(run.quench?.score??0)]);return {coverage:1,scratches:0,score:0.6+0.4*m,auto:true};};
 // 格 (r) 5 天下五剣・天下三名槍など, 4 国宝, 3 重要文化財・御物, 2 重要美術品など, 1 そのほかの名物
 // owner D29 (#15) 「少し簡単に高い刀が作れすぎる」: raised from 8/10/12/14/16
 export const NEED={1:10,2:12,3:14,4:15,5:16};
@@ -247,11 +249,12 @@ function hash(s){let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math
 // Which real sword this run made: same 形, same 刃文, same 地鉄 era, enough successes. Ones not yet in the 刀帳 come first,
 // then the more famous; among equals the run itself decides, so the same run always gives the same sword.
 export const matsFit=(m,mats)=>!m.mat||(mats[0]===m.mat[0]&&m.mat.slice(1).every(id=>mats.slice(1).includes(id)));
-export function pickMeito(list,{form,hamon,era,mats=[],successes,crack,seed=''},collection={}){
+export function pickMeito(list,{form,hamon,era,mats=[],successes,crack,seed='',want=null},collection={}){
  if(crack||!era)return null;
  const c=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era&&matsFit(m,mats)&&successes>=NEED[m.r]);
  if(!c.length)return null;
- return c.slice().sort((a,b)=>(!!collection[a.n]-!!collection[b.n])||(b.r-a.r)||(hash(seed+a.n)-hash(seed+b.n)))[0];
+ // a named order's 名刀 comes first when the run makes it (#17)
+ return c.slice().sort((a,b)=>((b.n===want)-(a.n===want))||(!!collection[a.n]-!!collection[b.n])||(b.r-a.r)||(hash(seed+a.n)-hash(seed+b.n)))[0];
 }
 // one line on why no 名刀 came out, pointing at the nearest one
 export function meitoHint(list,{form,hamon,era,mats=[],kind,successes,crack}){
@@ -260,13 +263,33 @@ export function meitoHint(list,{form,hamon,era,mats=[],kind,successes,crack}){
  if(kind==='gyaku')return 'あべこべの組み合わせ（やわらかい皮鉄）では、名刀にならない。';
  if(!era)return `${material(mats[0]).name}の皮鉄には時代の札がない。名刀にするなら、時代のある鋼を皮鉄に。`;
  const same=list.filter(m=>m.t===form&&m.h===hamon&&m.e===era&&matsFit(m,mats));
- if(same.length){const need=Math.min(...same.map(m=>NEED[m.r]));return `この形・刃文・地鉄の名刀まで、成功があと${need-successes}つ。`;}
+ if(same.length){const need=Math.min(...same.map(m=>NEED[m.r]));return `この形・刃文・地鉄の名刀まで、技の点があと${need-successes}。`;}
  const byEra=list.filter(m=>m.t===form&&m.e===era);
  if(byEra.length){const hs=[...new Set(byEra.map(m=>m.h))].map(h=>HAMON[h].name).slice(0,3);return `${ERAS[era].long}の${F}の名刀は、刃文が「${hs.join('・')}」。`;}
  const byHamon=list.filter(m=>m.t===form&&m.h===hamon);
  if(byHamon.length){const es=[...new Set(byHamon.map(m=>m.e))].slice(0,2);return `${HAMON[hamon].name}の${F}の名刀は、${es.map(e=>ERAS[e].long).join('・')}の地鉄（${comboText(es[0])}）。`;}
  const any=list.filter(m=>m.t===form).length;
  return any?`${F}の名刀は${any}振。刀帳でヒントを見てみよう。`:`${F}の名刀は、まだ見つかっていない。`;
+}
+
+// ---- 隠し相性 (#17, D42): some pairs of 皮鉄 and 心鉄 (and sometimes the form) work better than their numbers say.
+// Found by forging them once; then listed in the 相性帳. fixes: the pair is not counted as あべこべ (流星刀 needs it).
+export const SYNERGIES=[
+ {id:'kobuse',kawa:'jou',shin:'houcho',name:'甲伏せの妙',fx:{tough:8},hint:'硬く美しい玉鋼で、いちばんやわらかい鉄を包む'},
+ {id:'chikusa',kawa:'chikusa',shin:'houcho',name:'千種の冴え',fx:{beauty:10},hint:'播磨の名高い鋼の皮に、よくねばる芯'},
+ {id:'meiko',kawa:'chikusa',shin:'jou',name:'名鋼くらべ',fx:{sharp:8},hint:'名高い鋼どうしを重ねる'},
+ {id:'wayo',kawa:'nanban',shin:'kugi',name:'和洋の継ぎ',fx:{sharp:5,tough:5},hint:'海を渡った鉄と、古い寺の鉄'},
+ {id:'tatara',kawa:'kera',shin:'nami',name:'たたらの粘り',fx:{tough:10},hint:'たたらから出たままの塊と、扱いやすい玉鋼'},
+ {id:'kokan',kawa:'zuku',shin:'houcho',name:'硬軟の極み',fx:{sharp:12},hint:'いちばん硬い鉄と、いちばんやわらかい鉄'},
+ {id:'ryusei',kawa:'inseki',shin:'jou',name:'流星',fx:{beauty:12},fixes:true,hint:'空から落ちてきた鉄に、上等の玉鋼'},
+ {id:'furugane',kawa:'kugi',shin:'oroshi',name:'古鉄の生まれ変わり',fx:{sharp:4,tough:4,beauty:4},hint:'捨てられるはずだった古い鉄どうし'},
+ {id:'muku',kawa:'nami',shin:'nami',name:'無垢の一本',fx:{beauty:6},hint:'同じ玉鋼だけで打つ'},
+ {id:'tairiku',kawa:'hakusai',shin:'hakusai',name:'大陸の直刀',fx:{beauty:10},forms:['chokuto','ken'],hint:'大陸の鉄だけで、まっすぐな古い形を'},
+ {id:'nodachi',kawa:'kera',shin:'houcho',name:'野太刀の鍛え',fx:{sharp:10},forms:['odachi','tachi'],hint:'荒い塊で、長い刀を'},
+ {id:'hosaki',kawa:'nanban',shin:'houcho',name:'南蛮の穂先',fx:{sharp:8,tough:4},forms:['yari','naginata'],hint:'江戸に来た輸入の鉄で、長い柄の武器を'}
+];
+export function synergyOf(kawa,shin,formId){
+ return SYNERGIES.find(x=>x.kawa===kawa&&x.shin===(shin||kawa)&&(!x.forms||x.forms.includes(formId)))||null;
 }
 
 // ---- 仕上がり
@@ -284,73 +307,56 @@ export const MEITO_RANK={1:{name:'名物',color:'#b7c0c8'},2:{name:'名品',colo
 const MEITO_PRICE={1:20000,2:40000,3:80000,4:200000,5:600000};
 export const MEITO_VALUE=MEITO_PRICE;
 export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84?4:5;
+// the stats a build would give if every step went at quality q (0..1): for the materials screen's preview (#17)
+export function expectStats(build,formId='katana',q=0.8,syn=null){
+ const c=combine(build),f=55*q,fx=syn?.fx||{};
+ const v=k=>Math.round(clamp(c.base[k]+f+c.bonus[k]+(fx[k]||0),0,100));
+ return {sharp:v('sharp'),tough:v('tough'),beauty:v('beauty')};
+}
 export function finishSword(run,list=[],collection={}){
  const c=combine(run.structure?run:{structure:run.shin?'kobuse':'maru',kawa:run.kawa,shin:run.shin});
- const H=clamp(run.heat.score),M=clamp(mean(run.hits)),T=clamp(run.hamon.score),Q=clamp(run.quench.score),P=clamp(run.polish.score);
+ const polish=run.polish||autoPolish(run);
+ const H=clamp(run.heat.score),M=clamp(mean(run.hits)),T=clamp(run.hamon.score),Q=clamp(run.quench.score),P=clamp(polish.score);
+ const syn=synergyOf(c.kawa.id,c.shin?.id,run.form||'katana');
  let sharp=c.base.sharp+55*(0.45*Q+0.25*M+0.30*P)+c.bonus.sharp;
  let tough=c.base.tough+55*(0.50*M+0.30*H+0.20*Q)+c.bonus.tough;
  let beauty=c.base.beauty+55*(0.35*P+0.35*T+0.30*H)+c.bonus.beauty;
  if(run.heat.grade==='burn'){tough-=10;beauty-=10;}
+ if(syn){sharp+=syn.fx.sharp||0;tough+=syn.fx.tough||0;beauty+=syn.fx.beauty||0;}
  const crack=!!run.quench.crack;
  if(crack){sharp*=0.6;tough*=0.35;}
  const stats={sharp:Math.round(clamp(sharp,0,100)),tough:Math.round(clamp(tough,0,100)),beauty:Math.round(clamp(beauty,0,100))};
  const overall=Math.round((stats.sharp+stats.tough+stats.beauty)/3);
  const stars=crack?1:starsFor(overall);
  const formId=run.form||'katana',successes=successCount(run);
- const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`};
+ const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`,want:run.want||null};
  const meito=pickMeito(list,pick,collection);
  const grade=gradeFor(overall,crack);
  const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BY_GRADE[grade.id]*(0.85+overall/200)/50)*50;
  return {name:meito?meito.n:`無銘の${form(formId).name}`,meito:meito?meito.n:null,tier:meito?meito.r:0,form:formId,era:c.era,successes,
-  auto:!!run.auto,hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],grade:grade.id,gradeName:grade.name,stats,overall,price,crack,
+  synergy:syn?.id||null,hint:meito?null:meitoHint(list,pick),stars,rank:RANKS[stars-1],grade:grade.id,gradeName:grade.name,stats,overall,price,crack,
   hamon:run.hamon.type,profile:run.hamon.profile,sori:soriFor(Q),kawa:c.kawa.id,shin:c.shin?.id||null,ha:c.ha?.id||null,mune:c.mune?.id||null,structure:c.structure,combo:c.kind,cost:c.cost,
   steps:{heat:H,hammer:M,hamon:T,quench:Q,polish:P}};
 }
 
-// ---- 鍛冶師ランク (#9, owner D24; the thresholds and what each opens are Claude's proposal, GAME_SPEC G13)
-// A rank is reached when its condition holds (by swords forged, by real swords in the 刀帳); what it opens adds up.
-export const SMITH_RANKS=[
- {name:'見習い',forged:0,meito:0,forms:['katana','wakizashi','tanto'],structures:['maru','kobuse'],materials:['nami','jou','oroshi','houcho','zuku']},
- {name:'鍛冶',forged:3,meito:0,forms:['tachi'],structures:[],materials:['kera']},
- {name:'刀工',forged:0,meito:1,forms:['odachi'],structures:['sanmai'],materials:['chikusa','kugi']},
- {name:'名工',forged:0,meito:10,forms:['naginata','yari'],structures:['shiho'],materials:['nanban']},
- {name:'名匠',forged:0,meito:30,forms:['ken','chokuto'],structures:[],materials:['hakusai']},
- {name:'刀聖',forged:0,meito:80,forms:[],structures:[],materials:['inseki']},
- {name:'人間国宝',forged:0,meito:150,forms:[],structures:[],materials:[]}
+// ---- 評判で増えるもの (#17, D45: the 鍛冶師ランク became the shop's 評判). Level i opens what UNLOCKS[i] lists; it adds up.
+export const UNLOCKS=[
+ {forms:['katana','wakizashi','tanto'],materials:['nami','jou','oroshi','houcho','zuku']},
+ {forms:['tachi'],materials:['kera']},
+ {forms:['odachi'],materials:['chikusa','kugi']},
+ {forms:['naginata','yari'],materials:['nanban']},
+ {forms:['ken','chokuto'],materials:['hakusai']},
+ {forms:[],materials:['inseki']},
+ {forms:[],materials:[]}
 ];
-export function smithRank({forged=0,meito=0}){
- let i=0;SMITH_RANKS.forEach((r,k)=>{if(forged>=r.forged&&meito>=r.meito)i=k;});
- const open={forms:new Set(),structures:new Set(),materials:new Set()};
- for(const r of SMITH_RANKS.slice(0,i+1))for(const k of ['forms','structures','materials'])r[k].forEach(x=>open[k].add(x));
- const next=SMITH_RANKS.slice(i+1).find(r=>r);
- const toNext=next?(next.meito>meito?`名刀あと${next.meito-meito}振`:`あと${next.forged-forged}振打つ`):null;
- return {index:i,name:SMITH_RANKS[i].name,next:next?.name||null,toNext,open};
+export function openAt(level=0){
+ const open={forms:new Set(),materials:new Set()};
+ for(const u of UNLOCKS.slice(0,Math.max(0,Math.min(UNLOCKS.length-1,level))+1)){u.forms.forEach(x=>open.forms.add(x));u.materials.forEach(x=>open.materials.add(x));}
+ return open;
 }
-// which rank first opens a form, material or 造り込み
-export function opensAt(kind,id){const r=SMITH_RANKS.find(r=>r[kind].includes(id));return r?r.name:null;}
-
-// ---- おまかせで打つ (#11, owner D27・D28): every step succeeds (よし or better) with the rank's rate; the 刃文 is random.
-export const AUTO_RATE=[0.30,0.35,0.42,0.50,0.58,0.66,0.75];
-export const autoRate=rankIndex=>AUTO_RATE[Math.max(0,Math.min(AUTO_RATE.length-1,rankIndex))];
+// the 評判 level that first opens a form or material
+export function opensAt(kind,id){const i=UNLOCKS.findIndex(u=>u[kind].includes(id));return i<0?null:i;}
 export function seededRandom(seed){let s=(seed>>>0)||1;return ()=>((s=Math.imul(s^(s>>>15),2246822519)^Math.imul(s^(s>>>13),3266489917))>>>0)/4294967296;}
-// one step: success splits into 会心 and よし; failure into あまい and 空振り-like
-function autoStep(p,rng){const r=rng();return r<p*0.4?'best':r<p?'good':r<p+(1-p)*0.6?'weak':'bad';}
-export function autoForge(build,rankIndex,rng=Math.random){
- const p=autoRate(rankIndex),c=combine(build);
- const hg=autoStep(p,rng),heat=hg==='best'?{grade:'best',score:1,label:'会心'}:hg==='good'?{grade:'good',score:0.8,label:'よし'}
-  :hg==='weak'?{grade:'weak',score:0.5,label:rng()<0.5?'ぬるい':'熱い'}:rng()<0.3?{grade:'burn',score:0.15,label:'沸かしすぎ'}:{grade:'bad',score:0.15,label:'冷たい'};
- heat.temp=Math.round(HEAT.center+(heat.grade==='best'?0:heat.grade==='good'?c.heatHalf*0.7:c.heatHalf*2));
- const hitGrades=[],hits=[];
- for(let i=0;i<HAMMER.hits;i++){const g=autoStep(p,rng);const gg=g==='bad'?'miss':g;hitGrades.push(gg);hits.push({best:1,good:0.7,weak:0.35,miss:0}[gg]);}
- const types=Object.keys(HAMON),type=types[Math.floor(rng()*types.length)],ok=rng()<p;
- const hamon={type,name:HAMON[type].name,score:ok?0.75+rng()*0.25:0.3+rng()*0.35,profile:canonicalHamon(type,1+Math.floor(rng()*9999))};
- const qg=autoStep(p,rng);
- const quench=qg==='best'?{grade:'best',score:1,label:'会心',crack:false}:qg==='good'?{grade:'good',score:0.8,label:'よし',crack:false}
-  :qg==='weak'||rng()>0.25?{grade:'weak',score:0.45,label:rng()<0.5?'焼きが甘い':'熱すぎ',crack:false}:{grade:'crack',score:0.1,label:'焼き割れ',crack:true};
- const pg=autoStep(p,rng);
- const polish=pg==='best'||pg==='good'?{coverage:0.99,scratches:0,score:polishScore(0.99,0)}:{coverage:pg==='weak'?0.92:0.8,scratches:pg==='weak'?1:2,score:polishScore(pg==='weak'?0.92:0.8,pg==='weak'?1:2)};
- return {...build,auto:true,autoRate:p,heat,hits,hitGrades,hamon,quench,polish,sori:soriFor(quench.score)};
-}
 
 // ---- 鋼の色: temperature (°C) to the colour the steel glows.
 const GLOW=[[500,[42,40,44]],[650,[92,26,16]],[800,[176,37,15]],[950,[232,87,26]],[1100,[255,180,58]],[1200,[255,240,138]],[1300,[255,255,255]]];

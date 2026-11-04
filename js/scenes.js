@@ -29,7 +29,7 @@ export class Heat{
   const r=R.heatScore(this.temp,this.half);this.api.run.heat={temp:Math.round(this.temp),...r};
   this.api.pop(r.label,r.grade);S.tick();
   this.api.say({best:'いい色だ！ 鋼がよく沸いた。',good:'よし、いい色だ。',weak:r.label==='ぬるい'?'少しぬるいな。叩くときに苦労するぞ。':'少し熱すぎたな。',bad:'これは色が悪い……。',burn:'沸かしすぎだ！ 鋼が少し燃えてしまった。'}[r.grade],r.grade==='best'||r.grade==='good'?'happy':'normal');
-  this.api.controls([]);after(this.api,1500,()=>this.api.next());
+  this.api.controls([]);after(this.api,900,()=>this.api.next());
  }
  update(dt){
   if(!this.done){
@@ -66,7 +66,7 @@ export class Hammer{
  enter(){
   const run=this.api.run;
   Object.assign(this,{i:0,t:0,phase:'wait',phaseT:0,hits:[],grades:[],temp:Math.max(900,run.heat.temp),win:R.hammerWindow(run.heat.score),swingT:9,shake:0,sparks:new D.Sparks(),fold:0});
-  this.api.say('白い輪が、金色の的に<b>ぴったり重なった瞬間</b>に叩け。12回、4回ごとに折り返すぞ。');
+  this.api.say('白い輪が、金色の的に<b>ぴったり重なった瞬間</b>に叩け。5回だ。');
   this.api.controls([{label:'たたく',tap:true,primary:true}]);
   this.api.progress(0,R.HAMMER.hits);
   after(this.api,700,()=>{this.phase='ring';this.t=0;});
@@ -89,7 +89,7 @@ export class Hammer{
   const run=this.api.run;run.hits=this.hits;run.hitGrades=this.grades;
   const m=R.mean(this.hits),best=this.grades.filter(g=>g==='best').length;
   this.api.say(m>=0.8?`見事な槌さばきだ！ 会心${best}回。`:m>=0.55?'いい調子だ。地鉄がよく締まった。':'まだ叩きがばらばらだな。輪をよく見ろ。',m>=0.55?'happy':'normal');
-  this.api.controls([]);after(this.api,1500,()=>this.api.next());
+  this.api.controls([]);after(this.api,900,()=>this.api.next());
  }
  update(dt){
   this.swingT+=dt;this.shake=Math.max(0,this.shake-dt*40);this.sparks.update(dt);
