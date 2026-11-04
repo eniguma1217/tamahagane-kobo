@@ -1,7 +1,7 @@
-// 客と評判（#12・#15・#17）。注文だけにしぼったので（owner D43）、店先の値段交渉・競り・蔵・売り払いはやめた。
-// 評判（もとの名声）は7段。上がると格の高い客が来て、新しい素材と形が使えるようになる（D45）。数字は Claude の案（GAME_SPEC G16）。
+// 客と評判（#12・#15・#17・#19）。評判（もとの名声）は7段。上がると格の高い客・新しい形・新しい出陣先が増え、依頼も増える（D45・D55）。
+// 数字は Claude の案（GAME_SPEC G16）。
 import * as R from './rules.js';
-import * as J from './journey.js';
+import {PLACES} from './dive.js';
 
 // fame: the 評判 level (index) from which they come; pay: how much more they pay for an order
 export const CLIENTS={
@@ -34,6 +34,7 @@ export function fameLevel(fame=0){
 }
 export const fameReward=level=>FAME_LEVELS[lvClamp(level)].reward;
 export const fameGift=level=>FAME_LEVELS[lvClamp(level)].gift;
+const SLOTS=[1,1,2,2,3,3,3];   // the same as orders.ORDER_SLOTS
 // what a level brings, for the notice when it rises
 export function fameNews(from,to){
  const out=[];
@@ -41,9 +42,9 @@ export function fameNews(from,to){
   const U=R.UNLOCKS[i]||{forms:[],materials:[]};
   for(const k of Object.keys(CLIENTS))if(CLIENTS[k].fame===i)out.push(`${CLIENTS[k].face} ${CLIENTS[k].name}が来るようになった`);
   if(U.forms.length)out.push(`新しい形：${U.forms.map(f=>R.form(f).name).join('・')}`);
-  if(U.materials.length)out.push(`新しい素材：${U.materials.map(m=>R.material(m).name).join('・')}`);
-  if(FAME_LEVELS[i].reward>FAME_LEVELS[i-1].reward)out.push(`注文のお礼が×${FAME_LEVELS[i].reward}に`);
+  for(const p of PLACES)if(p.fame===i)out.push(`新しい出陣先：${p.name}`);
+  if(FAME_LEVELS[i].reward>FAME_LEVELS[i-1].reward)out.push(`依頼のお礼が×${FAME_LEVELS[i].reward}に`);
+  if(SLOTS[i]>SLOTS[i-1])out.push(`依頼が${SLOTS[i]}件まで来るように`);
  }
- if(J.BASE_STAR[lvClamp(to)]>J.BASE_STAR[lvClamp(from)])out.push('むずかしい注文が増え、評判も大きく上がるように');
  return out;
 }

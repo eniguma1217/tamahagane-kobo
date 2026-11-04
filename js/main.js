@@ -1,9 +1,11 @@
-// The app shell: screens (title, form, materials, the forging steps, result, 刀帳, records), the canvas loop, input and the save.
+// The app shell (#19): the 工房 (title), forging (form, steel, three steps, result), the 刀掛け, the dives, the requests,
+// the 刀帳, the 相性帳 and the records; the canvas loop, input and the save.
 import * as R from './rules.js';
-import {loadSave,writeSave,addSword,bestSword,payBuild,migrateOrders,START_MONEY} from './save.js';
+import {loadSave,writeSave,addSword,bestSword,takeSteel,addLoot,migrateRack,START_MONEY} from './save.js';
 import * as M from './market.js';
-import * as J from './journey.js';
 import * as O from './orders.js';
+import * as P from './people.js';
+import * as V from './dive.js';
 import * as S from './sound.js';
 import * as D from './draw.js';
 import {MEITO} from './meito.js';
@@ -15,7 +17,7 @@ const el={app:$('#app'),bar:$('#bar'),steps:$('#steps'),meter:$('#meter'),stage:
 const ctx=el.cv.getContext('2d');
 const {setDPR}=D;
 let save=loadSave(window.localStorage),notice=null;
-{const m=migrateOrders(save);if(m.save!==save){save=m.save;notice=m.notice;writeSave(window.localStorage,save);}}
+{const m=migrateRack(save);if(m.save!==save){save=m.save;notice=m.notice;writeSave(window.localStorage,save);}}
 S.setSound(save.settings.sound);
 let scene=null,timers=[],W=360,H=480,last=performance.now(),runTime=0;
 
@@ -115,144 +117,113 @@ function steps(index){
  el.steps.innerHTML=STEP_NAMES.map((n,i)=>`<span class="${i<index?'done':i===index?'now':''}">${n}</span>`).join('<i>›</i>');
 }
 
-const letterCount=()=>J.travelling(save).filter(p=>p.journey.left<=0).length;
 function showNotice(text){
  const box=document.createElement('div');box.className='overlay';
  box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">お知らせ</p><p class="mtags">${text}</p><button class="btn primary" data-close>とじる</button></div>`;
  closable(box);el.panel.append(box);
 }
-function showTitle(){
- mode('title');setScene(new Ambient(api,'title','title'));
- const n=save.forged||0,F=fameNow(),away=J.travelling(save).length;
- el.panel.innerHTML=`<div class="title">
-  <div class="title-name"><h1>玉鋼工房</h1><span class="seal">工房</span></div>
-  <p class="title-sub">たまはがね こうぼう</p>
-  <p class="title-money">所持金 ${yen(money())}文</p>
-  <p class="title-rank">評判 <b>Lv${F.lv} ${F.name}</b>${letterCount()?`<small>✉ 便りが${letterCount()}通届いている</small>`:away?`<small>旅に出ている持ち主 ${away}人</small>`:F.next?`<small>次の「${F.next}」まで あと${yen(F.toNext)}</small>`:''}</p>
-  <div class="menu"><button class="btn primary big" data-go="board">注文を受ける</button>
-  <div class="menu-row"><button class="btn" data-go="zukan">刀帳 ${found()}/${MEITO.length}</button><button class="btn" data-go="aisho">相性帳 ${foundSyn()}/${R.SYNERGIES.length}</button>
-  <button class="btn" data-go="records" ${n?'':'disabled'}>記録</button></div></div>
- </div>`;
- el.panel.querySelector('[data-go=board]').onclick=()=>{S.unlock();S.tick();showBoard();};
- el.panel.querySelector('[data-go=zukan]').onclick=()=>{S.unlock();S.tick();showZukan();};
- el.panel.querySelector('[data-go=aisho]').onclick=()=>{S.unlock();S.tick();showAisho(showTitle);};
- el.panel.querySelector('[data-go=records]').onclick=()=>{S.tick();showRecords();};
- if(notice){const t=notice;notice=null;showNotice(t);}
-}
-
-// ---------- 注文の板 (#17, D38・D41): three orders; choose one and forge for it ----------
 const rngAt=seq=>R.seededRandom(seq*7919+13);
 const rngNext=()=>{const r=rngAt(save.seq||1);save={...save,seq:(save.seq||1)+1};return r;};
 const fameNow=()=>M.fameLevel(save.fame||0);
 const openNow=()=>R.openAt(fameNow().index);
-const starLine=(n,max=5)=>`<span class="stars">${'★'.repeat(n)}<i>${'★'.repeat(Math.max(0,max-n))}</i></span>`;
-const skillText=k=>`${J.SKILLS[k].name}（${J.SKILLS[k].stat}）`;
-const giftable=()=>[...openNow().materials].filter(id=>R.material(id).price>=500);
 const pct=x=>Math.round(x*100);
 const foundSyn=()=>Object.keys(save.synergies||{}).length;
-const personOf=o=>o.person||J.personById(save,o.ownerId);
-function ensureOrders(){save=O.fillOrders(save,fameNow().index,MEITO,rngAt);writeSave(window.localStorage,save);}
-function showBoard(){
- mode('shop');steps(-1);el.meter.hidden=true;
- setScene(new Ambient(api,'shop','plain',{dim:0.55}));
- api.controls([{label:'タイトルへ',onClick:showTitle}]);
- // 便り (D34): the journeys that have ended are told when the board is opened
- const before=fameNow(),out=J.deliverLetters(save);
- if(out.letters.length)save=out.save;
- ensureOrders();renderBoard();
- if(out.letters.length)showLetters(out.letters,before);
-}
-function fameBar(){
- const F=fameNow();
- return `<div class="fame"><span class="fame-lv">評判 Lv${F.lv}</span><b>${F.name}</b><i><b style="width:${Math.round(F.progress*100)}%"></b></i><small>${F.next?`次まで${yen(F.toNext)}`:'最高'}</small></div>`;
-}
-function condChips(o){return o.conds.filter(c=>c.k!=='meito').map(c=>`<i class="cond c-${c.k}">${O.condText(c)}</i>`).join('');}
-function orderCard(o){
- const p=personOf(o),tag=o.real?'名指し':o.regular?'常連':M.CLIENTS[o.client]?.name||'';
- return `<li class="o-wrap"><button class="o-skip" data-skip="${o.id}">見送る</button><button class="order ${o.real?'named':''}" data-order="${o.id}">
-  <span class="o-who">${p.face} <b>${p.name}</b>${o.real?'<small class="real">実在</small>':''}<small>${tag}</small>${starLine(o.diff)}</span>
-  ${o.real?`<span class="o-meito">名刀「${o.meito}」を打ってほしい</span>`:''}
-  <span class="o-what"><b>${R.form(o.form).name}</b>${condChips(o)}</span>
-  <span class="o-foot"><em>お礼 ${yen(o.reward)}文${o.gift?`＋${R.material(o.gift).name}の券`:''}</em><small>旅：${J.journeyInfo(o.journey).title}</small></span></button></li>`;
-}
-function renderBoard(){
- const owners=save.owners||[],away=J.travelling(save).length;
- el.panel.innerHTML=`<div class="shop board"><div class="shop-head"><b>所持金 ${yen(money())}文</b><small>${away?`旅に出ている持ち主 ${away}人`:''}</small></div>${fameBar()}
-  <p class="board-title">注文 <small>どれか1つを選んで打つ。刀は注文した人と旅に出る</small></p>
-  <ul class="orders">${save.orders.slice().sort((a,b)=>!!b.real-!!a.real).map(orderCard).join('')}</ul>
-  <div class="board-links"><button class="chip-btn" data-go="jouren">常連 ${owners.filter(p=>p.regular).length}・旅 ${away}</button><button class="chip-btn" data-go="aisho">相性帳 ${foundSyn()}/${R.SYNERGIES.length}</button><button class="chip-btn" data-go="zukan">刀帳 ${found()}</button></div></div>`;
- for(const b of el.panel.querySelectorAll('[data-order]'))b.onclick=()=>{S.unlock();S.tick();showMaterials(+b.dataset.order);};
- // 見送る: the order goes and a new one comes (nothing is lost)
- for(const b of el.panel.querySelectorAll('[data-skip]'))b.onclick=()=>{S.tick();save={...save,orders:save.orders.filter(o=>o.id!==+b.dataset.skip)};ensureOrders();renderBoard();};
- el.panel.querySelector('[data-go=jouren]').onclick=()=>{S.tick();showJouren();};
- el.panel.querySelector('[data-go=aisho]').onclick=()=>{S.tick();showAisho(showBoard);};
- el.panel.querySelector('[data-go=zukan]').onclick=()=>{S.tick();showZukan();};
+const rack=()=>save.rack||[];
+const matCount=()=>Object.values(save.materials||{}).reduce((t,n)=>t+n,0);
+const pips=(n,max)=>`<span class="pips">${'●'.repeat(Math.max(0,n))}<i>${'●'.repeat(Math.max(0,max-n))}</i></span>`;
+const statLine=(st,hi=null)=>`<span class="cst">${['sharp','tough','beauty'].map(k=>`<i class="${hi===k?'hit':''}">${{sharp:'切',tough:'粘',beauty:'美'}[k]}${st?.[k]??0}</i>`).join('')}</span>`;
+function save_(){writeSave(window.localStorage,save);}
+
+// ---------- 工房（タイトル）----------
+function showTitle(){
+ mode('title');setScene(new Ambient(api,'title','title'));
+ const n=save.forged||0,F=fameNow(),orders=(save.orders||[]).length;
+ el.panel.innerHTML=`<div class="title">
+  <div class="title-name"><h1>玉鋼工房</h1><span class="seal">工房</span></div>
+  <p class="title-sub">たまはがね こうぼう</p>
+  <p class="title-money">所持金 ${yen(money())}文　素材 ${matCount()}</p>
+  <p class="title-rank">評判 <b>Lv${F.lv} ${F.name}</b>${F.next?`<small>次の「${F.next}」まで あと${yen(F.toNext)}</small>`:''}</p>
+  <div class="menu"><div class="menu-row two"><button class="btn primary big" data-go="forge">刀を打つ</button><button class="btn primary big" data-go="dive">${save.dive?'出陣の続き':'出陣する'}</button></div>
+  <div class="menu-row"><button class="btn" data-go="orders">依頼 ${orders}</button><button class="btn" data-go="rack">刀掛け ${rack().length}/${V.RACK_MAX}</button><button class="btn" data-go="zukan">刀帳 ${found()}</button></div>
+  <div class="menu-row"><button class="btn" data-go="aisho">相性帳 ${foundSyn()}/${R.SYNERGIES.length}</button><button class="btn" data-go="records" ${n?'':'disabled'}>記録</button></div></div>
+ </div>`;
+ const go={forge:showForms,dive:()=>save.dive?showDive():showDivePrep(),orders:showOrders,rack:showRack,zukan:()=>showZukan(),aisho:()=>showAisho(showTitle),records:showRecords};
+ for(const b of el.panel.querySelectorAll('[data-go]'))b.onclick=()=>{S.unlock();S.tick();go[b.dataset.go]();};
+ if(notice){const t=notice;notice=null;showNotice(t);}
 }
 
-// ---------- 素材 (D44): 皮鉄と心鉄を買って選ぶ。同じものを2つで丸鍛え ----------
-let order=null,pick={kawa:null,shin:null,active:'kawa',last:null};
+// ---------- 刀を打つ：形 → 素材 → 3工程 ----------
+let pick={form:null,kawa:null,shin:null,active:'kawa',last:null};
+function showForms(form){
+ if(rack().length>=V.RACK_MAX){showTitle();return showNotice(`刀掛けがいっぱいだ（${V.RACK_MAX}振）。出陣で使うか、依頼に納めるか、刀掛けで手放してから打とう。`);}
+ if(form){pick.form=form;return showMaterials();}
+ mode('forms');steps(0);el.meter.hidden=true;
+ setScene(new Ambient(api,'forms','title',{dim:0.78}));
+ api.say('何を打つ？ 形ごとに打てる名刀がちがう。依頼に合わせるなら、その形を。');
+ api.controls([{label:'工房へ',onClick:showTitle}]);
+ const open=openNow();
+ el.panel.innerHTML=`<div class="forms-screen"><div class="forms">${R.FORMS.map(f=>{
+  const all=MEITO.filter(m=>m.t===f.id),got=all.filter(m=>save.collection[m.n]).length,lk=!open.forms.has(f.id);
+  const asked=(save.orders||[]).some(o=>o.form===f.id);
+  return `<button class="form-card ${lk?'locked':''}" data-form="${f.id}" ${lk?`data-lock="${R.opensAt('forms',f.id)}"`:''}>${lk?`<em class="lock">🔒評判Lv${R.opensAt('forms',f.id)+1}</em>`:asked?'<em class="lock asked">依頼</em>':''}<img alt="" src="${swordPic(f.id,null,120,26,'f:'+f.id,{widScale:1.5})}"><b>${f.name}</b><span>${f.note}</span><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
+ for(const b of el.panel.querySelectorAll('[data-form]'))b.onclick=()=>{S.unlock();S.tick();
+  if(b.dataset.lock)return api.say(`${R.form(b.dataset.form).name}は、評判が <b>Lv${+b.dataset.lock+1}</b> になると打てる。`);
+  pick.form=b.dataset.form;showMaterials();};
+}
 const buildOf=()=>({structure:pick.kawa&&pick.kawa===pick.shin?'maru':'kobuse',kawa:pick.kawa,shin:pick.kawa===pick.shin?undefined:pick.shin});
-function showMaterials(id){
- order=save.orders.find(o=>o.id===id)||null;if(!order)return showBoard();
+// can this steel be had now: in hand (count), or at the shop (price), or only from the dives
+function steelState(id,need=1){const have=(save.materials||{})[id]||0;if(have>=need)return {have,ok:true};if(id in V.SHOP)return {have,ok:true,price:V.SHOP[id]};return {have,ok:false};}
+function steelCost(mats){const m={...(save.materials||{})};let c=0;for(const id of mats){if(m[id]>0)m[id]--;else if(id in V.SHOP)c+=V.SHOP[id];else return null;}return c;}
+function showMaterials(){
+ if(!pick.form)return showForms();
  mode('materials');steps(0);el.meter.hidden=true;
  setScene(new Ambient(api,'materials','title',{dim:0.8}));
- api.controls([{label:'戻る',onClick:showBoard},{label:'打つ',primary:true,disabled:true,onClick:startForging}]);
+ api.controls([{label:'戻る',onClick:()=>showForms()},{label:'打つ',primary:true,disabled:true,onClick:startForging}]);
  renderMaterials();
 }
-const yenOr=n=>n?`${yen(n)}文`:'無料';
-// what a build costs after the free vouchers (one per piece)
-function costWithVouchers(mats){const v={...(save.vouchers||{})};let c=0;for(const id of mats){if(v[id]>0)v[id]--;else c+=R.material(id).price;}return c;}
-function orderStrip(o){
- const p=personOf(o);
- return `<div class="ostrip ${o.real?'named':''}"><p>${p.face} <b>${p.name}</b>${o.real?`<small>名刀「${o.meito}」</small>`:''}${starLine(o.diff)}</p><p class="o-what"><b>${R.form(o.form).name}</b>${condChips(o)}</p></div>`;
-}
 function renderMaterials(){
- const open=openNow();
- for(const k of ['kawa','shin'])if(pick[k]&&!open.materials.has(pick[k]))pick[k]=null;
  const ready=!!(pick.kawa&&pick.shin),build=buildOf(),c=ready?R.combine(build):null,mats=ready?R.buildMats(build):[];
- const cost=costWithVouchers(mats),enough=cost<=money();
- const syn=ready?R.synergyOf(pick.kawa,pick.shin,order.form):null,known=syn&&save.synergies?.[syn.id];
- const ex=ready?R.expectStats(build,order.form,0.8,known?syn:null):null,best=ready?R.expectStats(build,order.form,1,known?syn:null):null;
- const need=Object.fromEntries(order.conds.filter(x=>x.k==='stat').map(x=>[x.stat,x.min]));
+ const cost=ready?steelCost(mats):0,enough=cost!==null&&cost<=money();
+ const syn=ready?R.synergyOf(pick.kawa,pick.shin,pick.form):null,known=syn&&save.synergies?.[syn.id];
+ const ex=ready?R.expectStats(build,pick.form,0.8,known?syn:null):null,best=ready?R.expectStats(build,pick.form,1,known?syn:null):null;
  el.panel.innerHTML=`<div class="mats-screen">
-  ${orderStrip(order)}
   <div class="slots">${['kawa','shin'].map(k=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${R.SLOTS[k].name}</small><b>${m?m.name:'えらぶ'}</b><em>${R.SLOTS[k].role}</em></button>`;}).join('')}</div>
   <p class="era-line">${eraLine(c,syn,known)}</p>
-  ${ex?`<div class="statpv">${['sharp','tough','beauty'].map(k=>{const n=need[k];return `<div class="${n?(ex[k]>=n?'ok':best[k]>=n?'maybe':'no'):''}"><small>${O.STAT_NAME[k]}</small><i><b style="width:${ex[k]}%"></b><u style="width:${best[k]}%"></u>${n?`<s style="left:${n}%"></s>`:''}</i><em>${ex[k]}${n?`／${n}`:''}</em></div>`;}).join('')}</div>`:''}
-  <div class="mats">${R.MATERIALS.map(m=>{const marks=['kawa','shin'].filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');
-   const lk=!open.materials.has(m.id);
-   return `<button class="mat ${marks?'picked':''} ${lk?'locked':''}" data-mat="${m.id}" ${lk?`data-lock="${R.opensAt('materials',m.id)}"`:''}><em class="era-tag ${m.era?'':'none'}">${lk?`🔒評判Lv${R.opensAt('materials',m.id)+1}`:m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${yenOr(m.price)}${save.vouchers?.[m.id]?`<i class="voucher">無料券${save.vouchers[m.id]}</i>`:''}</small></span></button>`;}).join('')}</div>
-  <p class="cost-line ${enough?'':'short'}">材料代 <b>${yen(cost)}</b>文　所持金 <b>${yen(money())}</b>文</p>
+  ${ex?`<div class="statpv">${['sharp','tough','beauty'].map(k=>`<div><small>${O.STAT_NAME[k]}</small><i><b style="width:${ex[k]}%"></b><u style="width:${best[k]}%"></u></i><em>${ex[k]}</em></div>`).join('')}<p class="dur-pv">耐久 ${pips(V.maxDurability({stats:ex}),V.maxDurability({stats:best}))}　鎧に${ex.sharp>=70?'◎':ex.sharp>=50?'○':'△'}・獣に${ex.tough>=70?'◎':ex.tough>=50?'○':'△'}・もののけに${ex.beauty>=70?'◎':ex.beauty>=50?'○':'△'}</p></div>`:''}
+  <div class="mats">${R.MATERIALS.map(m=>{const marks=['kawa','shin'].filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');const st=steelState(m.id);
+   return `<button class="mat ${marks?'picked':''} ${st.ok?'':'locked'}" data-mat="${m.id}" ${st.ok?'':'data-none="1"'}><em class="era-tag ${m.era?'':'none'}">${m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${st.have?`<i class="voucher">手持ち${st.have}</i>`:''}${st.price!=null&&!st.have?(st.price?`店 ${yen(st.price)}文`:'店 無料'):st.ok?'':'潜って手に入れる'}</small></span></button>`;}).join('')}</div>
+  <p class="cost-line ${enough||!ready?'':'short'}">${ready?(cost===null?'手持ちが足りない':`店で買う分 <b>${yen(cost)}</b>文`):'皮鉄と心鉄を選ぶ'}　所持金 <b>${yen(money())}</b>文</p>
  </div>`;
  for(const b of el.panel.querySelectorAll('[data-slot]'))b.onclick=()=>{S.tick();pick.active=b.dataset.slot;renderMaterials();};
  for(const b of el.panel.querySelectorAll('[data-mat]'))b.onclick=()=>{S.unlock();S.tick();
-  if(b.dataset.lock)return api.say(`まだ使えない。店の評判が <b>Lv${+b.dataset.lock+1}</b> になると使える。`);
+  if(b.dataset.none)return api.say(`${R.material(b.dataset.mat).name}は店にない。<b>出陣</b>して手に入れよう。`);
   pick[pick.active]=b.dataset.mat;pick.last=b.dataset.mat;pick.active=pick.active==='kawa'?'shin':'kawa';if(pick.kawa&&!pick.shin)pick.active='shin';renderMaterials();};
  const go=el.controls.querySelectorAll('.btn')[1];
- go.disabled=!(ready&&enough);go.textContent=cost?`打つ ${yen(cost)}文`:'打つ（無料）';
- api.say(materialsTalk(c,syn,known,enough),c&&c.kind!=='gyaku'&&enough?'happy':'normal');
+ go.disabled=!(ready&&enough);go.textContent=ready&&cost?`打つ（${yen(cost)}文）`:'打つ';
+ api.say(materialsTalk(c,syn,known,ready,cost,enough),c&&c.kind!=='gyaku'&&enough?'happy':'normal');
 }
-function materialsTalk(c,syn,known,enough){
+function materialsTalk(c,syn,known,ready,cost,enough){
  const last=pick.last?R.material(pick.last):null;
- const about=last?`<b>${last.name}</b>：${last.note}。硬さ${last.hard}・粘り${last.tough}・美しさ${last.beauty}。`:'注文を読んで、<b>皮鉄</b>（外側。地鉄の時代と美しさ）と<b>心鉄</b>（芯。粘り）を選べ。';
+ const about=last?`<b>${last.name}</b>：${last.note}。硬さ${last.hard}・粘り${last.tough}・美しさ${last.beauty}。`:'<b>皮鉄</b>（外側。地鉄の時代と美しさ）と<b>心鉄</b>（芯。粘り）を選べ。粘りが高いほど、戦で長もちするぞ。';
  if(!c)return about;
- if(!enough)return `材料代が足りない。無料の<b>卸し鉄・包丁鉄</b>なら、いつでも打てるぞ。`;
+ if(cost===null)return '手持ちの素材が足りない。同じ素材を2つ使うなら、2つ要るぞ。';
+ if(!enough)return `お金が足りない。無料の<b>卸し鉄・包丁鉄</b>なら、いつでも打てる。`;
  if(c.kind==='gyaku')return 'おいおい、あべこべだ。皮がやわらかいと刃がなまくらになる。名刀にもならないぞ。';
  if(syn&&known)return `<b>${syn.name}</b>の組み合わせだ。${about}`;
  return about+(c.era?'':'この皮鉄には時代の札がない。名刀にはならないぞ。');
 }
 function eraLine(c,syn,known){
- const F=R.form(order.form).name;
+ const F=R.form(pick.form).name;
  if(!c)return `打つ形：<b>${F}</b>　${pick.active==='kawa'?'皮鉄':'心鉄'}を選ぶ`;
  const era=c.era?`地鉄：<b>${R.ERAS[c.era].long}</b>`:`地鉄：${c.kind==='gyaku'?'あべこべ':'時代なし'}（名刀にならない）`;
  return `打つ形：<b>${F}</b>　${era}${known?`　<span class="syn">相性「${syn.name}」</span>`:''}`;
 }
 let forgeIndex=-1;
 function startForging(){
- const build=buildOf();
- const paid=payBuild(save,R.buildMats(build),id=>R.material(id).price);if(!paid)return;
- const {used,cost,...rest}=paid;save=rest;writeSave(window.localStorage,save);
- api.run={form:order.form,want:order.meito||null,...build};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
+ const build=buildOf(),paid=takeSteel(save,R.buildMats(build),V.SHOP);if(!paid)return;
+ const {cost,bought,...rest}=paid;save=rest;save_();
+ const want=(save.orders||[]).find(o=>o.real&&o.form===pick.form)?.meito||null;
+ api.run={form:pick.form,want,...build};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
 }
 function forgeNext(){
  forgeIndex++;
@@ -262,19 +233,13 @@ function forgeNext(){
  el.stage.classList.remove('fade');void el.stage.offsetWidth;el.stage.classList.add('fade');
  setScene(new ({heat:Heat,hammer:Hammer,hamon:Hamon,quench:Quench}[name])(api));
 }
-
-// ---------- 仕上がり：注文どおり度・お礼・評判、そして旅立ち ----------
 function showResult(){
- const sword=R.finishSword(api.run,MEITO,save.collection);
+ const sword0=R.finishSword(api.run,MEITO,save.collection),sword={...sword0,dur:V.maxDurability(sword0)};
  const isNew=!!sword.meito&&!save.collection[sword.meito],synNew=!!sword.synergy&&!save.synergies?.[sword.synergy];
- const ord=order,res=O.evaluateOrder(ord,sword),person=personOf(ord),before=fameNow();
- save=addSword(save,sword);
- save=O.settle(save,ord,save.swords[0],res,rngNext(),giftable());
- const trip=(save.owners||[]).find(p=>p.id===person.id)?.journey;
- ensureOrders();
- mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.meito?5:Math.max(1,res.stars+1));
- const g=api.run,m=sword.meito?MEITO.find(x=>x.n===sword.meito):null,syn=sword.synergy?R.SYNERGIES.find(x=>x.id===sword.synergy):null;
- const F=R.form(sword.form).name,info=J.journeyInfo(ord.journey);
+ save=addSword(save,sword);save_();
+ mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.meito?5:sword.stars);
+ const g=api.run,m=sword.meito?MEITO.find(x=>x.n===sword.meito):null,syn=sword.synergy?R.SYNERGIES.find(x=>x.id===sword.synergy):null,F=R.form(sword.form).name;
+ const fits=(save.orders||[]).map(o=>({o,r:O.evaluateOrder(o,sword)})).filter(x=>x.r.stars>=2);
  el.panel.innerHTML=`<div class="result">
   <div class="sword-space"></div>
   ${m?`<p class="meito-badge">${isNew?'<b>NEW</b>':''}名刀を打ち上げた！</p>`:''}
@@ -282,30 +247,126 @@ function showResult(){
   <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}`:`${R.HAMON_NAME[sword.hamon]}・${[sword.kawa,sword.shin].filter(Boolean).map(id=>R.material(id).name).join('＋')}`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>技 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
   <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
-  <div class="verdict s${res.stars}"><p class="v-head">${person.face} ${person.name}：<b>${O.STARS_NAME[res.stars]}</b>${'★'.repeat(res.stars)}<small>注文どおり ${pct(res.match)}%</small></p>
-   <ul class="v-conds">${res.parts.filter(x=>x.c.k!=='meito'||ord.real).map(x=>`<li class="${x.ok?'ok':'ng'}">${x.ok?'○':'×'} ${O.condText(x.c)}</li>`).join('')}</ul>
-   <p class="v-pay">お礼 <b>${yen(res.reward)}</b>文　評判 <b>+${res.fame}</b>${res.gift?`　＋<b>${R.material(res.gift).name}</b>の無料券`:''}</p></div>
+  <p class="dur-line">耐久 ${pips(sword.dur,sword.dur)}　刀掛け ${rack().length}/${V.RACK_MAX}</p>
   ${syn&&synNew?`<p class="syn-new">相性を見つけた！ 「<b>${syn.name}</b>」（${R.material(syn.kawa).name}×${R.material(syn.shin).name}）</p>`:''}
-  ${trip?`<p class="depart">${person.name}は、この刀で「${info.title}」へ旅立った。見こみ <b class="p-${J.prospect(trip.chances)}">${J.prospect(trip.chances)}</b>（便りは刀を${trip.left}振打つと届く）</p>`:''}
+  ${fits.length?`<p class="fit-line">依頼に合う：${fits.map(x=>`${x.o.meito?`名刀「${x.o.meito}」`:P.personOf(x.o).name}（${O.STARS_NAME[x.r.stars]}）`).join('・')} <button class="btn small primary" data-goorders>依頼に納める</button></p>`:''}
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
  </div>`;
- api.controls([{label:'刀帳',onClick:()=>showZukan()},{label:'次の注文へ',primary:true,onClick:showBoard}]);
+ api.controls([{label:'工房へ',onClick:showTitle},{label:'出陣へ',onClick:showDivePrep},{label:'もう一振り',primary:true,onClick:()=>showForms()}]);
+ el.panel.querySelector('[data-goorders]')?.addEventListener('click',()=>{S.tick();showOrders();});
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
  if(isNew)api.pop('名刀','best');else if(synNew)api.pop('相性発見','best');
- api.later(isNew?1300:500,()=>afterFame(before));
 }
 
-// ---------- 常連 (D36) ----------
-function showJouren(){
- mode('records');setScene(new Ambient(api,'records','plain',{dim:0.45}));
- const list=(save.owners||[]).slice().sort((a,b)=>(!!b.journey-!!a.journey)||(b.real-a.real)||(b.lv-a.lv));
- const personLine=(p,tag)=>`<p class="who">${p.face} <b>${p.name}</b>${p.real?'<small class="real">実在</small>':''}<small>${tag?tag+'・':''}腕前${starLine(p.lv)}・得意 ${skillText(p.skill)}</small></p>`;
- el.panel.innerHTML=`<div class="records"><h2>常連と旅 <small>${list.filter(p=>p.regular).length}人</small></h2>
-  <ul class="regs">${list.map(p=>`<li class="reg ${p.journey?'away':''}">${personLine(p,p.regular?'常連':'初めての客')}
-   <p class="status">${p.journey?`🧭 旅の途中：「${p.journey.title}」${starLine(p.journey.star)}　${p.journey.left?`あと${p.journey.left}振打つと便りが届く`:'便りが届いている'}`:'🏠 注文に来るのを待っている'}</p>
-   <p class="hold">刀：${p.journey?p.journey.swordName:p.sword?p.sword.name:'なし（新しい刀がほしい）'}</p>
-   ${(p.story||[]).length?`<p class="story">武勇伝：${p.story.slice(0,3).map(x=>`「${x.t}」<b class="o-${x.r}">${J.OUTCOME[x.r]}</b>`).join('・')}</p>`:''}</li>`).join('')||'<li class="empty">まだ誰もいない。注文に応えると、注文した人がその刀で旅に出る。活躍すると常連になって、また注文に来る。</li>'}</ul></div>`;
- api.controls([{label:'注文へ',primary:true,onClick:showBoard}]);
+// ---------- 刀掛け ----------
+let rackPick=null;
+function swordRow(s,extra=''){
+ const m=s.meito?MEITO.find(x=>x.n===s.meito):null;
+ return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}${s.era?'・'+R.ERAS[s.era].name:''}</small><em>${statLine(s.stats)} 耐久 ${pips(V.durOf(s),V.maxDurability(s))}</em>${extra}</span>`;
+}
+function showRack(){
+ mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.5}));
+ api.controls([{label:'工房へ',onClick:showTitle},{label:'出陣へ',primary:true,onClick:showDivePrep}]);
+ el.panel.innerHTML=`<div class="shop"><div class="shop-head"><b>刀掛け</b><small>${rack().length}/${V.RACK_MAX}振</small></div>
+  <p class="mise-note">打った刀はここにかかる。出陣に背負っていく刀や、依頼に納める刀をここから選ぶ。刀は使うと傷み、耐久が尽きると折れる。</p>
+  <ul class="kura">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${rackPick===s.no?'on':''}" data-rpick="${s.no}">${swordRow(s)}</button>${rackPick===s.no?`<div class="row"><button class="btn small" data-drop="${s.no}">手放す</button></div>`:''}</li>`).join('')||'<li class="empty">まだ刀がない。工房で打とう。</li>'}</ul></div>`;
+ for(const b of el.panel.querySelectorAll('[data-rpick]'))b.onclick=()=>{S.tick();rackPick=rackPick===+b.dataset.rpick?null:+b.dataset.rpick;showRack();};
+ for(const b of el.panel.querySelectorAll('[data-drop]'))b.onclick=()=>{S.tick();save={...save,rack:rack().filter(s=>s.no!==+b.dataset.drop)};rackPick=null;save_();showRack();};
+}
+
+// ---------- 出陣 (D49〜D51・D53・D56) ----------
+let divePlace='touge',carryPick=[];
+function showDivePrep(){
+ if(save.dive)return showDive();
+ mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.5}));
+ const lv=fameNow().index;
+ carryPick=carryPick.filter(no=>rack().some(s=>s.no===no));
+ if(!V.placesFor(lv).some(p=>p.id===divePlace))divePlace='touge';
+ el.panel.innerHTML=`<div class="shop prep"><div class="shop-head"><b>出陣</b><small>刀を${V.CARRY_MAX}振まで背負っていく</small></div>
+  <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small><em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
+  <p class="mise-note">鎧の敵には切れ味、獣には粘り、もののけには美しさが効く。いろいろな刀を持っていこう。</p>
+  <ul class="kura pick">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${carryPick.includes(s.no)?'on':''}" data-carry="${s.no}">${swordRow(s,carryPick.includes(s.no)?'<i class="req-hit">背負う</i>':'')}</button></li>`).join('')||'<li class="empty">刀掛けに刀がない。まず刀を打とう。</li>'}</ul></div>`;
+ api.controls([{label:'工房へ',onClick:showTitle},{label:`出陣する（${carryPick.length}振）`,primary:true,disabled:!carryPick.length,onClick:startDive}]);
+ for(const b of el.panel.querySelectorAll('[data-place]'))b.onclick=()=>{S.tick();divePlace=b.dataset.place;showDivePrep();};
+ for(const b of el.panel.querySelectorAll('[data-carry]'))b.onclick=()=>{S.tick();const no=+b.dataset.carry;
+  carryPick=carryPick.includes(no)?carryPick.filter(x=>x!==no):carryPick.length<V.CARRY_MAX?[...carryPick,no]:carryPick;showDivePrep();};
+}
+function startDive(){
+ const swords=carryPick.map(no=>rack().find(s=>s.no===no)).filter(Boolean);if(!swords.length)return;
+ save={...save,dive:V.startDive(rngNext(),divePlace,swords)};carryPick=[];save_();
+ showDive();
+}
+let diveFlash=null;
+function showDive(){
+ const d=save.dive;if(!d)return showTitle();
+ mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.6}));
+ const P_=V.placeOf(d.place),f=d.foe,K=V.KINDS[f.kind],w=K.weak,last=d.log.at(-1);
+ const bag=Object.entries(d.bag.mats);
+ el.panel.innerHTML=`<div class="shop dive"><div class="shop-head"><b>${P_.name}</b><small>深さ <b class="depth">${d.depth}</b>　戦利品 ${yen(d.bag.money)}文${bag.length?'・'+bag.map(([id,n])=>`${R.material(id).name}${n}`).join('・'):''}</small></div>
+  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''}"><span class="foe-face">${f.face}</span><div class="foe-body"><p class="foe-name">${f.name}<small>${K.name}</small>${f.boss?'<em>強敵</em>':''}</p>
+   <p class="foe-weak">弱点：<b>${V.STAT_NAME[w]}</b>　<small>${K.hint}</small></p><i class="hp"><b style="width:${Math.round(100*f.hp/f.maxHp)}%"></b></i><small>体力 ${f.hp}/${f.maxHp}・強さ ${f.atk}（粘りがこれより低い刀は刃こぼれしやすい）</small></div></div>
+  <p class="dive-log">${diveFlash||(last?`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}${last.chip?'　刃こぼれ…':''}${last.broke?'　<b class="bad">刀が折れた</b>':''}`:'どの刀で斬る？')}</p>
+  ${d.won?`<div class="loot"><p>${f.name}を倒した！</p><p>${d.loot.mats.map(id=>`<b>${R.material(id).name}</b>`).join('・')||'素材はなかった'}・${yen(d.loot.money)}文</p><small>このまま帰れば、すべて持ち帰れる。奥へ進んで刀が尽きると、戦利品の半分を失う。</small></div>`:''}
+  ${d.over?`<div class="loot lost"><p>刀が尽きた……</p><small>戦利品の半分を置いて、逃げ帰るしかない。</small></div>`:''}
+  <div class="carry">${d.carry.map((c,i)=>`<button class="csw ${c.dur<=0?'broken':''} ${c.stats?.[w]>=70?'good':''}" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${statLine(c.stats,w)}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span></button>`).join('')}</div></div>`;
+ diveFlash=null;
+ for(const b of el.panel.querySelectorAll('[data-strike]'))b.onclick=()=>{S.unlock();
+  const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext())};save_();
+  const ev=save.dive.log.at(-1);S.clang(ev?.crit?1.2:0.8);api.pop(`${ev?.dmg??''}`,ev?.crit?'best':'good');
+  if(save.dive.won&&!before.won)S.phrase(3);
+  showDive();};
+ api.controls(d.won?[{label:'帰る',onClick:endDive},{label:'さらに奥へ',primary:true,disabled:!d.carry.some(c=>c.dur>0),onClick:()=>{save={...save,dive:V.goDeeper(save.dive,rngNext())};save_();showDive();}}]
+  :d.over?[{label:'逃げ帰る',primary:true,onClick:endDive}]:[{label:'帰る（戦利品はそのまま）',onClick:endDive}]);
+}
+function endDive(){
+ const d=save.dive;if(!d)return showTitle();
+ const res=V.finishDive(d),before=fameNow();
+ save=addLoot(save,res);
+ const deepest={...(save.deepest||{})};deepest[d.place]=Math.max(deepest[d.place]||0,res.depth);
+ save={...save,rack:V.returnSwords(rack(),res.carry),dive:null,dives:(save.dives||0)+1,deepest};ensureOrders();save_();
+ const broken=res.carry.filter(c=>c.dur<=0);
+ showTitle();
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${res.lost?'逃げ帰った……':'無事に帰ってきた'}</p><h3>深さ ${res.depth}</h3>
+  <p class="mtags">持ち帰ったもの：<b>${yen(res.money)}文</b>${Object.entries(res.mats).map(([id,n])=>`・<b>${R.material(id).name}×${n}</b>`).join('')}<br>評判 <b>+${res.fame}</b>${broken.length?`<br>折れた刀：${broken.map(c=>c.name).join('・')}`:''}${res.lost?'<br>（戦利品の半分を失った）':''}</p>
+  <button class="btn primary" data-close>とじる</button></div>`;
+ closable(box,()=>afterFame(before));el.panel.append(box);S.phrase(res.lost?1:4);
+}
+
+// ---------- 依頼 (D55) ----------
+function ensureOrders(){save=O.fillOrders(save,fameNow().index,MEITO,rngAt);}
+function showOrders(){
+ ensureOrders();save_();
+ mode('shop');setScene(new Ambient(api,'shop','plain',{dim:0.55}));
+ api.controls([{label:'工房へ',onClick:showTitle},{label:'刀を打つ',primary:true,onClick:()=>showForms()}]);
+ const F=fameNow();
+ el.panel.innerHTML=`<div class="shop board"><div class="shop-head"><b>所持金 ${yen(money())}文</b><small>依頼 ${O.slotsFor(F.index)}件まで（評判で増える）</small></div>${fameBar()}
+  <ul class="orders">${(save.orders||[]).slice().sort((a,b)=>!!b.real-!!a.real).map(orderCard).join('')}</ul></div>`;
+ for(const b of el.panel.querySelectorAll('[data-skip]'))b.onclick=()=>{S.tick();save={...save,orders:save.orders.filter(o=>o.id!==+b.dataset.skip)};showOrders();};
+ for(const b of el.panel.querySelectorAll('[data-give]'))b.onclick=()=>{S.tick();const [oid,no]=b.dataset.give.split(':').map(Number);deliver(save.orders.find(o=>o.id===oid),rack().find(s=>s.no===no));};
+ for(const b of el.panel.querySelectorAll('[data-forform]'))b.onclick=()=>{S.tick();showForms(b.dataset.forform);};
+}
+function fameBar(){const F=fameNow();return `<div class="fame"><span class="fame-lv">評判 Lv${F.lv}</span><b>${F.name}</b><i><b style="width:${Math.round(F.progress*100)}%"></b></i><small>${F.next?`次まで${yen(F.toNext)}`:'最高'}</small></div>`;}
+function orderCard(o){
+ const p=P.personOf(o),tag=o.real?'名指し':M.CLIENTS[o.client]?.name||'';
+ const cands=rack().filter(s=>s.form===o.form).map(s=>({s,r:O.evaluateOrder(o,s)})).sort((a,b)=>b.r.match-a.r.match).slice(0,3);
+ return `<li class="o-wrap"><div class="order ${o.real?'named':''}"><button class="o-skip" data-skip="${o.id}">見送る</button>
+  <span class="o-who">${p.face} <b>${p.name}</b>${o.real?'<small class="real">実在</small>':''}<small>${tag}</small>${'★'.repeat(o.diff)}</span>
+  ${o.real?`<span class="o-meito">名刀「${o.meito}」を打ってほしい<small>（ゆかり：${o.ev}）</small></span>`:''}
+  <span class="o-what"><b>${R.form(o.form).name}</b>${o.conds.filter(c=>c.k!=='meito').map(c=>`<i class="cond c-${c.k}">${O.condText(c)}</i>`).join('')}</span>
+  <span class="o-foot"><em>お礼 ${yen(o.reward)}文${o.gift?`＋${R.material(o.gift).name}`:''}</em></span>
+  <span class="o-cands">${cands.length?cands.map(({s,r})=>`<button class="btn small ${r.stars===3?'primary':''}" data-give="${o.id}:${s.no}">${s.name}　${O.STARS_NAME[r.stars]} ${pct(r.match)}%</button>`).join(''):`<button class="btn small" data-forform="${o.form}">${R.form(o.form).name}を打つ</button>`}</span></div></li>`;
+}
+function deliver(o,s){
+ if(!o||!s)return;
+ const r=O.evaluateOrder(o,s),before=fameNow(),p=P.personOf(o);
+ save=O.settle(save,o,s,r);ensureOrders();save_();S.phrase(r.stars+1);api.pop(`${yen(r.reward)}文`,r.stars===3?'best':'good');
+ showOrders();
+ const box=document.createElement('div');box.className='overlay';
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${p.face} ${p.name}：「${['これでは困る……','まあ、いいだろう','ありがたい','見事だ。これこそ求めていた刀だ'][r.stars]}」</p><h3>${O.STARS_NAME[r.stars]}${'★'.repeat(r.stars)}</h3>
+  <p class="mtags">納めた刀：<b>${s.name}</b>（注文どおり ${pct(r.match)}%）<br>お礼 <b>${yen(r.reward)}文</b>${r.gift?`・<b>${R.material(r.gift).name}</b>`:''}　評判 <b>+${r.fame}</b>${o.real&&s.meito===o.meito?`<br>${p.name}は、この刀で「${o.ev}」に臨んだという。`:''}</p>
+  <button class="btn primary" data-close>とじる</button></div>`;
+ closable(box,()=>afterFame(before));el.panel.append(box);
 }
 
 // ---------- 相性帳 (D42) ----------
@@ -319,29 +380,13 @@ function showAisho(back){
    :`<p class="who"><b>？？？</b></p><p class="hold">ヒント：${s.hint}</p>`}</li>`;}).join('')}</ul></div>`;
  api.controls([{label:'戻る',primary:true,onClick:back||showTitle}]);
 }
-
-// ---- 便り (D34・D35) and the 評判 level changing
-function showLetters(letters,before){
- const L=letters[0],rest=letters.slice(1),info=J.journeyInfo(L.journey);
- const box=document.createElement('div');box.className='overlay';
- box.innerHTML=`<div class="sheet letter o-${L.outcome}"><p class="rankup-head">✉ 便りが届いた${rest.length?`（あと${rest.length}通）`:''}</p>
-  <p class="who big">${L.face} <b>${L.name}</b>${L.real?'<small class="real">実在</small>':''}</p>
-  <p class="trip-t">「${L.journey.title}」${starLine(L.journey.star)}</p>
-  <p class="say">${L.swordName}：${info[L.outcome]||info.hard}</p>
-  <h3 class="outcome">${J.OUTCOME[L.outcome]}</h3>
-  <p class="mtags">${L.fame>0?`評判 <b>+${L.fame}</b>`:L.fame<0?`評判 <b class="bad">${L.fame}</b>`:'評判はそのまま'}${L.reward?.money?`<br>お礼に <b>${yen(L.reward.money)}文</b> が届いた`:''}${L.reward?.voucher?`<br>お礼に <b>${R.material(L.reward.voucher).name}の無料券</b> が届いた`:''}${L.lvUp?`<br>腕前が上がった！ ${starLine(L.lv)}`:''}${L.newRegular?'<br><b>常連になった！</b> また注文に来てくれる':''}${L.goesHome?'<br>（郷里へ帰っていった）':''}</p>
-  <button class="btn primary" data-close>${rest.length?'次の便り':'とじる'}</button></div>`;
- closable(box,()=>{if(rest.length)showLetters(rest,before);else afterFame(before);});
- el.panel.append(box);
- S.phrase(L.outcome==='great'?5:L.outcome==='good'?4:2);
-}
 function afterFame(before){
  const after=fameNow();
- if(el.app.dataset.mode==='shop')renderBoard();
  if(after.index===before.index)return;
  const up=after.index>before.index,news=up?M.fameNews(before.index,after.index):[];
+ ensureOrders();save_();
  const box=document.createElement('div');box.className='overlay';
- box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${up?'店の評判が上がった！':'店の評判が落ちた……'}</p><h3>Lv${after.lv} ${after.name}</h3>
+ box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${up?'名前が売れてきた！ 評判が上がった':'評判が落ちた……'}</p><h3>Lv${after.lv} ${after.name}</h3>
   ${news.length?`<ul class="fame-news">${news.map(n=>`<li>${n}</li>`).join('')}</ul>`:''}${after.next?`<p class="mfound">次の「${after.next}」まで：評判あと${yen(after.toNext)}</p>`:'<p class="mfound">いちばん上の評判です。</p>'}
   <button class="btn primary" data-close>とじる</button></div>`;
  closable(box);el.panel.append(box);if(up)S.phrase(5);
@@ -351,7 +396,7 @@ function afterFame(before){
 let zukanFilter='all',zukanRank=0;
 function showZukan(open=null){
  mode('zukan');setScene(new Ambient(api,'zukan','plain',{dim:0.5}));
- api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
+ api.controls([{label:'工房へ',primary:true,onClick:showTitle}]);
  renderZukan();
  if(open)showMeito(open);
 }
@@ -404,10 +449,10 @@ function showRecords(){
  const best=bestSword(save),sum=save.swords.reduce((s,x)=>s+x.price,0);
  el.panel.innerHTML=`<div class="records">
   <h2>打った刀 <small>${save.forged}振</small></h2>
-  <p class="rec-sum">評判 <b>Lv${fameNow().lv}</b>（${yen(save.fame||0)}）　常連 <b>${(save.owners||[]).filter(p=>p.regular).length}人</b>　相性 <b>${foundSyn()}/${R.SYNERGIES.length}</b><br>お礼の合計 <b>${yen((save.ledger||[]).reduce((t,x)=>t+x.amount,0))}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
+  <p class="rec-sum">評判 <b>Lv${fameNow().lv}</b>（${yen(save.fame||0)}）　出陣 <b>${save.dives||0}回</b>　相性 <b>${foundSyn()}/${R.SYNERGIES.length}</b><br>いちばん深く：${V.PLACES.map(p=>`${p.name} ${save.deepest?.[p.id]||0}`).join('・')}<br>依頼のお礼の合計 <b>${yen((save.ledger||[]).reduce((t,x)=>t+x.amount,0))}</b> 文${best?`<br>いちばんの刀：${best.name}（${gradeOf(best).id} ${gradeOf(best).name}）`:''}</p>
   <ol>${save.swords.map(s=>`<li><span class="no">${s.no}</span><span class="nm"><b>${s.name}</b><small>${s.meito?'名刀・':''}${R.HAMON_NAME[s.hamon]||''}${s.crack?'・割れ':''}</small></span>${gradeBadge(gradeOf(s))}<span class="pr">${yen(s.price)}文</span></li>`).join('')}</ol>
  </div>`;
- api.controls([{label:'タイトルへ',primary:true,onClick:showTitle}]);
+ api.controls([{label:'工房へ',primary:true,onClick:showTitle}]);
 }
 
 // ---------- canvas, loop, input ----------
