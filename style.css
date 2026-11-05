@@ -397,3 +397,5 @@ button{font:inherit;color:inherit}
 @keyframes foe-hit{0%{transform:translateX(0);filter:brightness(2.2) drop-shadow(0 6px 14px rgba(0,0,0,.7))}25%{transform:translateX(-9px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}100%{transform:none}}
 @keyframes foe-down{from{transform:none;opacity:1}to{transform:translateY(10px) rotate(-5deg);opacity:.45;filter:grayscale(.85) brightness(.6)}}
 @media (prefers-reduced-motion:reduce){.foe.hit .foe-art,.foe.down .foe-art{animation:none}.foe.down .foe-art{opacity:.45;filter:grayscale(.85)}}
+/* #23 一撃：この刀ならひと太刀で倒せる */
+.csw .ko{font-style:normal;font-size:11px;font-weight:700;line-height:1.5;color:#2a1a08;background:#ffd56a;padding:0 7px;border-radius:4px}

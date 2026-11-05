@@ -131,7 +131,8 @@ const foundSyn=()=>Object.keys(save.synergies||{}).length;
 const rack=()=>save.rack||[];
 const matCount=()=>Object.values(save.materials||{}).reduce((t,n)=>t+n,0);
 const pips=(n,max)=>`<span class="pips">${'●'.repeat(Math.max(0,n))}<i>${'●'.repeat(Math.max(0,max-n))}</i></span>`;
-const statLine=(st,hi=null)=>`<span class="cst">${['sharp','tough','beauty'].map(k=>`<i class="${hi===k?'hit':''}">${{sharp:'切',tough:'粘',beauty:'美'}[k]}${st?.[k]??0}</i>`).join('')}</span>`;
+// a sword's two numbers (#23): 攻撃力, and the 耐久 shown as ●
+const statLine=st=>`<span class="cst"><i>攻撃力 <b>${st?.sharp??0}</b></i></span>`;
 function save_(){writeSave(window.localStorage,save);}
 
 // ---------- 工房（タイトル）----------
@@ -189,7 +190,7 @@ function renderMaterials(){
  el.panel.innerHTML=`<div class="mats-screen">
   <div class="slots">${['kawa','shin'].map(k=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${R.SLOTS[k].name}</small><b>${m?m.name:'えらぶ'}</b><em>${R.SLOTS[k].role}</em></button>`;}).join('')}</div>
   <p class="era-line">${eraLine(c,syn,known)}</p>
-  ${ex?`<div class="statpv">${['sharp','tough','beauty'].map(k=>`<div><small>${O.STAT_NAME[k]}</small><i><b style="width:${ex[k]}%"></b><u style="width:${best[k]}%"></u></i><em>${ex[k]}</em></div>`).join('')}<p class="dur-pv">耐久 ${pips(V.maxDurability({stats:ex}),V.maxDurability({stats:best}))}　鎧に${ex.sharp>=70?'◎':ex.sharp>=50?'○':'△'}・獣に${ex.tough>=70?'◎':ex.tough>=50?'○':'△'}・もののけに${ex.beauty>=70?'◎':ex.beauty>=50?'○':'△'}</p></div>`:''}
+  ${ex?`<div class="statpv"><div><small>攻撃力</small><i><b style="width:${ex.sharp}%"></b><u style="width:${best.sharp}%"></u></i><em>${ex.sharp}</em></div><p class="dur-pv">耐久 ${pips(V.maxDurability({stats:ex}),V.maxDurability({stats:best}))}</p></div>`:''}
   <div class="mats">${R.MATERIALS.map(m=>{const marks=['kawa','shin'].filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');const st=steelState(m.id);
    return `<button class="mat ${marks?'picked':''} ${st.ok?'':'locked'}" data-mat="${m.id}" ${st.ok?'':'data-none="1"'}><em class="era-tag ${m.era?'':'none'}">${m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${st.have?`<i class="voucher">手持ち${st.have}</i>`:''}${st.price!=null&&!st.have?(st.price?`店 ${yen(st.price)}文`:'店 無料'):st.ok?'':'潜って手に入れる'}</small></span></button>`;}).join('')}</div>
   <p class="cost-line ${enough||!ready?'':'short'}">${ready?(cost===null?'手持ちが足りない':`店で買う分 <b>${yen(cost)}</b>文`):'皮鉄と心鉄を選ぶ'}　所持金 <b>${yen(money())}</b>文</p>
@@ -204,7 +205,7 @@ function renderMaterials(){
 }
 function materialsTalk(c,syn,known,ready,cost,enough){
  const last=pick.last?R.material(pick.last):null;
- const about=last?`<b>${last.name}</b>：${last.note}。硬さ${last.hard}・粘り${last.tough}・美しさ${last.beauty}。`:'<b>皮鉄</b>（外側。地鉄の時代と美しさ）と<b>心鉄</b>（芯。粘り）を選べ。粘りが高いほど、戦で長もちするぞ。';
+ const about=last?`<b>${last.name}</b>：${last.note}。硬さ${last.hard}・粘り${last.tough}。`:'<b>皮鉄</b>（外側。硬いほど攻撃力が上がる）と<b>心鉄</b>（芯。粘るほど耐久が増える）を選べ。耐久が多いほど、戦で長もちするぞ。';
  if(!c)return about;
  if(cost===null)return '手持ちの素材が足りない。同じ素材を2つ使うなら、2つ要るぞ。';
  if(!enough)return `お金が足りない。無料の<b>卸し鉄・包丁鉄</b>なら、いつでも打てる。`;
@@ -246,7 +247,7 @@ function showResult(){
   <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
   <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}`:`${R.HAMON_NAME[sword.hamon]}・${[sword.kawa,sword.shin].filter(Boolean).map(id=>R.material(id).name).join('＋')}`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>技 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
-  <div class="stats">${[['切れ味','sharp'],['粘り','tough'],['美しさ','beauty']].map(([n,k])=>`<div><small>${n}</small><i><b style="width:${sword.stats[k]}%"></b></i><em>${sword.stats[k]}</em></div>`).join('')}</div>
+  <div class="stats"><div><small>攻撃力</small><i><b style="width:${sword.stats.sharp}%"></b></i><em>${sword.stats.sharp}</em></div></div>
   <p class="dur-line">耐久 ${pips(sword.dur,sword.dur)}　刀掛け ${rack().length}/${V.RACK_MAX}</p>
   ${syn&&synNew?`<p class="syn-new">相性を見つけた！ 「<b>${syn.name}</b>」（${R.material(syn.kawa).name}×${R.material(syn.shin).name}）</p>`:''}
   ${fits.length?`<p class="fit-line">依頼に合う：${fits.map(x=>`${x.o.meito?`名刀「${x.o.meito}」`:P.personOf(x.o).name}（${O.STARS_NAME[x.r.stars]}）`).join('・')} <button class="btn small primary" data-goorders>依頼に納める</button></p>`:''}
@@ -284,7 +285,7 @@ function showDivePrep(){
  mode('shop');setScene(new Ambient(api,'records',divePlace,{dim:0.55}));
  el.panel.innerHTML=`<div class="shop prep"><div class="shop-head"><b>出陣</b><small>刀を${V.CARRY_MAX}振まで背負っていく</small></div>
   <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}${artUrl('bg-'+p.id)?` style="--bg:url(${artUrl('bg-'+p.id)})"`:''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small><em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
-  <p class="mise-note">鎧の敵には切れ味、獣には粘り、もののけには美しさが効く。いろいろな刀を持っていこう。</p>
+  <p class="mise-note">攻撃力の高い刀ほど強く斬れる。斬るたびに耐久が1減り、なくなると折れる。</p>
   <ul class="kura pick">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${carryPick.includes(s.no)?'on':''}" data-carry="${s.no}">${swordRow(s,carryPick.includes(s.no)?'<i class="req-hit">背負う</i>':'')}</button></li>`).join('')||'<li class="empty">刀掛けに刀がない。まず刀を打とう。</li>'}</ul></div>`;
  api.controls([{label:'工房へ',onClick:showTitle},{label:`出陣する（${carryPick.length}振）`,primary:true,disabled:!carryPick.length,onClick:startDive}]);
  for(const b of el.panel.querySelectorAll('[data-place]'))b.onclick=()=>{S.tick();divePlace=b.dataset.place;showDivePrep();};
@@ -301,15 +302,15 @@ function showDive(){
  const d=save.dive;if(!d)return showTitle();
  mode('shop');setScene(new Ambient(api,'records',d.place,{dim:0.25}));
  const art=artUrl('foe-'+d.foe.key);
- const P_=V.placeOf(d.place),f=d.foe,K=V.KINDS[f.kind],w=K.weak,last=d.log.at(-1);
+ const P_=V.placeOf(d.place),f=d.foe,last=d.log.at(-1);
  const bag=Object.entries(d.bag.mats);
  el.panel.innerHTML=`<div class="shop dive"><div class="shop-head"><b>${P_.name}</b><small>深さ <b class="depth">${d.depth}</b>　戦利品 ${yen(d.bag.money)}文${bag.length?'・'+bag.map(([id,n])=>`${R.material(id).name}${n}`).join('・'):''}</small></div>
-  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''} ${diveHit?'hit':''}">${art?`<img class="foe-art" src="${art}" alt="${f.name}">`:`<span class="foe-face">${f.face}</span>`}<div class="foe-body"><p class="foe-name">${f.name}<small>${K.name}</small>${f.boss?'<em>強敵</em>':''}</p>
-   <p class="foe-weak">弱点：<b>${V.STAT_NAME[w]}</b>　<small>${K.hint}</small></p><i class="hp"><b style="width:${Math.round(100*f.hp/f.maxHp)}%"></b></i><small>体力 ${f.hp}/${f.maxHp}・強さ ${f.atk}（粘りがこれより低い刀は刃こぼれしやすい）</small></div></div>
-  <p class="dive-log">${diveFlash||(last?`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}${last.chip?'　刃こぼれ…':''}${last.broke?'　<b class="bad">刀が折れた</b>':''}`:'どの刀で斬る？')}</p>
+  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''} ${diveHit?'hit':''}">${art?`<img class="foe-art" src="${art}" alt="${f.name}">`:`<span class="foe-face">${f.face}</span>`}<div class="foe-body"><p class="foe-name">${f.name}${f.boss?'<em>強敵</em>':''}</p>
+   <i class="hp"><b style="width:${Math.round(100*f.hp/f.maxHp)}%"></b></i><small>体力 ${f.hp}/${f.maxHp}</small></div></div>
+  <p class="dive-log">${diveFlash||(last?`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}${last.broke?'　<b class="bad">刀が折れた</b>':''}`:'どの刀で斬る？')}</p>
   ${d.won?`<div class="loot"><p>${f.name}を倒した！</p><p>${d.loot.mats.map(id=>`<b>${R.material(id).name}</b>`).join('・')||'素材はなかった'}・${yen(d.loot.money)}文</p><small>このまま帰れば、すべて持ち帰れる。奥へ進んで刀が尽きると、戦利品の半分を失う。</small></div>`:''}
   ${d.over?`<div class="loot lost"><p>刀が尽きた……</p><small>戦利品の半分を置いて、逃げ帰るしかない。</small></div>`:''}
-  <div class="carry">${d.carry.map((c,i)=>`<button class="csw ${c.dur<=0?'broken':''} ${c.stats?.[w]>=70?'good':''}" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${statLine(c.stats,w)}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span></button>`).join('')}</div></div>`;
+  <div class="carry">${d.carry.map((c,i)=>`<button class="csw ${c.dur<=0?'broken':''} ${!d.won&&c.dur>0&&V.strikePower(c)>=f.hp?'good':''}" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${statLine(c.stats)}${!d.won&&c.dur>0&&V.strikePower(c)>=f.hp?'<i class="ko">一撃</i>':''}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span></button>`).join('')}</div></div>`;
  diveFlash=null;diveHit=false;
  for(const b of el.panel.querySelectorAll('[data-strike]'))b.onclick=()=>{S.unlock();
   const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext())};save_();diveHit=true;
@@ -373,7 +374,7 @@ function deliver(o,s){
 // ---------- 相性帳 (D42) ----------
 function showAisho(back){
  mode('records');setScene(new Ambient(api,'records','plain',{dim:0.45}));
- const fx=s=>Object.entries(s.fx).map(([k,v])=>`${O.STAT_NAME[k]}+${v}`).join('・');
+ const fx=s=>Object.entries(s.fx).map(([k,v])=>k==='sharp'?`攻撃力+${v}`:'耐久が増す').join('・');
  el.panel.innerHTML=`<div class="records"><h2>相性帳 <small>${foundSyn()}/${R.SYNERGIES.length}</small></h2>
   <p class="rec-sum">皮鉄と心鉄には、数字ではわからない相性がある。打ってみると見つかる。</p>
   <ul class="regs">${R.SYNERGIES.map(s=>{const got=save.synergies?.[s.id];return `<li class="reg ${got?'':'unknown'}">

@@ -1,11 +1,9 @@
 // 注文する人（#19：持ち主の旅はやめ、人は注文のためだけに残した。owner D55）。名前の作り方と、実在の持ち主。
 import {PEOPLE} from './owners.js';
 
-export const SKILLS={sharp:{name:'剛',stat:'切れ味'},tough:{name:'守',stat:'粘り'},beauty:{name:'雅',stat:'美しさ'}};
-const KEYS=['sharp','tough','beauty'];
 const pickOf=(rng,a)=>a[Math.floor(rng()*a.length)];
-// the stat each kind of client cares for most (their orders ask for it)
-export const CLIENT_STAT={bushi:'sharp',kenjutsu:'sharp',tabibito:'tough',shonin:'tough',jisha:'beauty',mekiki:'beauty',daimyo:'beauty',kuge:'beauty',shogun:'sharp'};
+// what each kind of client asks for (#23): the 攻撃力 or the 耐久
+export const CLIENT_STAT={bushi:'atk',kenjutsu:'atk',tabibito:'dur',shonin:'dur',jisha:'dur',mekiki:'atk',daimyo:'atk',kuge:'dur',shogun:'atk'};
 const NAMES={
  bushi:{fam:['岩倉','黒木','早川','秋山','村井','高森','杉浦','野々村','大庭','曽根'],giv:['兵衛','左近','主水','源太','新八','権六','甚内','又兵衛','伝右衛門','弥十郎'],sep:''},
  kenjutsu:{fam:['柳田','戸川','草壁','堀江','真壁','神崎','久我'],giv:['文五郎','一心','伊織','左門','源心','新之丞'],sep:''},
@@ -28,4 +26,3 @@ export function realPerson(name){
  return {id:'r:'+name,name,kana:p.k,face:p.f,client:'real',skill:p.sk,real:true};
 }
 export const personOf=o=>o.person||(String(o.ownerId||'').startsWith('r:')?realPerson(o.ownerId.slice(2)):null);
-export {KEYS};

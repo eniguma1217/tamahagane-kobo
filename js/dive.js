@@ -1,22 +1,16 @@
 // 出陣（#19、owner D49〜D54・D56）。鍛冶師の自分が、刀掛けから刀を3振まで背負って潜る。深いほど敵が強く、素材が良い。
-// 敵の弱点（鎧＝切れ味、獣＝粘り、もののけ＝美しさ）を見て、合う刀を選んで斬る。刀は使うと傷み、折れる（粘りが高いほど長もち）。
+// 刀は攻撃力で斬り、斬るたびに耐久が1減って、尽きると折れる（#23 owner：攻撃力＋耐久の2つ、敵の弱点はなくした）。
 // 帰れば戦利品はすべて持ち帰れる。刀が尽きたら半分を失う（賭け）。数字は Claude の案（GAME_SPEC G20）。
 export const RACK_MAX=12,CARRY_MAX=3;
 // 店で買える基本の素材（D54）。卸し鉄・包丁鉄は無料でいくらでも
 export const SHOP={nami:300,zuku:100,oroshi:0,houcho:0};
-export const KINDS={
- yoroi:{name:'鎧',weak:'sharp',hint:'鎧が厚い。切れ味の鋭い刀で'},
- kemono:{name:'獣',weak:'tough',hint:'力が強く、荒々しい。粘りのある刀で受けて斬れ'},
- mononoke:{name:'もののけ',weak:'beauty',hint:'この世のものではない。美しい刀でなければ斬れぬ'}
-};
-export const STAT_NAME={sharp:'切れ味',tough:'粘り',beauty:'美しさ'};
 export const FOES={
- sanzoku:{name:'山賊',face:'🥷',kind:'yoroi'},ookami:{name:'山の狼',face:'🐺',kind:'kemono'},kitsunebi:{name:'狐火',face:'🦊',kind:'mononoke'},
- kashira:{name:'山賊の頭',face:'🪓',kind:'yoroi',boss:true},
- ochimusha:{name:'落ち武者',face:'💀',kind:'yoroi'},inoshishi:{name:'大猪',face:'🐗',kind:'kemono'},onryo:{name:'怨霊',face:'👻',kind:'mononoke'},
- taisho:{name:'古戦場の大将',face:'⚔',kind:'yoroi',boss:true},
- akaoni:{name:'赤鬼',face:'👹',kind:'yoroi'},orochi:{name:'大蛇',face:'🐍',kind:'kemono'},tengu:{name:'天狗',face:'👺',kind:'mononoke'},
- ooni:{name:'大鬼',face:'👹',kind:'kemono',boss:true}
+ sanzoku:{name:'山賊',face:'🥷'},ookami:{name:'山の狼',face:'🐺'},kitsunebi:{name:'狐火',face:'🦊'},
+ kashira:{name:'山賊の頭',face:'🪓',boss:true},
+ ochimusha:{name:'落ち武者',face:'💀'},inoshishi:{name:'大猪',face:'🐗'},onryo:{name:'怨霊',face:'👻'},
+ taisho:{name:'古戦場の大将',face:'⚔',boss:true},
+ akaoni:{name:'赤鬼',face:'👹'},orochi:{name:'大蛇',face:'🐍'},tengu:{name:'天狗',face:'👺'},
+ ooni:{name:'大鬼',face:'👹',boss:true}
 };
 // loot: [material, weight, from which depth]
 export const PLACES=[
@@ -29,7 +23,8 @@ const pickOf=(rng,a)=>a[Math.floor(rng()*a.length)];
 export const placeOf=id=>PLACES.find(p=>p.id===id)||PLACES[0];
 export const placesFor=level=>PLACES.filter(p=>p.fame<=level);
 
-// ---- 刀の耐久 (D51): 粘りが高いほど長もち、名刀は1つ多い
+// ---- 刀の2つの数字 (#23): 攻撃力と耐久。耐久は粘りが高いほど多く、名刀は1つ多い
+export const atkOf=s=>s.stats?.sharp||0;
 export const maxDurability=s=>2+Math.floor((s.stats?.tough||0)/25)+(s.meito?1:0);
 export const durOf=s=>s.dur??maxDurability(s);
 
@@ -37,16 +32,12 @@ export const durOf=s=>s.dur??maxDurability(s);
 export function makeFoe(rng,place,depth){
  const boss=depth%5===0,key=boss?place.boss:pickOf(rng,place.foes),F=FOES[key],d=depth+place.hard;
  const hp=Math.round((40+d*18)*(boss?2:1));
- return {key,name:F.name,face:F.face,kind:F.kind,boss,hp,maxHp:hp,atk:30+d*5+(boss?10:0)};
+ return {key,name:F.name,face:F.face,boss,hp,maxHp:hp};
 }
-// how much a strike does: the stat the foe is weak to counts most (D56)
-export function strikePower(s,foe){
- const w=KINDS[foe.kind].weak,st=s.stats||{sharp:0,tough:0,beauty:0};
- const others=Object.keys(st).filter(k=>k!==w).reduce((t,k)=>t+st[k],0)/2;
- // the weak stat counts by its square: a 90 hits about twice as hard as a 60
- return (4+st[w]*st[w]/80+others*0.15)*(s.meito?1.2:1);
-}
-export const critChance=s=>0.08+(s.stats?.beauty||0)/1000;
+// how much a strike does: the 攻撃力 counts by its square, so a 90 hits about twice as hard as a 60
+export const POWER={base:6,div:80};
+export const strikePower=s=>(POWER.base+atkOf(s)*atkOf(s)/POWER.div)*(s.meito?1.2:1);
+export const CRIT=0.1;
 
 // ---- 出陣の進み方
 export function startDive(rng,placeId,swords){
@@ -55,15 +46,14 @@ export function startDive(rng,placeId,swords){
   bag:{money:0,mats:{}},fame:0,won:false,over:false,log:[]};
 }
 const alive=d=>d.carry.filter(c=>c.dur>0);
-// one strike with the i-th sword; the foe answers if it still stands (a hard hit chips the edge: 粘り below its strength)
+// one strike with the i-th sword: 耐久 -1, broken at 0
 export function strike(d,i,rng){
  if(d.won||d.over)return d;
  const carry=d.carry.map(c=>({...c})),s=carry[i];if(!s||s.dur<=0)return d;
- const crit=rng()<critChance(s),dmg=Math.max(1,Math.round(strikePower(s,d.foe)*(crit?1.5:1)));
+ const crit=rng()<CRIT,dmg=Math.max(1,Math.round(strikePower(s)*(crit?1.5:1)));
  const foe={...d.foe,hp:Math.max(0,d.foe.hp-dmg)};
  s.dur--;
- const ev={sword:s.name,dmg,crit,chip:false,broke:false};
- if(foe.hp>0&&s.dur>0&&foe.atk>(s.stats?.tough||0)){s.dur--;ev.chip=true;}
+ const ev={sword:s.name,dmg,crit,broke:false};
  if(s.dur<=0){s.dur=0;ev.broke=true;}
  let next={...d,carry,foe,log:[...d.log,ev].slice(-5)};
  if(foe.hp<=0){

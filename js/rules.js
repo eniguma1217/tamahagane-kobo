@@ -4,21 +4,21 @@
 // 素材 (#7, owner D18〜D21). era: the 地鉄 era it gives when used as 皮鉄 (a game rule, not a record of real steel);
 // null = no era (no 名刀 from it as 皮鉄). price: 文 per use, paid when the forging starts.
 export const MATERIALS=[
- {id:'hakusai',name:'舶載鉄',kana:'はくさいてつ',hard:3,tough:3,beauty:2,era:'joko',price:3000,heat:60,note:'大陸から渡ってきた鉄の延べ板'},
- {id:'chikusa',name:'千種鋼',kana:'ちくさはがね',hard:5,tough:2,beauty:5,era:'heian',price:2500,heat:40,note:'播磨・千種の、古くから名高い鋼'},
- {id:'jou',name:'上玉鋼',kana:'じょうたまはがね',hard:5,tough:1,beauty:5,era:'kamakura',price:1500,heat:45,note:'硬くて美しい。熱する色にきびしい'},
- {id:'kera',name:'鉧',kana:'けら',hard:4,tough:2,beauty:3,era:'nanbokucho',price:800,heat:70,note:'たたらで吹いたままの、荒い鋼の塊'},
- {id:'nami',name:'並玉鋼',kana:'なみたまはがね',hard:4,tough:2,beauty:3,era:'muromachi',price:300,heat:60,note:'扱いやすい玉鋼'},
- {id:'nanban',name:'南蛮鉄',kana:'なんばんてつ',hard:4,tough:3,beauty:3,era:'edo',price:2000,heat:55,note:'江戸の初め、越前康継が初めて刀に使った輸入の鉄'},
- {id:'kugi',name:'古釘',kana:'ふるくぎ',hard:3,tough:3,beauty:3,era:'kindai',price:500,heat:65,note:'古い寺の釘。幕末の刀工は古い鉄を卸して使った'},
- {id:'inseki',name:'隕鉄',kana:'いんてつ',hard:2,tough:4,beauty:5,era:'kindai',price:30000,heat:50,note:'隕石の鉄。やわらかく、扱いがむずかしい'},
- {id:'oroshi',name:'卸し鉄',kana:'おろしがね',hard:3,tough:3,beauty:2,era:null,price:0,heat:70,note:'古い鉄を卸した、ほどほどの鉄。無料'},
- {id:'houcho',name:'包丁鉄',kana:'ほうちょうてつ',hard:1,tough:5,beauty:1,era:null,price:0,heat:80,note:'やわらかく、よくねばる。芯に向く。無料'},
- {id:'zuku',name:'銑',kana:'ずく',hard:5,tough:0,beauty:1,era:null,price:100,heat:50,note:'たたらの銑鉄。とても硬いが、もろい'}
+ {id:'hakusai',name:'舶載鉄',kana:'はくさいてつ',hard:3,tough:3,era:'joko',price:3000,heat:60,note:'大陸から渡ってきた鉄の延べ板'},
+ {id:'chikusa',name:'千種鋼',kana:'ちくさはがね',hard:5,tough:2,era:'heian',price:2500,heat:40,note:'播磨・千種の、古くから名高い鋼'},
+ {id:'jou',name:'上玉鋼',kana:'じょうたまはがね',hard:5,tough:1,era:'kamakura',price:1500,heat:45,note:'硬くて美しい。熱する色にきびしい'},
+ {id:'kera',name:'鉧',kana:'けら',hard:4,tough:2,era:'nanbokucho',price:800,heat:70,note:'たたらで吹いたままの、荒い鋼の塊'},
+ {id:'nami',name:'並玉鋼',kana:'なみたまはがね',hard:4,tough:2,era:'muromachi',price:300,heat:60,note:'扱いやすい玉鋼'},
+ {id:'nanban',name:'南蛮鉄',kana:'なんばんてつ',hard:4,tough:3,era:'edo',price:2000,heat:55,note:'江戸の初め、越前康継が初めて刀に使った輸入の鉄'},
+ {id:'kugi',name:'古釘',kana:'ふるくぎ',hard:3,tough:3,era:'kindai',price:500,heat:65,note:'古い寺の釘。幕末の刀工は古い鉄を卸して使った'},
+ {id:'inseki',name:'隕鉄',kana:'いんてつ',hard:2,tough:4,era:'kindai',price:30000,heat:50,note:'隕石の鉄。やわらかく、扱いがむずかしい'},
+ {id:'oroshi',name:'卸し鉄',kana:'おろしがね',hard:3,tough:3,era:null,price:0,heat:70,note:'古い鉄を卸した、ほどほどの鉄。無料'},
+ {id:'houcho',name:'包丁鉄',kana:'ほうちょうてつ',hard:1,tough:5,era:null,price:0,heat:80,note:'やわらかく、よくねばる。芯に向く。無料'},
+ {id:'zuku',name:'銑',kana:'ずく',hard:5,tough:0,era:null,price:100,heat:50,note:'たたらの銑鉄。とても硬いが、もろい'}
 ];
 export const material=id=>{const m=MATERIALS.find(m=>m.id===id);if(!m)throw Error('unknown material '+id);return m;};
 // 造り込み: which pieces of steel go into the blade
-export const SLOTS={kawa:{name:'皮鉄',kana:'かわがね',role:'外側。地鉄の時代と美しさ'},shin:{name:'心鉄',kana:'しんがね',role:'芯。粘り'},ha:{name:'刃鉄',kana:'はがね',role:'刃。切れ味'},mune:{name:'棟鉄',kana:'むねがね',role:'背。粘りを足す'}};
+export const SLOTS={kawa:{name:'皮鉄',kana:'かわがね',role:'外側。地鉄の時代と攻撃力'},shin:{name:'心鉄',kana:'しんがね',role:'芯。耐久'},ha:{name:'刃鉄',kana:'はがね',role:'刃。攻撃力'},mune:{name:'棟鉄',kana:'むねがね',role:'背。耐久を足す'}};
 export const STRUCTURES=[
  {id:'maru',name:'丸鍛え',slots:['kawa'],bonus:0,note:'1つの鉄だけで打つ'},
  {id:'kobuse',name:'甲伏せ',slots:['kawa','shin'],bonus:0,note:'硬い皮鉄でやわらかい心鉄を包む'},
@@ -34,23 +34,24 @@ export const buildReady=b=>structure(b.structure).slots.every(k=>b[k]);
 const clamp=(v,lo=0,hi=1)=>Math.max(lo,Math.min(hi,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 
-// The pieces together: the edge's steel sets the 切れ味, the core the 粘り, the skin the 美しさ (and the era).
+// The pieces together: the hard outer steel sets the 攻撃力 (stats.sharp), the soft core the 粘り behind the 耐久 (stats.tough),
+// the skin the era. #23 (owner): a sword is only 攻撃力 and 耐久; 美しさ is gone.
 // Hard outside and soft inside is the classic 甲伏せ; a soft skin over a hard core (あべこべ) is penalised and makes no 名刀.
 // combine(kawaId, shinId) is the older two-piece form.
 export function combine(build,shinId){
  if(typeof build==='string')build={structure:shinId===build?'maru':'kobuse',kawa:build,shin:shinId===build?undefined:shinId};
  const st=structure(build.structure),get=k=>st.slots.includes(k)&&build[k]?material(build[k]):null;
  const kawa=get('kawa'),shin=get('shin'),ha=get('ha'),mune=get('mune');
- const bonus={sharp:st.bonus,tough:st.bonus,beauty:st.bonus};
+ const bonus={sharp:st.bonus,tough:st.bonus};
  let kind=st.id;
  if(shin){
   const diff=kawa.hard-shin.hard,fix=SYNERGIES.some(x=>x.fixes&&x.kawa===kawa.id&&x.shin===shin.id);
-  if(diff>0){const b=Math.min(8,2*diff);bonus.sharp+=b;bonus.tough+=b;bonus.beauty+=b;}
+  if(diff>0){const b=Math.min(8,2*diff);bonus.sharp+=b;bonus.tough+=b;}
   else if(diff<0&&!fix){kind='gyaku';bonus.sharp-=10;bonus.tough-=5;}
  }
  if(ha&&ha.hard>=kawa.hard)bonus.sharp+=4;
  if(mune&&mune.tough>=3)bonus.tough+=4;
- const base={sharp:(ha||kawa).hard*8,tough:(shin||kawa).tough*8+(mune?mune.tough*2:0),beauty:kawa.beauty*8};
+ const base={sharp:(ha||kawa).hard*8,tough:(shin||kawa).tough*8+(mune?mune.tough*2:0)};
  return {kawa,shin,ha,mune,structure:st.id,kind,label:COMBO_LABEL[kind],bonus,base,heatHalf:kawa.heat,
   era:kind==='gyaku'?null:kawa.era,mats:buildMats({...build,structure:st.id}),cost:buildCost({...build,structure:st.id})};
 }
@@ -276,15 +277,15 @@ export function meitoHint(list,{form,hamon,era,mats=[],kind,successes,crack}){
 // Found by forging them once; then listed in the 相性帳. fixes: the pair is not counted as あべこべ (流星刀 needs it).
 export const SYNERGIES=[
  {id:'kobuse',kawa:'jou',shin:'houcho',name:'甲伏せの妙',fx:{tough:8},hint:'硬く美しい玉鋼で、いちばんやわらかい鉄を包む'},
- {id:'chikusa',kawa:'chikusa',shin:'houcho',name:'千種の冴え',fx:{beauty:10},hint:'播磨の名高い鋼の皮に、よくねばる芯'},
+ {id:'chikusa',kawa:'chikusa',shin:'houcho',name:'千種の冴え',fx:{sharp:10},hint:'播磨の名高い鋼の皮に、よくねばる芯'},
  {id:'meiko',kawa:'chikusa',shin:'jou',name:'名鋼くらべ',fx:{sharp:8},hint:'名高い鋼どうしを重ねる'},
  {id:'wayo',kawa:'nanban',shin:'kugi',name:'和洋の継ぎ',fx:{sharp:5,tough:5},hint:'海を渡った鉄と、古い寺の鉄'},
  {id:'tatara',kawa:'kera',shin:'nami',name:'たたらの粘り',fx:{tough:10},hint:'たたらから出たままの塊と、扱いやすい玉鋼'},
  {id:'kokan',kawa:'zuku',shin:'houcho',name:'硬軟の極み',fx:{sharp:12},hint:'いちばん硬い鉄と、いちばんやわらかい鉄'},
- {id:'ryusei',kawa:'inseki',shin:'jou',name:'流星',fx:{beauty:12},fixes:true,hint:'空から落ちてきた鉄に、上等の玉鋼'},
- {id:'furugane',kawa:'kugi',shin:'oroshi',name:'古鉄の生まれ変わり',fx:{sharp:4,tough:4,beauty:4},hint:'捨てられるはずだった古い鉄どうし'},
- {id:'muku',kawa:'nami',shin:'nami',name:'無垢の一本',fx:{beauty:6},hint:'同じ玉鋼だけで打つ'},
- {id:'tairiku',kawa:'hakusai',shin:'hakusai',name:'大陸の直刀',fx:{beauty:10},forms:['chokuto','ken'],hint:'大陸の鉄だけで、まっすぐな古い形を'},
+ {id:'ryusei',kawa:'inseki',shin:'jou',name:'流星',fx:{sharp:12},fixes:true,hint:'空から落ちてきた鉄に、上等の玉鋼'},
+ {id:'furugane',kawa:'kugi',shin:'oroshi',name:'古鉄の生まれ変わり',fx:{sharp:6,tough:6},hint:'捨てられるはずだった古い鉄どうし'},
+ {id:'muku',kawa:'nami',shin:'nami',name:'無垢の一本',fx:{tough:8},hint:'同じ玉鋼だけで打つ'},
+ {id:'tairiku',kawa:'hakusai',shin:'hakusai',name:'大陸の直刀',fx:{tough:10},forms:['chokuto','ken'],hint:'大陸の鉄だけで、まっすぐな古い形を'},
  {id:'nodachi',kawa:'kera',shin:'houcho',name:'野太刀の鍛え',fx:{sharp:10},forms:['odachi','tachi'],hint:'荒い塊で、長い刀を'},
  {id:'hosaki',kawa:'nanban',shin:'houcho',name:'南蛮の穂先',fx:{sharp:8,tough:4},forms:['yari','naginata'],hint:'江戸に来た輸入の鉄で、長い柄の武器を'}
 ];
@@ -311,25 +312,25 @@ export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84
 export function expectStats(build,formId='katana',q=0.8,syn=null){
  const c=combine(build),f=55*q,fx=syn?.fx||{};
  const v=k=>Math.round(clamp(c.base[k]+f+c.bonus[k]+(fx[k]||0),0,100));
- return {sharp:v('sharp'),tough:v('tough'),beauty:v('beauty')};
+ return {sharp:v('sharp'),tough:v('tough')};
 }
 export function finishSword(run,list=[],collection={}){
  const c=combine(run.structure?run:{structure:run.shin?'kobuse':'maru',kawa:run.kawa,shin:run.shin});
  const polish=run.polish||autoPolish(run);
  const H=clamp(run.heat.score),M=clamp(mean(run.hits)),T=clamp(run.hamon.score),Q=clamp(run.quench.score),P=clamp(polish.score);
  const syn=synergyOf(c.kawa.id,c.shin?.id,run.form||'katana');
- let sharp=c.base.sharp+55*(0.45*Q+0.25*M+0.30*P)+c.bonus.sharp;
+ // 攻撃力 (sharp) and the 粘り behind the 耐久 (tough); the 刃文 counts toward the 攻撃力 since #23
+ let sharp=c.base.sharp+55*(0.35*Q+0.20*M+0.25*P+0.20*T)+c.bonus.sharp;
  let tough=c.base.tough+55*(0.50*M+0.30*H+0.20*Q)+c.bonus.tough;
- let beauty=c.base.beauty+55*(0.35*P+0.35*T+0.30*H)+c.bonus.beauty;
- if(run.heat.grade==='burn'){tough-=10;beauty-=10;}
- if(syn){sharp+=syn.fx.sharp||0;tough+=syn.fx.tough||0;beauty+=syn.fx.beauty||0;}
+ if(run.heat.grade==='burn'){sharp-=5;tough-=10;}
+ if(syn){sharp+=syn.fx.sharp||0;tough+=syn.fx.tough||0;}
  const crack=!!run.quench.crack;
  if(crack){sharp*=0.6;tough*=0.35;}
- const stats={sharp:Math.round(clamp(sharp,0,100)),tough:Math.round(clamp(tough,0,100)),beauty:Math.round(clamp(beauty,0,100))};
- const overall=Math.round((stats.sharp+stats.tough+stats.beauty)/3);
+ const stats={sharp:Math.round(clamp(sharp,0,100)),tough:Math.round(clamp(tough,0,100))};
+ const overall=Math.round((stats.sharp+stats.tough)/2);
  const stars=crack?1:starsFor(overall);
  const formId=run.form||'katana',successes=successCount(run);
- const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}-${stats.beauty}`,want:run.want||null};
+ const pick={form:formId,hamon:run.hamon.type,era:c.era,mats:c.mats,kind:c.kind,successes,crack,seed:`${stats.sharp}-${stats.tough}`,want:run.want||null};
  const meito=pickMeito(list,pick,collection);
  const grade=gradeFor(overall,crack);
  const price=meito?Math.round(MEITO_PRICE[meito.r]*(0.85+overall/200)/100)*100:Math.round(PRICE_BY_GRADE[grade.id]*(0.85+overall/200)/50)*50;

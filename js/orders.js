@@ -5,11 +5,13 @@ import * as R from './rules.js';
 import * as M from './market.js';
 import * as P from './people.js';
 import {ownerOf} from './owners.js';
+import {durOf} from './dive.js';
 
 const clamp=(v,lo=0,hi=1)=>Math.max(lo,Math.min(hi,v));
 const pickOf=(rng,a)=>a[Math.floor(rng()*a.length)];
 const round=(v,step=100)=>Math.max(step,Math.round(v/step)*step);
-export const STAT_NAME={sharp:'切れ味',tough:'粘り',beauty:'美しさ'};
+// #23 (owner): orders ask for the 攻撃力 or the 耐久 (the number of ● left), no longer 切れ味・粘り・美しさ
+export const STAT_NAME={atk:'攻撃力',dur:'耐久'};
 const gi=id=>R.GRADES.findIndex(g=>g.id===id);
 // 名前が売れるほど依頼が増える（D55）
 export const ORDER_SLOTS=[1,1,2,2,3,3,3];
@@ -18,7 +20,9 @@ export const DIFF_BASE=[1,1,2,2,3,3,4];
 
 export const orderBase=d=>round(1000*1.8**d);   // お礼のもと：★1 1,800 … ★5 18,900文
 export const namedBase=tier=>5000*2**tier;      // 名指し：名物 10,000 … 天下 160,000文
-export const statNeed=d=>40+10*d;               // 能力の条件：★1 50 … ★5 90
+export const statNeed=d=>40+10*d;               // 攻撃力の条件：★1 50 … ★5 90
+export const durNeed=d=>[3,3,4,4,5][Math.max(1,Math.min(5,d))-1]; // 耐久の条件：★1 3 … ★5 5
+export const durFor=tough=>2+Math.floor(tough/25);  // the 耐久 a 粘り gives (as dive.js maxDurability, without the 名刀's one more)
 const openEras=open=>[...new Set(R.MATERIALS.filter(m=>open.materials.has(m.id)&&m.era&&m.id!=='inseki').map(m=>m.era))];
 
 // the best a stat can reach with the steel of this level (perfect steps, any found pair), for this form and, if asked, this era
@@ -36,12 +40,14 @@ export function makeOrder(rng,level=0,ctx={}){
  const client=pickOf(rng,M.clientsFor(level)),person=P.newPerson(rng,client);
  const d=Math.max(1,Math.min(5,DIFF_BASE[Math.max(0,Math.min(6,level))]+(rng()<0.4?1:0)-(rng()<0.15?1:0)));
  const forms=[...open.forms],eras=openEras(open);
- const conds=[{k:'stat',stat:P.CLIENT_STAT[client]||'sharp',min:statNeed(d)}];
+ const want=P.CLIENT_STAT[client]||'atk';
+ const conds=[want==='dur'?{k:'dur',min:durNeed(d)}:{k:'atk',min:statNeed(d)}];
  const extra=rng()<0.5?['hamon','era']:['era','hamon'];
  for(const k of extra.slice(0,d>=4?2:d>=2?1:0))conds.push(k==='hamon'?{k:'hamon',hamon:pickOf(rng,Object.keys(R.HAMON))}:{k:'era',era:pickOf(rng,eras)});
  if(d>=5)conds.push({k:'grade',grade:'A'});
- const era=conds.find(c=>c.k==='era')?.era||null,st=conds[0],form=pickOf(rng,forms),top=bestStat(open,form,st.stat,era);
- if(st.min>top)st.min=Math.max(30,Math.floor(top/5)*5);
+ const era=conds.find(c=>c.k==='era')?.era||null,st=conds[0],form=pickOf(rng,forms);
+ if(st.k==='atk'){const top=bestStat(open,form,'sharp',era);if(st.min>top)st.min=Math.max(30,Math.floor(top/5)*5);}
+ else st.min=Math.min(st.min,durFor(bestStat(open,form,'tough',era)));
  const reward=round(orderBase(d)*M.CLIENTS[client].pay*M.fameReward(level));
  const gifts=R.MATERIALS.filter(m=>open.materials.has(m.id)&&m.price>=500).sort((a,b)=>a.price-b.price);
  const gift=gifts.length&&rng()<0.5+0.05*level?gifts[Math.min(gifts.length-1,Math.floor(rng()**(1/(1+level*0.4))*gifts.length))].id:null;
@@ -61,9 +67,14 @@ export function namedOrder(rng,level,list,collection={},taken=[]){
  return {client:'real',real:true,ownerId:'r:'+o.o,form:m.t,diff:Math.min(5,1+m.r),tier:m.r,meito:m.n,ev:o.ev,conds,
   reward:round(namedBase(m.r)*M.fameReward(level)),gift:rares.length?pickOf(rng,rares):null};
 }
+// an order from before #23: 切れ味・美しさ become the 攻撃力, 粘り the 耐久 it gives
+export function upgradeOrder(o){
+ if(!o.conds?.some(c=>c.k==='stat'))return o;
+ return {...o,conds:o.conds.map(c=>c.k!=='stat'?c:c.stat==='tough'?{k:'dur',min:durFor(c.min)}:{k:'atk',min:c.min})};
+}
 export function fillOrders(save,level,list,rngFor){
  // orders whose person is gone (the #17 regulars) leave the board
- const orders=[...(save.orders||[])].filter(o=>P.personOf(o));let seq=save.seq||1;
+ const orders=[...(save.orders||[])].filter(o=>P.personOf(o)).map(upgradeOrder);let seq=save.seq||1;
  while(orders.length<slotsFor(level)){
   const taken=orders.flatMap(o=>o.ownerId?[o.ownerId]:[]);
   const o=makeOrder(rngFor(seq),level,{list,collection:save.collection||{},taken,named:orders.filter(x=>x.real).length});
@@ -74,7 +85,8 @@ export function fillOrders(save,level,list,rngFor){
 
 // ---- 条件の言葉
 export function condText(c){
- if(c.k==='stat')return `${STAT_NAME[c.stat]} ${c.min}以上`;
+ if(c.k==='atk')return `攻撃力 ${c.min}以上`;
+ if(c.k==='dur')return `耐久 ${c.min}以上`;
  if(c.k==='hamon')return `刃文：${R.HAMON[c.hamon].name}`;
  if(c.k==='era')return `地鉄：${R.ERAS[c.era].name}`;
  if(c.k==='mats')return `皮鉄に${R.material(c.mats[0]).name}・心鉄に${R.material(c.mats[1]).name}`;
@@ -88,7 +100,9 @@ export function condText(c){
 export function evaluateOrder(order,sword){
  const parts=order.conds.map(c=>{
   if(c.k==='form')return {c,score:1,ok:true};
-  if(c.k==='stat'){const v=sword.stats?.[c.stat]??0;return {c,score:clamp(v/c.min),ok:v>=c.min,value:v};}
+  if(c.k==='atk'){const v=sword.stats?.sharp??0;return {c,score:clamp(v/c.min),ok:v>=c.min,value:v};}
+  // the 耐久 left on the sword (a worn one counts less)
+  if(c.k==='dur'){const v=durOf(sword);return {c,score:clamp(v/c.min),ok:v>=c.min,value:v};}
   if(c.k==='hamon'){const ok=sword.hamon===c.hamon;return {c,score:ok?1:0,ok};}
   if(c.k==='era'){const ok=sword.era===c.era;return {c,score:ok?1:0,ok};}
   if(c.k==='mats'){const ok=sword.kawa===c.mats[0]&&sword.shin===c.mats[1];return {c,score:ok?1:0,ok};}
