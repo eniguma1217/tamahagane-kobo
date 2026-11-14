@@ -29,7 +29,7 @@ export function startProto(combat){
  S.setSound(true);
  const cv=$('#cv'),ctx=cv.getContext('2d'),el={top:$('#top'),cards:$('#cards'),over:$('#over'),hint:$('#hint')};
  const P={combat,place:V.PLACES[0],depth:1,foe:null,carry:[],active:0,fx:[],nums:[],shake:0,flash:0,flashColor:'255,60,40',
-  stats:{good:0,perfect:0,miss:0,waza:0},trace:null,busy:0,state:'menu',w:0,h:0};
+  stats:{good:0,perfect:0,miss:0,waza:0},trace:null,busy:0,state:'loading',w:0,h:0};
  window.__proto=P;
  const fit=()=>{const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);P.w=r.width;P.h=r.height;};
  addEventListener('resize',fit);
@@ -173,6 +173,8 @@ export function startProto(combat){
   for(const n of P.nums){ctx.save();ctx.globalAlpha=1-n.age;ctx.font=`800 ${n.size}px "Hiragino Mincho ProN",serif`;ctx.textAlign='center';ctx.lineWidth=5;ctx.strokeStyle='rgba(0,0,0,0.7)';
    const y=n.y-n.age*40;ctx.strokeText(n.text,n.x,y);ctx.fillStyle=n.color;ctx.fillText(n.text,n.x,y);ctx.restore();}
  }
+ // 'loading' until the pictures are in and the first screen is drawn
+ el.over.hidden=false;el.over.innerHTML='<div class="sheet"><p class="tag">出陣の試作</p><h1>読みこみ中…</h1></div>';
  loadArt('../assets/').finally(()=>{fit();menu();requestAnimationFrame(frame);});
  return P;
 }
