@@ -423,3 +423,15 @@ button{font:inherit;color:inherit}
 .wz-text{margin:4px 2px 0;font-size:12px;color:rgba(239,230,210,.85)}
 .wz-line{margin:0;font-size:13px;text-align:center;color:#8fd3ff}.wz-line b{font-family:var(--mincho);font-size:15px;color:#fff}.wz-line small{display:block;font-size:11px;color:rgba(239,230,210,.75)}
 @media (prefers-reduced-motion:reduce){.csw.ki-full .cs-waza,.foe.waza .foe-art{animation:none}}
+/* #28 レア演出：名前を少しためてから、光とともに見せる */
+.result .rare-banner{position:absolute;left:16px;right:16px;top:38%;margin:0;font-family:var(--mincho);font-weight:800;font-size:clamp(26px,8vw,40px);letter-spacing:.12em;color:var(--rare,#ffd56a);text-shadow:0 0 18px var(--rare,#ffd56a),0 2px 6px #000;pointer-events:none;opacity:0;transition:opacity .4s}
+.result .rare-banner.rainbow{background:linear-gradient(90deg,#ff8a8a,#ffd56a,#9dff9d,#8fd3ff,#d79bff,#ff8a8a);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 10px rgba(255,255,255,.6));animation:rare-rainbow 2s linear infinite}
+@keyframes rare-rainbow{to{background-position:200% 0}}
+.result.rare-intro .rare-banner{opacity:1;animation:rare-in .6s ease-out}
+.result.rare-intro .rare-banner.rainbow{animation:rare-in .6s ease-out,rare-rainbow 2s linear infinite}
+.result.rare-intro>:not(.rare-banner):not(.sword-space){opacity:0;transform:translateY(8px)}
+.result.rare>:not(.rare-banner):not(.sword-space){transition:opacity .5s,transform .5s}
+@keyframes rare-in{0%{transform:scale(.5);opacity:0;filter:blur(6px)}70%{transform:scale(1.02);opacity:1;filter:none}100%{transform:none;opacity:1}}
+.result.rare .grade-row>*:first-child{box-shadow:0 0 16px var(--rare,#ffd56a)}
+.result.rare-3 .mei{text-shadow:0 0 22px var(--rare,#ffd56a),0 2px 6px #000}
+@media (prefers-reduced-motion:reduce){.result .rare-banner,.result.rare-intro .rare-banner{animation:none}}

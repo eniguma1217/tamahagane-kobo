@@ -331,9 +331,36 @@ export class Sparks{
 }
 export class Steam{
  constructor(){this.p=[];}
- puff(x,y,n,spread){for(let i=0;i<n;i++)this.p.push({x:x+(Math.random()-0.5)*spread,y,vx:(Math.random()-0.5)*30,vy:-40-Math.random()*70,r:6+Math.random()*10,life:1.2+Math.random()*1,age:0});}
+ // rgb: a coloured steam for the レア演出 (#28); 'rainbow' cycles the hue
+ puff(x,y,n,spread,rgb=null){for(let i=0;i<n;i++)this.p.push({x:x+(Math.random()-0.5)*spread,y,vx:(Math.random()-0.5)*30,vy:-40-Math.random()*70,r:6+Math.random()*10,life:1.2+Math.random()*1,age:0,rgb,h:Math.random()*360});}
  update(dt){for(const p of this.p){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.r+=22*dt;}this.p=this.p.filter(p=>p.age<p.life);}
- draw(ctx){for(const p of this.p){const k=1-p.age/p.life;ctx.fillStyle=`rgba(235,235,230,${0.35*k})`;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}}
+ draw(ctx){for(const p of this.p){const k=1-p.age/p.life;
+  ctx.fillStyle=p.rgb==='rainbow'?`hsla(${(p.h+p.age*240)%360},90%,72%,${0.5*k})`:p.rgb?`rgba(${p.rgb},${0.5*k})`:`rgba(235,235,230,${0.35*k})`;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}}
+}
+// ---------- レア演出 (#28) ----------
+export const hexRGB=hex=>{const n=parseInt(hex.slice(1),16);return `${n>>16&255},${n>>8&255},${n&255}`;};
+const rareRGB=(rare,t,k=0)=>rare.rainbow?`hsl(${(t*90+k)%360},90%,70%)`:rare.color;
+// a soft glow of the rare colour around a point
+export function rareGlow(ctx,x,y,r,rare,t,strength=1){
+ const c=rare.rainbow?`hsla(${(t*90)%360},90%,70%,`:`rgba(${hexRGB(rare.color)},`,f=strength*(0.75+0.25*Math.sin(t*6));
+ const g=ctx.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,c+(0.55*f)+')');g.addColorStop(1,c+'0)');
+ ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);ctx.restore();
+}
+// a pillar of light and turning rays behind the finished sword; level 3 is wider and brighter
+export function lightPillar(ctx,w,h,x,y,rare,t){
+ ctx.save();ctx.globalCompositeOperation='lighter';
+ const pw=w*(0.18+0.1*rare.level),a=0.18+0.08*rare.level+0.06*Math.sin(t*3);
+ const g=ctx.createLinearGradient(x-pw/2,0,x+pw/2,0),c=rareRGB(rare,t);
+ g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.5,c);g.addColorStop(1,'rgba(0,0,0,0)');
+ ctx.globalAlpha=a;ctx.fillStyle=g;ctx.fillRect(x-pw/2,0,pw,h);
+ ctx.globalAlpha=0.12+0.05*rare.level;
+ for(let i=0;i<12;i++){const an=t*0.4+i*Math.PI/6,len=Math.max(w,h);ctx.fillStyle=rareRGB(rare,t,i*30);
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(an-0.05)*len,y+Math.sin(an-0.05)*len);ctx.lineTo(x+Math.cos(an+0.05)*len,y+Math.sin(an+0.05)*len);ctx.closePath();ctx.fill();}
+ ctx.globalAlpha=0.9;
+ for(let i=0;i<14+8*rare.level;i++){const sx=x+Math.sin(i*12.9898+t*0.7)*w*0.45,sy=(h*(i*0.137%1)-t*40*(1+i%3))%h,yy=sy<0?sy+h:sy,s=1.5+((i*7)%3);
+  ctx.fillStyle=rareRGB(rare,t,i*40);ctx.fillRect(sx-s/2,yy-s*2,s,s*4);ctx.fillRect(sx-s*2,yy-s/2,s*4,s);}
+ ctx.restore();
 }
 
 // ---------- gauge ----------

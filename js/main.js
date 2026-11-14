@@ -229,6 +229,8 @@ function startForging(){
  const {cost,bought,...rest}=paid;save=rest;save_();
  const want=(save.orders||[]).find(o=>o.real&&o.form===pick.form)?.meito||null;
  api.run={form:pick.form,want,...build};forgeIndex=-1;el.panel.innerHTML='';forgeNext();
+ // レア演出の前兆 (#28): the quench asks what the finished sword will be, as it leaves the water
+ api.foresee=()=>R.rareOf(R.finishSword(api.run,MEITO,save.collection));
 }
 function forgeNext(){
  forgeIndex++;
@@ -242,10 +244,13 @@ function showResult(){
  const sword0=R.finishSword(api.run,MEITO,save.collection),sword={...sword0,dur:V.maxDurability(sword0)};
  const isNew=!!sword.meito&&!save.collection[sword.meito],synNew=!!sword.synergy&&!save.synergies?.[sword.synergy];
  save=addSword(save,sword);save_();
- mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2}));S.phrase(sword.meito?5:sword.stars);
+ // レア演出の本番 (#28): a pillar of light; the name is held back a moment, then shown with a rising bell
+ const rare=R.rareOf(sword);
+ mode('result');setScene(new Ambient(api,'result','plain',{sword,dim:0.2,rare}));if(rare)S.rare(rare.level);else S.phrase(sword.meito?5:sword.stars);
  const g=api.run,m=sword.meito?MEITO.find(x=>x.n===sword.meito):null,syn=sword.synergy?R.SYNERGIES.find(x=>x.id===sword.synergy):null,F=R.form(sword.form).name;
  const fits=(save.orders||[]).map(o=>({o,r:O.evaluateOrder(o,sword)})).filter(x=>x.r.stars>=2);
- el.panel.innerHTML=`<div class="result">
+ el.panel.innerHTML=`<div class="result ${rare?`rare rare-${rare.level} rare-intro`:''}" ${rare?`style="--rare:${rare.color}"`:''}>
+  ${rare?`<p class="rare-banner ${rare.rainbow?'rainbow':''}">${rare.label}</p>`:''}
   <div class="sword-space"></div>
   ${m?`<p class="meito-badge">${isNew?'<b>NEW</b>':''}名刀を打ち上げた！</p>`:''}
   <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
@@ -261,7 +266,9 @@ function showResult(){
  api.controls([{label:'工房へ',onClick:showTitle},{label:'出陣へ',onClick:showDivePrep},{label:'もう一振り',primary:true,onClick:()=>showForms()}]);
  el.panel.querySelector('[data-goorders]')?.addEventListener('click',()=>{S.tick();showOrders();});
  api.swordTop=()=>{const s=el.panel.querySelector('.sword-space');if(!s)return null;const a=s.getBoundingClientRect(),b=el.stage.getBoundingClientRect();return a.top-b.top+a.height/2;};
- if(isNew)api.pop('名刀','best');else if(synNew)api.pop('相性発見','best');
+ if(rare){const box=el.panel.querySelector('.result'),show=()=>{if(!box.classList.contains('rare-intro'))return;box.classList.remove('rare-intro');if(isNew)api.pop('名刀','best');};
+  setTimeout(show,1500);box.addEventListener('click',show,{once:true});}
+ else if(isNew)api.pop('名刀','best');else if(synNew)api.pop('相性発見','best');
 }
 
 // ---------- 刀掛け ----------

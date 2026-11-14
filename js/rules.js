@@ -310,6 +310,16 @@ export const GRADE_VALUE=PRICE_BY_GRADE;
 export const MEITO_RANK={1:{name:'名物',color:'#b7c0c8'},2:{name:'名品',color:'#7fb8ff'},3:{name:'重文級',color:'#c79bff'},4:{name:'国宝級',color:'#ff8a6a'},5:{name:'天下',color:'#ffd56a'}};
 const MEITO_PRICE={1:20000,2:40000,3:80000,4:200000,5:600000};
 export const MEITO_VALUE=MEITO_PRICE;
+// レア演出 (#28, owner: 「S以上の名刀ができたらレア演出」→ S以上か名刀、前兆＋本番). level 1 金 … 3 虹と光の柱; null for the rest.
+// A 名刀 counts by its rank (名物・名品 1, 重文級 2, 国宝級・天下 3); a grade by S 1, SS 2; the stronger wins.
+export function rareOf(s){
+ if(!s||s.crack)return null;
+ const g={S:1,SS:2}[s.grade]||0,m=s.meito?({1:1,2:1,3:2,4:3,5:3}[s.tier]||1):0,level=Math.max(g,m);
+ if(!level)return null;
+ const color=s.meito?MEITO_RANK[s.tier]?.color||'#ffd56a':s.grade==='SS'?'#ffffff':'#ffd56a';
+ const label=s.meito?`${MEITO_RANK[s.tier]?.name||'名物'}の名刀`:GRADES.find(x=>x.id===s.grade).name;
+ return {level,color,rainbow:level>=3||s.grade==='SS',label};
+}
 export const starsFor=overall=>overall<35?1:overall<52?2:overall<68?3:overall<84?4:5;
 // the stats a build would give if every step went at quality q (0..1): for the materials screen's preview (#17)
 export function expectStats(build,formId='katana',q=0.8,syn=null){

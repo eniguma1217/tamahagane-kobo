@@ -212,6 +212,8 @@ export class Quench{
    const was=this.k;this.k=Math.min(1,this.k+dt/0.55);
    if(was<0.8&&this.k>=0.8){S.hiss(this.result.crack?1.3:1);this.splash=true;}
    if(this.k>=1){this.phase='sori';this.k=0;this.temp=0;
+    // レア演出の前兆 (#28): the result is settled as the blade leaves the water; a fine one glows and rings
+    this.rare=this.api.foresee?.()||null;if(this.rare)S.glint(this.rare.level);
     const r=this.result;this.api.pop(r.label,r.grade);
     this.api.say({best:'見事だ！ 刃文がくっきり入り、きれいな反りが出た。',good:'よし、焼きがしっかり入った。',weak:r.label==='焼きが甘い'?'色が浅かった。焼きが甘いな。':'少し熱すぎた。割れなかったのが幸いだ。',crack:'……ピシッ。焼き割れだ。熱しすぎたな。'}[r.grade],r.grade==='best'||r.grade==='good'?'happy':'normal');}
   }
@@ -233,14 +235,16 @@ export class Quench{
   if(hot){D.blade(ctx,G,{temp:this.temp,tang:true});D.clayFromProfile(ctx,G,this.api.run.hamon.profile,0.85);}
   else{D.blade(ctx,G,{dull:true});D.clayFromProfile(ctx,G,this.api.run.hamon.profile,Math.max(0.3,0.85-this.k));}
   if(this.splash){this.splash=false;this.steam.puff(T.x+T.w/2,T.y,40,T.w*0.8);}
-  if(this.phase==='sori'&&Math.random()<0.3)this.steam.puff(T.x+T.w/2,T.y,2,T.w*0.6);
+  const rgb=this.rare?(this.rare.rainbow?'rainbow':D.hexRGB(this.rare.color)):null;
+  if(this.phase==='sori'&&Math.random()<(this.rare?0.6:0.3))this.steam.puff(T.x+T.w/2,T.y,this.rare?3:2,T.w*0.6,rgb);
+  if(this.rare&&(this.phase==='sori'||this.phase==='done'))D.rareGlow(ctx,(G.x0+G.x1)/2,y,Math.max(w,h)*0.35*(0.6+0.2*this.rare.level),this.rare,t,Math.min(1,this.k*2+(this.phase==='done'?1:0)));
   this.steam.draw(ctx);
   if(this.phase==='heat'||this.phase==='wait'){
    const gw=Math.min(w*0.7,320),gx=(w-gw)/2,gy=L.y+L.h+(T.y-L.y-L.h)*0.42;
    D.gaugeH(ctx,gx,gy,gw,12,{lo:600,hi:960,temp:this.temp,band:[R.QUENCH.center-this.half,R.QUENCH.center+this.half],danger:R.QUENCH.crack,label:'月夜の色'});
   }
  }
- qa(){return {phase:this.phase,temp:this.temp,center:R.QUENCH.center,half:this.half};}
+ qa(){return {phase:this.phase,temp:this.temp,center:R.QUENCH.center,half:this.half,rare:this.rare?.level||0};}
 }
 
 // ---------------- 研ぐ ----------------
@@ -316,7 +320,7 @@ export class Polish{
 
 // ---------------- 背景だけの場面（タイトル・素材・仕上がり・記録） ----------------
 export class Ambient{
- constructor(api,name,kind,{sword=null,dim=0}={}){Object.assign(this,{api,name,kind,sword,dim,sparks:new D.Sparks(),gleam:0});}
+ constructor(api,name,kind,{sword=null,dim=0,rare=null}={}){Object.assign(this,{api,name,kind,sword,dim,rare,sparks:new D.Sparks(),gleam:0});}
  enter(){}
  update(dt){this.sparks.update(dt);this.gleam=(this.gleam+dt*0.35)%1.6;if(Math.random()<0.15&&this.box)this.sparks.ember(this.box.x+this.box.w*Math.random(),this.box.y+this.box.h*0.4);}
  draw(ctx,w,h,t){
@@ -326,6 +330,7 @@ export class Ambient{
   if(this.dim){ctx.fillStyle=`rgba(10,6,4,${this.dim})`;ctx.fillRect(0,0,w,h);}
   if(this.sword){
    const s=this.sword,top=this.api.swordTop?.()??h*0.16;
+   if(this.rare)D.lightPillar(ctx,w,h,w*0.5,top,this.rare,t);   // レア演出の本番 (#28)
    const sp=ctx.createRadialGradient(w*0.55,top,10,w*0.55,top,w*0.6);sp.addColorStop(0,'rgba(255,230,190,0.22)');sp.addColorStop(1,'rgba(255,230,190,0)');ctx.fillStyle=sp;ctx.fillRect(0,0,w,h);
    const S=D.SHAPE[s.form]||D.SHAPE.katana;
    D.fullSword(ctx,s.form||'katana',{x:w*0.04,y:top-Math.min(70,w*0.16)/2,w:w*0.92,h:Math.min(70,w*0.16)},{profile:s.profile,crack:s.crack,gleam:this.gleam<1?this.gleam:-1,sori:S.sori*(s.sori??0.6)/0.8});

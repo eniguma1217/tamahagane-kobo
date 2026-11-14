@@ -41,3 +41,13 @@ export function phrase(stars){
  if(!ready())return;const notes=[0,1,5,7,8,12,13,17],base=293.66,t0=ac.currentTime+0.05,n=2+stars;
  for(let i=0;i<n;i++){const st=notes[Math.min(notes.length-1,i+(stars>=4?2:0))],t=t0+i*0.16;const o=ac.createOscillator();o.type='triangle';o.frequency.value=base*2**(st/12);env(o,t,0.004,0.18,0.7);o.start(t);o.stop(t+0.9);}
 }
+// レア演出 (#28): a glint when the blade leaves the water, and a rising bell phrase on the reveal (level 1 金 … 3 虹)
+export function glint(level=1){
+ if(!ready())return;const t=ac.currentTime;
+ for(let i=0;i<2+level;i++){const o=ac.createOscillator();o.type='sine';o.frequency.value=1760*2**((i*4)/12);env(o,t+i*0.07,0.003,0.12,0.6);o.start(t+i*0.07);o.stop(t+i*0.07+0.8);}
+}
+export function rare(level=1){
+ if(!ready())return;const t0=ac.currentTime+0.05,steps=[0,4,7,12,16,19,24].slice(0,4+level);
+ steps.forEach((st,i)=>{const t=t0+i*0.11;for(const [m,a] of [[1,0.16],[2,0.06],[3,0.03]]){const o=ac.createOscillator();o.type=m===1?'triangle':'sine';o.frequency.value=440*2**(st/12)*m;env(o,t,0.004,a,1.1);o.start(t);o.stop(t+1.3);}});
+ noise(t0+steps.length*0.11,1.2,{type:'highpass',freq:6000,q:0.5,peak:0.06,attack:0.05});
+}
