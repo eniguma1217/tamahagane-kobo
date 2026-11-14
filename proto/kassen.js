@@ -44,7 +44,7 @@ function renderPanel(){
  }
 }
 cv.addEventListener('pointerdown',e=>{
- if(G.state!=='setup')return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ if(G.state!=='setup')return;cv.refit?.();const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  for(const row of [0,1])for(const col of [0,1,2]){const p=slotXY('ally',row,col);if(Math.hypot(x-p.x,y-p.y)<R0()*1.3){
   const here=G.allies.find(a=>a.row===row&&a.col===col);
   if(G.sel!=null){const a=G.allies[G.sel];if(here&&here!==a){here.row=a.row;here.col=a.col;}a.row=row;a.col=col;G.sel=null;}

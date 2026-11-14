@@ -89,7 +89,7 @@ export class Fx{
 }
 // a canvas that fills its box at the device's sharpness
 // it follows its box: the panel below changes height as its content does
-export function sharpCanvas(cv){const ctx=cv.getContext('2d'),fit=()=>{const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);if(!r.width||!r.height)return;cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);cv.W=r.width;cv.H=r.height;};fit();addEventListener('resize',fit);if(typeof ResizeObserver!=='undefined')new ResizeObserver(fit).observe(cv);return ctx;}
+export function sharpCanvas(cv){const ctx=cv.getContext('2d'),fit=()=>{const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);if(!r.width||!r.height)return;cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);cv.W=r.width;cv.H=r.height;};fit();cv.refit=fit;addEventListener('resize',fit);if(typeof ResizeObserver!=='undefined')new ResizeObserver(fit).observe(cv);return ctx;}
 export function background(ctx,w,h,placeId,dim=0.35){const bg=artImage('bg-'+placeId);if(bg){const r=coverRect(bg,w,h);ctx.drawImage(bg,r.dx,r.dy,r.dw,r.dh);}else{ctx.fillStyle='#1d140f';ctx.fillRect(0,0,w,h);}ctx.fillStyle=`rgba(10,6,4,${dim})`;ctx.fillRect(0,0,w,h);}
 export const yen=n=>Math.round(n).toLocaleString('ja-JP');
 // the page header: its name and the way back

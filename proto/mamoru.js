@@ -54,7 +54,7 @@ function fire(t){if(t.ki<3)return false;t.ki=0;t.flash=0.5;const mult=wazaHits(t
  return true;}
 const towerPos=t=>{const i=M.towers.indexOf(t);return P(...SLOTS[i]);};
 cv.addEventListener('pointerdown',e=>{
- if(M.state!=='build'&&M.state!=='wave')return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+ if(M.state!=='build'&&M.state!=='wave')return;cv.refit?.();const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  SLOTS.forEach(([sx,sy],i)=>{const p=P(sx,sy);if(Math.hypot(x-p.x,y-p.y)>26)return;const t=M.towers[i];
   if(t){if(t.ki>=3){fire(t);return;}if(M.state==='build'){M.towers[i]=null;S.tick();render();}return;}
   if(M.sel!=null&&!placed(M.sel)&&M.swords[M.sel].dur>0){M.towers[i]=tower(M.swords[M.sel]);M.sel=null;S.tick();render();}});

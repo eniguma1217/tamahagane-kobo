@@ -58,7 +58,7 @@ function nextDay(msg){
 }
 function end(win){K.state=win?'clear':'lost';el.over.hidden=false;el.over.innerHTML=`<div class="sheet"><p class="tag">10 国取り</p><h1>${win?'天下統一！':'刀が尽きた……'}</h1><p class="howto">${K.day}日　${K.own.size}/9か国　${yen(K.money)}文</p>
  <div class="places"><button class="btn primary" data-again>もう一度</button><a class="btn" href="./">ほかの試作へ</a><a class="btn" href="../">ゲームへ戻る</a></div><p class="note">気に入ったか、直してほしいところを教えてください。</p></div>`;el.over.querySelector('[data-again]').onclick=menu;}
-cv.addEventListener('pointerdown',e=>{if(K.state!=='play'||K.clash)return;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+cv.addEventListener('pointerdown',e=>{if(K.state!=='play'||K.clash)return;cv.refit?.();const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  const hit=K.land.find(l=>Math.hypot(x-l.x*cv.W,y-(0.06+l.y*0.88)*cv.H)<30);if(hit){S.tick();K.sel=hit.id;K.pickSw=K.pickSw.filter(i=>K.swords[i].dur>0);render();}});
 let last=performance.now();
 function frame(t){const dt=Math.min(0.05,(t-last)/1000);last=t;fx.update(dt);if(K.clash)K.clash.t+=dt;draw(t/1000);requestAnimationFrame(frame);}

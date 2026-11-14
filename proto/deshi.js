@@ -49,7 +49,7 @@ function menu(){
  el.over.hidden=false;el.over.innerHTML=`<div class="sheet"><p class="tag">出陣の試作</p><h1>道場＋派遣</h1>
   <p class="howto"><b>弟子を育てて、刀を授けて、送り出す。</b>自分では戦わない。<br>
   ・<b>刀を1振打つと1日すすむ</b>（試作ではボタン。新しい刀が刀掛けにかかる）。旅に出た弟子から便りが届き、何日かで土産話と戦利品を持って帰る。<br>
-  ・1日にひとり<b>稽古をつけられる</b>：<b>盤の上で師範代と立ち合う</b>（赤いマスは次の攻撃。動いてよけるか、構えるか、先に斬る）。旅の経験でも育つ。得意な形の刀なら相性◎。<br>
+  ・1日にひとり<b>稽古をつけられる</b>：<b>盤の上で師範代と立ち合う</b>。毎ターン刀から配られる<b>技の札</b>を1枚使う。赤いマスは相手の次の攻撃。<b>背後から斬ると会心</b>（でも赤いマスにいれば反撃を受ける）、<b>足払いと必殺技で相手が崩れる</b>、<b>盤の外へ押し出せば一本</b>。旅の経験でも育つ。得意な形の刀なら相性◎。<br>
   ・旅の最後の<b>強敵の日</b>は、自分で弟子に指示を出して盤の上で立ち合う。<br>
   ・目標：<b>鬼の山の大鬼を倒して帰ってくる</b>。</p>
   <p class="sw">${mine.own?'あなたの刀掛けの刀':'見本の刀'}から：${mine.list.map(s=>`<b>${s.name}</b>`).join('・')}</p>
@@ -119,19 +119,19 @@ function hear(i){
 }
 // 稽古 (#38): a duel on the board with the 師範代; the better it goes, the more the pupil grows. The sword is not worn.
 function openKeiko(i){
- const p=Z.pupils[i];if(!p.sword)return;const lv=lvOf(p),me=boardFighter(p,p.sword,lv);
- const foe={name:'師範代',face:'🥋',form:'katana',power:16+lv*5,hp:170+lv*45};foe.maxHp=foe.hp;
- startBanjo({me,foe,title:`${p.face} ${p.name}の稽古（${R.form(p.sword.form).name}：${FORM_NOTE[p.sword.form]||''}）`,moves:lv>=3?['kesa','tsuki','fumi']:['kesa','tsuki'],rounds:8,onEnd:r=>{
-  const score=clamp(r.dealt/foe.maxHp*0.6+(1-r.taken/me.maxHp)*0.3+(r.win?0.15:0)+r.guards*0.03),up=train(p,(0.5+1.5*score)*1.6);Z.coached=true;
-  Z.news.push(`${p.name}に稽古をつけた（${Math.round(score*100)}点${r.win?'・師範代から一本':''}）。${up?`Lv${lvOf(p)}に上がった！`:''}`);
+ const p=Z.pupils[i];if(!p.sword)return;const lv=lvOf(p),me=boardFighter(p,p.sword);
+ const foe={name:'師範代',face:'🥋',form:'katana',power:30+lv*7,hp:300+lv*60};foe.maxHp=foe.hp;
+ startBanjo({me,foe,title:`${p.face} ${p.name}の稽古（${R.form(p.sword.form).name}）`,moves:lv>=3?['kesa','tsuki','fumi','atari','nagi']:['kesa','tsuki','fumi','atari'],rounds:10,onEnd:r=>{
+  const score=clamp(r.dealt/foe.maxHp*0.5+(1-r.taken/me.maxHp)*0.25+(r.win?0.25:0)+r.backs*0.03+r.pushes*0.02),up=train(p,(0.5+1.5*score)*1.6);Z.coached=true;
+  Z.news.push(`${p.name}に稽古をつけた（${Math.round(score*100)}点${r.win?`・${r.why&&r.why.includes('場外')?'場外で':''}師範代から一本`:''}）。${up?`Lv${lvOf(p)}に上がった！`:''}`);
   $('#over').hidden=true;S.phrase(up?4:2);render();}});
 }
 // the boss of a trip (#38): the player commands the pupil on the board
 function bossFight(i){
- const p=Z.pupils[i],t=p.trip,key=t.place.boss,F=V.FOES[key],u=foeUnit(key,t.bossAt+t.lv-1,t.place),me=boardFighter(p,t.sword,lvOf(p));
+ const p=Z.pupils[i],t=p.trip,key=t.place.boss,F=V.FOES[key],u=foeUnit(key,t.bossAt+t.lv-1,t.place),me=boardFighter(p,t.sword);
  me.hp=Math.round(me.hp*clamp(t.sw.dur/Math.max(1,V.maxDurability(t.sword)),0.5,1));
- const foe={name:F.name,face:F.face,key,form:'katana',power:u.power*0.9,hp:Math.round(u.hp*0.55)};foe.maxHp=foe.hp;
- startBanjo({me,foe,title:`${p.face} ${p.name}対${F.name}（${t.place.name}・${t.bossAt}日目）`,moves:['kesa','tsuki','nagi','fumi'],onEnd:r=>{
+ const foe={name:F.name,face:F.face,key,form:'katana',power:u.power*1.05,hp:Math.round(u.hp*0.9)};foe.maxHp=foe.hp;
+ startBanjo({me,foe,title:`${p.face} ${p.name}対${F.name}（${t.place.name}・${t.bossAt}日目）`,moves:['kesa','tsuki','nagi','fumi','atari'],boss:true,onEnd:r=>{
   t.sw.dur=Math.max(0,t.sw.dur-2);
   if(r.win){t.boss=true;t.cleared=t.bossAt;t.exp+=1.2;const loot=V.rollLoot(Math.random,t.place,t.bossAt,true);t.bag.money+=loot.money;for(const m of loot.mats)t.bag.mats[m]=(t.bag.mats[m]||0)+1;
    const ti=V.earnTitle(t.sw,{key,boss:true});t.sw.kills=ti.kills;t.sw.names=ti.names;
