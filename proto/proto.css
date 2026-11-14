@@ -61,3 +61,9 @@ html,body{margin:0;height:100%;background:#0b0705;color:var(--paper);font-family
 .news p{margin:0;font-size:12px;line-height:1.6;font-family:var(--mincho);color:#e8dcc2}
 .pupil.away{border-color:rgba(143,211,255,.5)}.pupil.back{border-color:#ffd56a;box-shadow:0 0 0 2px rgba(255,213,106,.3)}
 .row.sticky{position:sticky;bottom:0;padding-top:6px;background:linear-gradient(rgba(20,13,10,0),#140d0a 30%)}
+/* 盤上の立ち合い（#38） */
+.sheet.banjo{padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;max-height:96vh}
+.bj-top{display:flex;align-items:center;gap:8px}.bj-n{font-family:var(--mincho);font-size:14px;white-space:nowrap}.bj-ki{font-size:12px;color:#8fd3ff;white-space:nowrap}
+.bj-cv{width:100%;height:min(56vh,92vw);display:block;touch-action:none}
+.bj-hint{margin:0;font-size:12.5px;min-height:34px;text-align:left}.bj-hint .bad{color:#ff9a8a}
+.bj-act{display:flex;gap:6px}.bj-act .btn{flex:1}
