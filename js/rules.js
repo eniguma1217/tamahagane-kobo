@@ -208,17 +208,20 @@ export const POLISH={seconds:20,fastPxPerMs:2.4,scratchCooldownMs:400};
 export const polishScore=(coverage,scratches)=>clamp(clamp(coverage)**1.5-0.08*scratches);
 
 // ---- 形・時代・名刀（owner D10〜D17）
+// atk・dur: each form's leaning in the dives (#25, owner: 形ごとに癖), added to the 攻撃力 and the 耐久. Numbers are Claude's.
 export const FORMS=[
- {id:'tachi',name:'太刀',note:'反りが深く長い。刃を下にして腰に吊るす',bar:0.95},
- {id:'katana',name:'打刀',note:'いちばんよく知られた刀。刃を上にして腰に差す',bar:0.85},
- {id:'wakizashi',name:'脇差',note:'打刀より短い、二本目の刀',bar:0.68},
- {id:'tanto',name:'短刀',note:'30cmほどの短い刀',bar:0.5},
- {id:'odachi',name:'大太刀',note:'人の背たけほどもある長い太刀',bar:1},
- {id:'naginata',name:'薙刀',note:'長い柄の先につける、先の反った刃',bar:0.75},
- {id:'yari',name:'槍',note:'まっすぐな両刃の穂先',bar:0.5},
- {id:'ken',name:'剣',note:'まっすぐな両刃',bar:0.65},
- {id:'chokuto',name:'直刀',note:'反りのない、古い時代の片刃の刀',bar:0.85}
+ {id:'tachi',name:'太刀',note:'反りが深く長い。刃を下にして腰に吊るす',bar:0.95,atk:10,dur:-1},
+ {id:'katana',name:'打刀',note:'いちばんよく知られた刀。刃を上にして腰に差す',bar:0.85,atk:0,dur:0},
+ {id:'wakizashi',name:'脇差',note:'打刀より短い、二本目の刀',bar:0.68,atk:-5,dur:1},
+ {id:'tanto',name:'短刀',note:'30cmほどの短い刀',bar:0.5,atk:-15,dur:2},
+ {id:'odachi',name:'大太刀',note:'人の背たけほどもある長い太刀',bar:1,atk:25,dur:-2},
+ {id:'naginata',name:'薙刀',note:'長い柄の先につける、先の反った刃',bar:0.75,atk:15,dur:-1},
+ {id:'yari',name:'槍',note:'まっすぐな両刃の穂先',bar:0.5,atk:5,dur:0},
+ {id:'ken',name:'剣',note:'まっすぐな両刃',bar:0.65,atk:10,dur:0},
+ {id:'chokuto',name:'直刀',note:'反りのない、古い時代の片刃の刀',bar:0.85,atk:-10,dur:2}
 ];
+// a form's leaning in words: 攻撃力+15・耐久−2
+export const formLean=id=>{const f=form(id),t=[];if(f.atk)t.push(`攻撃力${f.atk>0?'+':'−'}${Math.abs(f.atk)}`);if(f.dur)t.push(`耐久${f.dur>0?'+':'−'}${Math.abs(f.dur)}`);return t.join('・')||'癖なし';};
 export const form=id=>FORMS.find(f=>f.id===id)||FORMS[1];
 export const ERAS={
  joko:{name:'上古',short:'上古',long:'古墳〜奈良時代'},heian:{name:'平安',short:'平安',long:'平安時代'},kamakura:{name:'鎌倉',short:'鎌倉',long:'鎌倉時代'},
@@ -341,22 +344,29 @@ export function finishSword(run,list=[],collection={}){
 }
 
 // ---- 評判で増えるもの (#17, D45: the 鍛冶師ランク became the shop's 評判). Level i opens what UNLOCKS[i] lists; it adds up.
+// Since #25 the forms are learned by beating the bosses of the dives (dive.js TEACH), not by the 評判; the steel stays here
+// (it decides which eras and steel the requests can ask for).
 export const UNLOCKS=[
- {forms:['katana','wakizashi','tanto'],materials:['nami','jou','oroshi','houcho','zuku']},
- {forms:['tachi'],materials:['kera']},
- {forms:['odachi'],materials:['chikusa','kugi']},
- {forms:['naginata','yari'],materials:['nanban']},
- {forms:['ken','chokuto'],materials:['hakusai']},
- {forms:[],materials:['inseki']},
- {forms:[],materials:[]}
+ {materials:['nami','jou','oroshi','houcho','zuku']},
+ {materials:['kera']},
+ {materials:['chikusa','kugi']},
+ {materials:['nanban']},
+ {materials:['hakusai']},
+ {materials:['inseki']},
+ {materials:[]}
 ];
-export function openAt(level=0){
- const open={forms:new Set(),materials:new Set()};
- for(const u of UNLOCKS.slice(0,Math.max(0,Math.min(UNLOCKS.length-1,level))+1)){u.forms.forEach(x=>open.forms.add(x));u.materials.forEach(x=>open.materials.add(x));}
+// the forms a 評判 level opened before #25 (older saves keep them)
+export const FORMS_BY_FAME_BEFORE=[['katana','wakizashi','tanto'],['tachi'],['odachi'],['naginata','yari'],['ken','chokuto'],[],[]];
+export const formsBefore=level=>FORMS_BY_FAME_BEFORE.slice(0,Math.max(0,Math.min(6,level))+1).flat();
+export const START_FORMS=['katana'];
+// what is open: the steel by the 評判 level, the forms the smith has learned (all of them when not given)
+export function openAt(level=0,forms=null){
+ const open={forms:new Set(forms||FORMS.map(f=>f.id)),materials:new Set()};
+ for(const u of UNLOCKS.slice(0,Math.max(0,Math.min(UNLOCKS.length-1,level))+1))u.materials.forEach(x=>open.materials.add(x));
  return open;
 }
-// the 評判 level that first opens a form or material
-export function opensAt(kind,id){const i=UNLOCKS.findIndex(u=>u[kind].includes(id));return i<0?null:i;}
+// the 評判 level that first opens a steel
+export function opensAt(kind,id){const i=UNLOCKS.findIndex(u=>(u[kind]||[]).includes(id));return i<0?null:i;}
 export function seededRandom(seed){let s=(seed>>>0)||1;return ()=>((s=Math.imul(s^(s>>>15),2246822519)^Math.imul(s^(s>>>13),3266489917))>>>0)/4294967296;}
 
 // ---- 鋼の色: temperature (°C) to the colour the steel glows.

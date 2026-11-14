@@ -1,6 +1,5 @@
 // 客と評判（#12・#15・#17・#19）。評判（もとの名声）は7段。上がると格の高い客・新しい形・新しい出陣先が増え、依頼も増える（D45・D55）。
 // 数字は Claude の案（GAME_SPEC G16）。
-import * as R from './rules.js';
 import {PLACES} from './dive.js';
 
 // fame: the 評判 level (index) from which they come; pay: how much more they pay for an order
@@ -39,9 +38,7 @@ const SLOTS=[1,1,2,2,3,3,3];   // the same as orders.ORDER_SLOTS
 export function fameNews(from,to){
  const out=[];
  for(let i=from+1;i<=to;i++){
-  const U=R.UNLOCKS[i]||{forms:[],materials:[]};
   for(const k of Object.keys(CLIENTS))if(CLIENTS[k].fame===i)out.push(`${CLIENTS[k].face} ${CLIENTS[k].name}が来るようになった`);
-  if(U.forms.length)out.push(`新しい形：${U.forms.map(f=>R.form(f).name).join('・')}`);
   for(const p of PLACES)if(p.fame===i)out.push(`新しい出陣先：${p.name}`);
   if(FAME_LEVELS[i].reward>FAME_LEVELS[i-1].reward)out.push(`依頼のお礼が×${FAME_LEVELS[i].reward}に`);
   if(SLOTS[i]>SLOTS[i-1])out.push(`依頼が${SLOTS[i]}件まで来るように`);

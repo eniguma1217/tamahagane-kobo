@@ -1,18 +1,25 @@
 // The save in the browser. Never thrown away when unreadable; a broken save is kept aside under a backup key and play starts fresh.
+import {formsBefore,START_FORMS} from './rules.js';
+import {fameLevel} from './market.js';
+import {repairCost,maxDurability} from './dive.js';
+
 export const SAVE_KEY='tamahagane-kobo.save.v1';
 export const MAX_SWORDS=200;
 export const START_MONEY=3000;
 // collection: the 刀帳 {name: {first, count, no}}; money: 文; ledger: the orders delivered, newest first;
 // seq: drives the save's own random draws and ids; fame: the shop's 評判; orders: the requests on the board;
 // synergies: the hidden pairs found {id: first} (#17); rack: the 刀掛け, swords ready to carry or deliver (each with its wear, dur);
-// materials: steel in hand {id: count} (#19, D54: mostly from the dives)
-export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},money:START_MONEY,ledger:[],seq:1,fame:0,orders:[],synergies:{},rack:[],materials:{jou:1,nami:2},dives:0,deepest:{},settings:{sound:true}});
+// materials: steel in hand {id: count} (#19, D54: mostly from the dives); forms: the forms the smith can forge (#25: 打刀 at first,
+// more from the bosses of the dives)
+export const emptySave=()=>({version:1,swords:[],forged:0,collection:{},money:START_MONEY,ledger:[],seq:1,fame:0,orders:[],synergies:{},rack:[],materials:{jou:1,nami:2},dives:0,deepest:{},forms:[...START_FORMS],settings:{sound:true}});
 
 export function parseSave(text){
  if(!text)return emptySave();
  const data=JSON.parse(text);
  if(!data||data.version!==1||!Array.isArray(data.swords))throw Error('not a v1 save');
- return {...emptySave(),...data,collection:{...(data.collection||{})},synergies:{...(data.synergies||{})},materials:{...(data.materials??emptySave().materials)},deepest:{...(data.deepest||{})},settings:{...emptySave().settings,...data.settings}};
+ // a save from before #25 keeps every form its 評判 had opened
+ const forms=Array.isArray(data.forms)?[...data.forms]:formsBefore(fameLevel(data.fame||0).index);
+ return {...emptySave(),...data,collection:{...(data.collection||{})},synergies:{...(data.synergies||{})},materials:{...(data.materials??emptySave().materials)},deepest:{...(data.deepest||{})},forms,settings:{...emptySave().settings,...data.settings}};
 }
 export function loadSave(storage){
  let text=null;
@@ -57,6 +64,14 @@ export function takeSteel(save,mats,shop){
  const money=save.money??START_MONEY;if(cost>money)return null;
  return {...save,materials,money:money-cost,cost,bought};
 }
+// 研ぎ直し (#26): pay to bring a sword's 耐久 back to full (null when it is full or the money is short)
+export function repairSword(save,no){
+ const s=(save.rack||[]).find(x=>x.no===no);if(!s)return null;
+ const cost=repairCost(s),money=save.money??START_MONEY;if(cost<=0||cost>money)return null;
+ return {...save,money:money-cost,rack:save.rack.map(x=>x.no===no?{...x,dur:maxDurability(x)}:x)};
+}
+// the forms a dive taught (#25)
+export const learnForms=(save,forms=[])=>{const have=save.forms||[...START_FORMS],add=forms.filter(f=>!have.includes(f));return add.length?{...save,forms:[...have,...add]}:save;};
 export function addLoot(save,loot){
  const materials={...(save.materials||{})};for(const [id,n] of Object.entries(loot.mats||{}))materials[id]=(materials[id]||0)+n;
  return {...save,money:(save.money??START_MONEY)+(loot.money||0),fame:Math.max(0,(save.fame||0)+(loot.fame||0)),materials};

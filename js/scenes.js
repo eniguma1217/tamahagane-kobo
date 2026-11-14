@@ -5,6 +5,7 @@ import * as R from './rules.js';
 import * as D from './draw.js';
 import * as S from './sound.js';
 import {artBox,artImage} from './art.js';
+import {wazaOf} from './waza.js';
 
 const after=(api,ms,fn)=>api.later(ms,fn);
 
@@ -159,7 +160,7 @@ export class Hamon{
   const r=R.analyzeHamon(this.line.filter(p=>p.u<=0.9));
   if(!r.ok){this.result=null;this.api.say('途中で止まったな。<b>右の先まで</b>一気になぞれ。');this.setControls();return;}
   this.result=r;S.tick();this.api.pop(r.name,'info');
-  this.api.say(`<b>${r.name}</b>（${R.HAMON[r.type].kana}）だな。${r.outside>0.25?'線が刃先や鎬に寄りすぎだ。':r.score>=0.7?'いい線だ。':'線が少し乱れている。'}よければ「これでよし」。`,r.score>=0.7?'happy':'normal');
+  this.api.say(`<b>${r.name}</b>（${R.HAMON[r.type].kana}）だな。${r.outside>0.25?'線が刃先や鎬に寄りすぎだ。':r.score>=0.7?'いい線だ。':'線が少し乱れている。'}この刃文なら、必殺技は『<b>${wazaOf({hamon:r.type,profile:r.profile,steps:{hamon:r.score}}).name}</b>』になる。よければ「これでよし」。`,r.score>=0.7?'happy':'normal');
   this.setControls();
  }
  finish(){

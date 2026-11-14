@@ -1,7 +1,8 @@
 // The app shell (#19): the 工房 (title), forging (form, steel, three steps, result), the 刀掛け, the dives, the requests,
 // the 刀帳, the 相性帳 and the records; the canvas loop, input and the save.
 import * as R from './rules.js';
-import {loadSave,writeSave,addSword,bestSword,takeSteel,addLoot,migrateRack,START_MONEY} from './save.js';
+import {loadSave,writeSave,addSword,bestSword,takeSteel,addLoot,learnForms,repairSword,migrateRack,START_MONEY} from './save.js';
+import {wazaOf} from './waza.js';
 import * as M from './market.js';
 import * as O from './orders.js';
 import * as P from './people.js';
@@ -125,14 +126,16 @@ function showNotice(text){
 const rngAt=seq=>R.seededRandom(seq*7919+13);
 const rngNext=()=>{const r=rngAt(save.seq||1);save={...save,seq:(save.seq||1)+1};return r;};
 const fameNow=()=>M.fameLevel(save.fame||0);
-const openNow=()=>R.openAt(fameNow().index);
+const openNow=()=>R.openAt(fameNow().index,save.forms||R.START_FORMS);
 const pct=x=>Math.round(x*100);
 const foundSyn=()=>Object.keys(save.synergies||{}).length;
 const rack=()=>save.rack||[];
 const matCount=()=>Object.values(save.materials||{}).reduce((t,n)=>t+n,0);
 const pips=(n,max)=>`<span class="pips">${'●'.repeat(Math.max(0,n))}<i>${'●'.repeat(Math.max(0,max-n))}</i></span>`;
 // a sword's two numbers (#23): 攻撃力, and the 耐久 shown as ●
-const statLine=st=>`<span class="cst"><i>攻撃力 <b>${st?.sharp??0}</b></i></span>`;
+const statLine=s=>`<span class="cst"><i>攻撃力 <b>${V.atkOf(s)}</b></i></span>`;
+// where a form is learned (#25), short for the lock tag: 「古戦場②」 (tapping it tells the whole story)
+const teachText=id=>{const t=V.teacherOf(id);return t?`${V.placeOf(t.place).name}${t.order>1?'②③④'[t.order-2]:''}`:'';};
 function save_(){writeSave(window.localStorage,save);}
 
 // ---------- 工房（タイトル）----------
@@ -166,9 +169,10 @@ function showForms(form){
  el.panel.innerHTML=`<div class="forms-screen"><div class="forms">${R.FORMS.map(f=>{
   const all=MEITO.filter(m=>m.t===f.id),got=all.filter(m=>save.collection[m.n]).length,lk=!open.forms.has(f.id);
   const asked=(save.orders||[]).some(o=>o.form===f.id);
-  return `<button class="form-card ${lk?'locked':''}" data-form="${f.id}" ${lk?`data-lock="${R.opensAt('forms',f.id)}"`:''}>${lk?`<em class="lock">🔒評判Lv${R.opensAt('forms',f.id)+1}</em>`:asked?'<em class="lock asked">依頼</em>':''}<img alt="" src="${swordPic(f.id,null,120,26,'f:'+f.id,{widScale:1.5})}"><b>${f.name}</b><span>${f.note}</span><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
+  return `<button class="form-card ${lk?'locked':''}" data-form="${f.id}" ${lk?'data-lock="1"':''}>${lk?`<em class="lock">🔒${teachText(f.id)}</em>`:asked?'<em class="lock asked">依頼</em>':''}<img alt="" src="${swordPic(f.id,null,120,26,'f:'+f.id,{widScale:1.5})}"><b>${f.name}</b><span>${f.note}</span><i class="lean">${R.formLean(f.id)}</i><small>名刀 ${got}/${all.length}</small></button>`;}).join('')}</div></div>`;
  for(const b of el.panel.querySelectorAll('[data-form]'))b.onclick=()=>{S.unlock();S.tick();
-  if(b.dataset.lock)return api.say(`${R.form(b.dataset.form).name}は、評判が <b>Lv${+b.dataset.lock+1}</b> になると打てる。`);
+  if(b.dataset.lock){const t=V.teacherOf(b.dataset.form),list=V.TEACH[t.place].map(x=>R.form(x).name).join('→');
+   return api.say(`${R.form(b.dataset.form).name}は、<b>${V.placeOf(t.place).name}</b>の強敵を倒すと打ち方を覚える（倒すたびに ${list} の順）。`);}
   pick.form=b.dataset.form;showMaterials();};
 }
 const buildOf=()=>({structure:pick.kawa&&pick.kawa===pick.shin?'maru':'kobuse',kawa:pick.kawa,shin:pick.kawa===pick.shin?undefined:pick.shin});
@@ -190,7 +194,7 @@ function renderMaterials(){
  el.panel.innerHTML=`<div class="mats-screen">
   <div class="slots">${['kawa','shin'].map(k=>{const m=pick[k]?R.material(pick[k]):null;return `<button class="slot ${pick.active===k?'active':''}" data-slot="${k}"><small>${R.SLOTS[k].name}</small><b>${m?m.name:'えらぶ'}</b><em>${R.SLOTS[k].role}</em></button>`;}).join('')}</div>
   <p class="era-line">${eraLine(c,syn,known)}</p>
-  ${ex?`<div class="statpv"><div><small>攻撃力</small><i><b style="width:${ex.sharp}%"></b><u style="width:${best.sharp}%"></u></i><em>${ex.sharp}</em></div><p class="dur-pv">耐久 ${pips(V.maxDurability({stats:ex}),V.maxDurability({stats:best}))}</p></div>`:''}
+  ${ex?(()=>{const a={stats:ex,form:pick.form},b={stats:best,form:pick.form};return `<div class="statpv"><div><small>攻撃力</small><i><b style="width:${Math.min(100,V.atkOf(a))}%"></b><u style="width:${Math.min(100,V.atkOf(b))}%"></u></i><em>${V.atkOf(a)}</em></div><p class="dur-pv">耐久 ${pips(V.maxDurability(a),V.maxDurability(b))}　<small>${R.form(pick.form).name}：${R.formLean(pick.form)}</small></p></div>`;})():''}
   <div class="mats">${R.MATERIALS.map(m=>{const marks=['kawa','shin'].filter(k=>pick[k]===m.id).map(k=>R.SLOTS[k].name[0]).join('');const st=steelState(m.id);
    return `<button class="mat ${marks?'picked':''} ${st.ok?'':'locked'}" data-mat="${m.id}" ${st.ok?'':'data-none="1"'}><em class="era-tag ${m.era?'':'none'}">${m.era?R.ERAS[m.era].short:'時代なし'}</em>${matIcon(m.id,24)}<span class="mat-text"><b>${m.name}${marks?`<i>${marks}</i>`:''}</b><small>${st.have?`<i class="voucher">手持ち${st.have}</i>`:''}${st.price!=null&&!st.have?(st.price?`店 ${yen(st.price)}文`:'店 無料'):st.ok?'':'潜って手に入れる'}</small></span></button>`;}).join('')}</div>
   <p class="cost-line ${enough||!ready?'':'short'}">${ready?(cost===null?'手持ちが足りない':`店で買う分 <b>${yen(cost)}</b>文`):'皮鉄と心鉄を選ぶ'}　所持金 <b>${yen(money())}</b>文</p>
@@ -247,8 +251,9 @@ function showResult(){
   <h2 class="mei">${sword.name}${m?`<small>${m.k}</small>`:''}</h2>
   <p class="tags">${m?`${F}・${R.ERAS[m.e].long}・${m.s}`:`${R.HAMON_NAME[sword.hamon]}・${[sword.kawa,sword.shin].filter(Boolean).map(id=>R.material(id).name).join('＋')}`}${sword.crack?'・<b class="bad">焼き割れ</b>':''}</p>
   <div class="grade-row">${gradeBadge(gradeOf(sword),true)}${m?meitoBadge(m.r):''}<em>技 ${sword.successes}/${R.SUCCESS_MAX}</em></div>
-  <div class="stats"><div><small>攻撃力</small><i><b style="width:${sword.stats.sharp}%"></b></i><em>${sword.stats.sharp}</em></div></div>
+  <div class="stats"><div><small>攻撃力</small><i><b style="width:${Math.min(100,V.atkOf(sword))}%"></b></i><em>${V.atkOf(sword)}</em></div></div>
   <p class="dur-line">耐久 ${pips(sword.dur,sword.dur)}　刀掛け ${rack().length}/${V.RACK_MAX}</p>
+  <p class="wz-line">必殺技『<b>${wazaOf(sword).name}</b>』<small>${R.HAMON_NAME[sword.hamon]}から：${wazaOf(sword).text}</small></p>
   ${syn&&synNew?`<p class="syn-new">相性を見つけた！ 「<b>${syn.name}</b>」（${R.material(syn.kawa).name}×${R.material(syn.shin).name}）</p>`:''}
   ${fits.length?`<p class="fit-line">依頼に合う：${fits.map(x=>`${x.o.meito?`名刀「${x.o.meito}」`:P.personOf(x.o).name}（${O.STARS_NAME[x.r.stars]}）`).join('・')} <button class="btn small primary" data-goorders>依頼に納める</button></p>`:''}
   ${m?'':`<p class="comment">${resultComment(sword)}</p>`}
@@ -263,16 +268,18 @@ function showResult(){
 let rackPick=null;
 function swordRow(s,extra=''){
  const m=s.meito?MEITO.find(x=>x.n===s.meito):null;
- return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}${s.era?'・'+R.ERAS[s.era].name:''}</small><em>${statLine(s.stats)} 耐久 ${pips(V.durOf(s),V.maxDurability(s))}</em>${extra}</span>`;
+ return `<span class="sw"><b>${s.name}</b><small>${gradeBadge(gradeOf(s))}${m?meitoBadge(m.r):''} ${R.form(s.form||'katana').name}${s.hamon?'・'+R.HAMON_NAME[s.hamon]:''}${s.era?'・'+R.ERAS[s.era].name:''}</small><em>${statLine(s)} 耐久 ${pips(V.durOf(s),V.maxDurability(s))}</em><span class="sw-x">${(s.names||[]).map(n=>`<i class="nick">${n}</i>`).join('')}<i class="wz">必殺『${wazaOf(s).name}』</i></span>${extra}</span>`;
 }
 function showRack(){
  mode('shop');setScene(new Ambient(api,'records','plain',{dim:0.5}));
  api.controls([{label:'工房へ',onClick:showTitle},{label:'出陣へ',primary:true,onClick:showDivePrep}]);
  el.panel.innerHTML=`<div class="shop"><div class="shop-head"><b>刀掛け</b><small>${rack().length}/${V.RACK_MAX}振</small></div>
   <p class="mise-note">打った刀はここにかかる。出陣に背負っていく刀や、依頼に納める刀をここから選ぶ。刀は使うと傷み、耐久が尽きると折れる。</p>
-  <ul class="kura">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${rackPick===s.no?'on':''}" data-rpick="${s.no}">${swordRow(s)}</button>${rackPick===s.no?`<div class="row"><button class="btn small" data-drop="${s.no}">手放す</button></div>`:''}</li>`).join('')||'<li class="empty">まだ刀がない。工房で打とう。</li>'}</ul></div>`;
+  <ul class="kura">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${rackPick===s.no?'on':''}" data-rpick="${s.no}">${swordRow(s)}</button>${rackPick===s.no?`<div class="row"><button class="btn small primary" data-fix="${s.no}" ${V.repairCost(s)<=0||V.repairCost(s)>money()?'disabled':''}>${V.repairCost(s)>0?`研ぎ直す（${yen(V.repairCost(s))}文）`:'耐久は満タン'}</button><button class="btn small" data-drop="${s.no}">手放す</button></div><p class="wz-text">必殺『${wazaOf(s).name}』：${wazaOf(s).text}${(s.names||[]).length?`　二つ名 ${s.names.length}つ（攻撃力+${s.names.length*V.TITLE_ATK}）`:''}</p>`:''}</li>`).join('')||'<li class="empty">まだ刀がない。工房で打とう。</li>'}</ul></div>`;
  for(const b of el.panel.querySelectorAll('[data-rpick]'))b.onclick=()=>{S.tick();rackPick=rackPick===+b.dataset.rpick?null:+b.dataset.rpick;showRack();};
  for(const b of el.panel.querySelectorAll('[data-drop]'))b.onclick=()=>{S.tick();save={...save,rack:rack().filter(s=>s.no!==+b.dataset.drop)};rackPick=null;save_();showRack();};
+ // 研ぎ直し (#26)
+ for(const b of el.panel.querySelectorAll('[data-fix]'))b.onclick=()=>{const next=repairSword(save,+b.dataset.fix);if(!next)return;S.unlock();S.rub(1);save=next;save_();api.pop('研ぎ直した','good');showRack();};
 }
 
 // ---------- 出陣 (D49〜D51・D53・D56) ----------
@@ -284,7 +291,7 @@ function showDivePrep(){
  if(!V.placesFor(lv).some(p=>p.id===divePlace))divePlace='touge';
  mode('shop');setScene(new Ambient(api,'records',divePlace,{dim:0.55}));
  el.panel.innerHTML=`<div class="shop prep"><div class="shop-head"><b>出陣</b><small>刀を${V.CARRY_MAX}振まで背負っていく</small></div>
-  <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}${artUrl('bg-'+p.id)?` style="--bg:url(${artUrl('bg-'+p.id)})"`:''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small><em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
+  <div class="places">${V.PLACES.map(p=>{const lk=p.fame>lv;return `<button class="place ${divePlace===p.id?'on':''} ${lk?'locked':''}" data-place="${p.id}" ${lk?'disabled':''}${artUrl('bg-'+p.id)?` style="--bg:url(${artUrl('bg-'+p.id)})"`:''}><b>${p.name}</b><small>${lk?`🔒評判Lv${p.fame+1}`:`${p.note}・いちばん深く ${save.deepest?.[p.id]||0}`}</small>${!lk&&V.nextTeach(p.id,save.forms)?`<i class="teach">強敵を倒すと「${R.form(V.nextTeach(p.id,save.forms)).name}」の打ち方を覚える</i>`:''}<em>${p.loot.map(([id])=>R.material(id).name).join('・')}</em></button>`;}).join('')}</div>
   <p class="mise-note">攻撃力の高い刀ほど強く斬れる。斬るたびに耐久が1減り、なくなると折れる。</p>
   <ul class="kura pick">${rack().slice().reverse().map(s=>`<li><button class="kura-row ${carryPick.includes(s.no)?'on':''}" data-carry="${s.no}">${swordRow(s,carryPick.includes(s.no)?'<i class="req-hit">背負う</i>':'')}</button></li>`).join('')||'<li class="empty">刀掛けに刀がない。まず刀を打とう。</li>'}</ul></div>`;
  api.controls([{label:'工房へ',onClick:showTitle},{label:`出陣する（${carryPick.length}振）`,primary:true,disabled:!carryPick.length,onClick:startDive}]);
@@ -297,7 +304,14 @@ function startDive(){
  save={...save,dive:V.startDive(rngNext(),divePlace,swords)};carryPick=[];save_();
  showDive();
 }
-let diveFlash=null,diveHit=false;
+let diveFlash=null,diveHit=false,diveWaza=false;
+// after a strike or a 必殺技: the fanfare for a fallen foe, a form learned (#25) or a 二つ名 (#26), then the screen again
+function afterBlow(before){
+ const d=save.dive;
+ if(d.won&&!before.won){const big=d.loot?.form||d.loot?.title;S.phrase(big?5:3);
+  if(d.loot?.form)setTimeout(()=>api.pop('新しい形','best'),900);else if(d.loot?.title)setTimeout(()=>api.pop(`二つ名『${d.loot.title.title}』`,'best'),900);}
+ showDive();
+}
 function showDive(){
  const d=save.dive;if(!d)return showTitle();
  mode('shop');setScene(new Ambient(api,'records',d.place,{dim:0.25}));
@@ -305,18 +319,29 @@ function showDive(){
  const P_=V.placeOf(d.place),f=d.foe,last=d.log.at(-1);
  const bag=Object.entries(d.bag.mats);
  el.panel.innerHTML=`<div class="shop dive"><div class="shop-head"><b>${P_.name}</b><small>深さ <b class="depth">${d.depth}</b>　戦利品 ${yen(d.bag.money)}文${bag.length?'・'+bag.map(([id,n])=>`${R.material(id).name}${n}`).join('・'):''}</small></div>
-  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''} ${diveHit?'hit':''}">${art?`<img class="foe-art" src="${art}" alt="${f.name}">`:`<span class="foe-face">${f.face}</span>`}<div class="foe-body"><p class="foe-name">${f.name}${f.boss?'<em>強敵</em>':''}</p>
+  <div class="foe ${f.boss?'boss':''} ${d.won?'down':''} ${diveHit?'hit':''} ${diveWaza?'waza':''}">${art?`<img class="foe-art" src="${art}" alt="${f.name}">`:`<span class="foe-face">${f.face}</span>`}<div class="foe-body"><p class="foe-name">${f.name}${f.boss?'<em>強敵</em>':''}</p>${f.boss&&!d.won&&V.nextTeach(d.place,save.forms)?`<p class="teach">倒すと「${R.form(V.nextTeach(d.place,save.forms)).name}」の打ち方を覚える</p>`:''}
    <i class="hp"><b style="width:${Math.round(100*f.hp/f.maxHp)}%"></b></i><small>体力 ${f.hp}/${f.maxHp}</small></div></div>
-  <p class="dive-log">${diveFlash||(last?`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}${last.broke?'　<b class="bad">刀が折れた</b>':''}`:'どの刀で斬る？')}</p>
-  ${d.won?`<div class="loot"><p>${f.name}を倒した！</p><p>${d.loot.mats.map(id=>`<b>${R.material(id).name}</b>`).join('・')||'素材はなかった'}・${yen(d.loot.money)}文</p><small>このまま帰れば、すべて持ち帰れる。奥へ進んで刀が尽きると、戦利品の半分を失う。</small></div>`:''}
+  <p class="dive-log">${diveFlash||(last?(last.waza?`必殺『${last.waza}』！ ${last.hits.join('・')}${last.hits.length>1?`（計${last.dmg}）`:''}`:`${last.sword}で斬った！ ${last.dmg}${last.crit?'（会心）':''}`)+(last.broke?'　<b class="bad">刀が折れた</b>':''):'3回斬ると気がたまり、必殺技が撃てる')}</p>
+  ${d.won?`<div class="loot"><p>${f.name}を倒した！</p><p>${d.loot.mats.map(id=>`<b>${R.material(id).name}</b>`).join('・')||'素材はなかった'}・${yen(d.loot.money)}文</p>${d.loot.form?`<p class="learn">「${R.form(d.loot.form).name}」の打ち方を覚えた！（${R.formLean(d.loot.form)}）</p>`:''}${d.loot.title?`<p class="learn">${d.loot.title.sword}に二つ名『${d.loot.title.title}』がついた！（攻撃力+${V.TITLE_ATK}）</p>`:''}<small>このまま帰れば、すべて持ち帰れる。奥へ進んで刀が尽きると、戦利品の半分を失う。</small></div>`:''}
   ${d.over?`<div class="loot lost"><p>刀が尽きた……</p><small>戦利品の半分を置いて、逃げ帰るしかない。</small></div>`:''}
-  <div class="carry">${d.carry.map((c,i)=>`<button class="csw ${c.dur<=0?'broken':''} ${!d.won&&c.dur>0&&V.strikePower(c)>=f.hp?'good':''}" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${statLine(c.stats)}${!d.won&&c.dur>0&&V.strikePower(c)>=f.hp?'<i class="ko">一撃</i>':''}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span></button>`).join('')}</div></div>`;
- diveFlash=null;diveHit=false;
+  <div class="carry">${d.carry.map((c,i)=>{const ko=!d.won&&c.dur>0&&V.strikePower(c)>=f.hp,w=c.waza||wazaOf(c),ready=V.canWaza(d,i);
+   return `<div class="csw ${c.dur<=0?'broken':''} ${ko?'good':''} ${ready?'ki-full':''}"><button class="cs-hit" data-strike="${i}" ${c.dur<=0||d.won||d.over?'disabled':''}><b>${c.name}</b>${(c.names||[]).length?`<i class="nick">${c.names.at(-1)}</i>`:''}${statLine(c)}${ko?'<i class="ko">一撃</i>':''}<span>${c.dur>0?pips(c.dur,c.max):'<b class="bad">折れた</b>'}</span><span class="ki">気 ${'▰'.repeat(c.ki||0)}${'▱'.repeat(V.KI_MAX-(c.ki||0))}</span></button>
+    <button class="cs-waza" data-waza="${i}" ${ready?'':'disabled'}>${w.name}</button></div>`;}).join('')}</div></div>`;
+ diveFlash=null;diveHit=false;diveWaza=false;
+ // 必殺技 (#26): its name, then each hit
+ for(const b of el.panel.querySelectorAll('[data-waza]'))b.onclick=()=>{S.unlock();
+  const before=save.dive,i=+b.dataset.waza;save={...save,dive:V.useWaza(save.dive,i,rngNext(),save.forms)};
+  if(save.dive===before)return;
+  if(save.dive.loot?.form)save=learnForms(save,[save.dive.loot.form]);save_();diveHit=true;diveWaza=true;
+  const ev=save.dive.log.at(-1);api.pop(`『${ev.waza}』`,'best');S.phrase(4);
+  ev.hits.forEach((h,k)=>setTimeout(()=>{S.clang(1.1);api.pop(`${h}`,ev.crit?'best':'good');},450+k*170));
+  afterBlow(before);};
  for(const b of el.panel.querySelectorAll('[data-strike]'))b.onclick=()=>{S.unlock();
-  const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext())};save_();diveHit=true;
+  const before=save.dive,i=+b.dataset.strike;save={...save,dive:V.strike(save.dive,i,rngNext(),save.forms)};
+  // a boss taught a form (#25): learned at once, kept even if the dive is lost later
+  if(save.dive.loot?.form)save=learnForms(save,[save.dive.loot.form]);save_();diveHit=true;
   const ev=save.dive.log.at(-1);S.clang(ev?.crit?1.2:0.8);api.pop(`${ev?.dmg??''}`,ev?.crit?'best':'good');
-  if(save.dive.won&&!before.won)S.phrase(3);
-  showDive();};
+  afterBlow(before);};
  api.controls(d.won?[{label:'帰る',onClick:endDive},{label:'さらに奥へ',primary:true,disabled:!d.carry.some(c=>c.dur>0),onClick:()=>{save={...save,dive:V.goDeeper(save.dive,rngNext())};save_();showDive();}}]
   :d.over?[{label:'逃げ帰る',primary:true,onClick:endDive}]:[{label:'帰る（戦利品はそのまま）',onClick:endDive}]);
 }
@@ -330,7 +355,7 @@ function endDive(){
  showTitle();
  const box=document.createElement('div');box.className='overlay';
  box.innerHTML=`<div class="sheet rankup"><p class="rankup-head">${res.lost?'逃げ帰った……':'無事に帰ってきた'}</p><h3>深さ ${res.depth}</h3>
-  <p class="mtags">持ち帰ったもの：<b>${yen(res.money)}文</b>${Object.entries(res.mats).map(([id,n])=>`・<b>${R.material(id).name}×${n}</b>`).join('')}<br>評判 <b>+${res.fame}</b>${broken.length?`<br>折れた刀：${broken.map(c=>c.name).join('・')}`:''}${res.lost?'<br>（戦利品の半分を失った）':''}</p>
+  <p class="mtags">持ち帰ったもの：<b>${yen(res.money)}文</b>${Object.entries(res.mats).map(([id,n])=>`・<b>${R.material(id).name}×${n}</b>`).join('')}<br>評判 <b>+${res.fame}</b>${broken.length?`<br>折れた刀：${broken.map(c=>c.name).join('・')}`:''}${res.lost?'<br>（戦利品の半分を失った）':''}${res.taught.length?`<br>覚えた形：<b>${res.taught.map(f=>R.form(f).name).join('・')}</b>`:''}${res.titles.length?`<br>二つ名：${res.titles.map(t=>`<b>${t.sword}『${t.title}』</b>`).join('・')}`:''}</p>
   <button class="btn primary" data-close>とじる</button></div>`;
  closable(box,()=>afterFame(before));el.panel.append(box);S.phrase(res.lost?1:4);
 }
