@@ -2,7 +2,7 @@
 // 弟子を育てて刀を授け、送り出す。刀を1振打つと1日すすみ、旅の便りが届き、何日かで土産話と戦利品を持って帰る。
 // 試作では「刀を打つ」はボタンで、新しい刀が1振できる。本番のセーブは読むだけ。数字は試作の仮のもの。
 import {$,R,V,S,mySwords,unitOf,foeUnit,battle,loadArt,header,pick,yen,wazaOf,clamp,sharpCanvas} from './kit.js';
-import {startBanjo,boardFighter,FORM_NOTE} from './banjo.js';
+import {startBanjo,boardFighter,MOVES,START_MOVES,MAX_MOVES,learnChoices,FOES2} from './banjo.js';
 const el={top:$('#top'),panel:$('#panel'),over:$('#over')};
 const PUPILS=[
  {name:'太郎丸',face:'👦',trait:'攻め',like:['odachi','tachi','naginata'],atk:1,vit:1,spd:1,grow:{atk:0.09,vit:0.04,spd:0.03}},
@@ -49,13 +49,13 @@ function menu(){
  el.over.hidden=false;el.over.innerHTML=`<div class="sheet"><p class="tag">出陣の試作</p><h1>道場＋派遣</h1>
   <p class="howto"><b>弟子を育てて、刀を授けて、送り出す。</b>自分では戦わない。<br>
   ・<b>刀を1振打つと1日すすむ</b>（試作ではボタン。新しい刀が刀掛けにかかる）。旅に出た弟子から便りが届き、何日かで土産話と戦利品を持って帰る。<br>
-  ・1日にひとり<b>稽古をつけられる</b>：<b>盤の上で師範代と立ち合う</b>。毎ターン刀から配られる<b>技の札</b>を1枚使う。赤いマスは相手の次の攻撃。<b>背後から斬ると会心</b>（でも赤いマスにいれば反撃を受ける）、<b>足払いと必殺技で相手が崩れる</b>、<b>盤の外へ押し出せば一本</b>。旅の経験でも育つ。得意な形の刀なら相性◎。<br>
+  ・1日にひとり<b>稽古をつけられる</b>：<b>盤の上で師範代と立ち合う</b>（交代で動く。相手の手は見えず、届く範囲だけうっすら赤い。自分の番は「動く→技か計略をひとつ」）。勝つと<b>3つから1つ、技か計略を覚える</b>。赤いマスは相手の次の攻撃。<b>背後から斬ると会心</b>（でも赤いマスにいれば反撃を受ける）、<b>足払いと必殺技で相手が崩れる</b>、<b>盤の外へ押し出せば一本</b>。旅の経験でも育つ。得意な形の刀なら相性◎。<br>
   ・旅の最後の<b>強敵の日</b>は、自分で弟子に指示を出して盤の上で立ち合う。<br>
   ・目標：<b>鬼の山の大鬼を倒して帰ってくる</b>。</p>
   <p class="sw">${mine.own?'あなたの刀掛けの刀':'見本の刀'}から：${mine.list.map(s=>`<b>${s.name}</b>`).join('・')}</p>
   <div class="places"><button class="btn primary" data-start>道場をひらく</button></div><p class="note">本番のセーブは変わりません。</p></div>`;
  el.over.querySelector('[data-start]').onclick=()=>{S.unlock();Z.day=1;Z.cleared=false;Z.total={money:0,mats:{}};Z.news=['道場をひらいた。弟子が3人いる。'];Z.coached=false;
-  Z.rack=mine.list.map(s=>({...s,dur:V.durOf(s)}));Z.pupils=PUPILS.map((p,i)=>({...p,exp:0,sword:Z.rack[i%Z.rack.length]||null,trip:null}));el.over.hidden=true;Z.state='play';render();};
+  Z.rack=mine.list.map(s=>({...s,dur:V.durOf(s)}));Z.pupils=PUPILS.map((p,i)=>({...p,exp:0,sword:Z.rack[i%Z.rack.length]||null,trip:null,moves:[...START_MOVES[p.trait]]}));el.over.hidden=true;Z.state='play';render();};
 }
 function render(){
  const mats=Object.entries(Z.total.mats);
@@ -63,18 +63,21 @@ function render(){
  el.panel.innerHTML=`<div class="news">${Z.news.slice(-3).map(n=>`<p>${n}</p>`).join('')}</div>
   <div class="pupils">${Z.pupils.map((p,i)=>{const t=p.trip;
    return `<div class="pupil ${t?(home(p)?'back':'away'):''}"><div class="gh"><span class="gf">${p.face}</span><b>${p.name}</b><small>Lv${lvOf(p)}・${p.trait}・得意：${p.like.map(f=>R.form(f).name).join('・')}</small></div>
+    <p class="known">手：${p.moves.map(k=>`<i class="${MOVES[k].kind==='計略'?'kei':''}">${MOVES[k].name}</i>`).join('')}</p>
     <div class="stats3"><span>攻 <b>${p.atk.toFixed(2)}</b></span><span>体 <b>${p.vit.toFixed(2)}</b></span><span>速 <b>${p.spd.toFixed(2)}</b></span><i class="bar"><b style="width:${p.exp%100}%"></b></i></div>
     ${t?`<p class="gt">${t.place.name}へ（${t.sword.name}）　${home(p)?'<b class="ok">帰ってきた！</b>':atBoss(p)?'<b class="bad">強敵の日</b>':`${daysGone(p)}/${t.days}日`}</p><i class="bar"><b style="width:${Math.round(100*Math.min(1,daysGone(p)/t.days))}%"></b></i>
       <p class="letter">${atBoss(p)?`<b class="bad">${V.FOES[t.place.boss].name}と対峙した！</b>`:t.lines.slice(0,Math.min(daysGone(p),t.lines.length)).at(-1)||'旅立った。'}</p>${atBoss(p)?`<button class="btn primary" data-boss="${i}">強敵と立ち合う（指示を出す）</button>`:home(p)?`<button class="btn primary" data-hear="${i}">話を聞く</button>`:''}`
     :`<button class="chip ${match(p,p.sword)?'on':''}" data-give="${i}"><b>${p.sword?p.sword.name:'刀がない'}</b><small>${p.sword?`${R.form(p.sword.form).name}・攻撃力${V.atkOf(p.sword)}・耐久${V.durOf(p.sword)}・必殺『${wazaOf(p.sword).name}』　相性${match(p,p.sword)?'◎':'－'}`:'刀を授けよう'}</small></button>
       <div class="row"><button class="btn small" data-coach="${i}" ${Z.coached||!p.sword?'disabled':''}>稽古をつける</button><button class="btn small primary" data-send="${i}" ${p.sword&&V.durOf(p.sword)>0?'':'disabled'}>送り出す</button></div>`}</div>`;}).join('')}</div>
-  <div class="row sticky"><button class="btn primary" data-forge>刀を打つ（1日すすむ）</button></div>`;
+`;
+ // the forge button sits below the list, never over it (#42: on a small phone it hid the boss button)
+ $('#foot').innerHTML='<button class="btn primary" data-forge>刀を打つ（1日すすむ）</button>';
  for(const b of el.panel.querySelectorAll('[data-give]'))b.onclick=()=>{S.tick();openGive(+b.dataset.give);};
  for(const b of el.panel.querySelectorAll('[data-coach]'))b.onclick=()=>{S.unlock();openKeiko(+b.dataset.coach);};
  for(const b of el.panel.querySelectorAll('[data-send]'))b.onclick=()=>{S.tick();openSend(+b.dataset.send);};
  for(const b of el.panel.querySelectorAll('[data-hear]'))b.onclick=()=>{S.tick();hear(+b.dataset.hear);};
  for(const b of el.panel.querySelectorAll('[data-boss]'))b.onclick=()=>{S.unlock();bossFight(+b.dataset.boss);};
- el.panel.querySelector('[data-forge]').onclick=()=>{S.unlock();nextDay();};
+ $('#foot [data-forge]').onclick=()=>{S.unlock();nextDay();};
 }
 function nextDay(){
  const s=forgeOne();Z.rack.push(s);Z.day++;Z.coached=false;S.clang(1);
@@ -120,24 +123,38 @@ function hear(i){
 // 稽古 (#38): a duel on the board with the 師範代; the better it goes, the more the pupil grows. The sword is not worn.
 function openKeiko(i){
  const p=Z.pupils[i];if(!p.sword)return;const lv=lvOf(p),me=boardFighter(p,p.sword);
- const foe={name:'師範代',face:'🥋',form:'katana',power:30+lv*7,hp:300+lv*60};foe.maxHp=foe.hp;
- startBanjo({me,foe,title:`${p.face} ${p.name}の稽古（${R.form(p.sword.form).name}）`,moves:lv>=3?['kesa','tsuki','fumi','atari','nagi']:['kesa','tsuki','fumi','atari'],rounds:10,onEnd:r=>{
+ const foe={name:'師範代',face:'🥋',kind:lv>=3?'shihan2':'shihan',power:26+lv*6,hp:260+lv*55};foe.maxHp=foe.hp;
+ startBanjo({me,foe,title:`${p.face} ${p.name}の稽古（${R.form(p.sword.form).name}）`,rounds:10,onEnd:r=>{
   const score=clamp(r.dealt/foe.maxHp*0.5+(1-r.taken/me.maxHp)*0.25+(r.win?0.25:0)+r.backs*0.03+r.pushes*0.02),up=train(p,(0.5+1.5*score)*1.6);Z.coached=true;
   Z.news.push(`${p.name}に稽古をつけた（${Math.round(score*100)}点${r.win?`・${r.why&&r.why.includes('場外')?'場外で':''}師範代から一本`:''}）。${up?`Lv${lvOf(p)}に上がった！`:''}`);
-  $('#over').hidden=true;S.phrase(up?4:2);render();}});
+  $('#over').hidden=true;S.phrase(up?4:2);render();if(r.win)openLearn(i,false);}});
+}
+// 勝って覚える (#42): one of three; six at most (then one is forgotten)
+function openLearn(i,boss,choices=null){
+ const p=Z.pupils[i],ch=choices||learnChoices(p.moves,boss);if(!ch.length)return;el.over.hidden=false;
+ el.over.innerHTML=`<div class="sheet"><p class="tag">${p.face} ${p.name}　勝った！</p><h1>新しい手をひとつ覚える</h1><p class="howto">${boss?'強敵に勝ったので、めずらしい手も出る。':''}（手 ${p.moves.length}／${MAX_MOVES}）</p>
+  <div class="pickgrid">${ch.map(k=>`<button class="chip learn ${MOVES[k].kind==='計略'?'kei':''}" data-learn="${k}"><small>${MOVES[k].kind}${MOVES[k].rare?'・めずらしい':''}</small><b>${MOVES[k].name}</b><small>${MOVES[k].note}</small></button>`).join('')}</div>
+  <div class="row"><button class="btn" data-skip>覚えない</button></div></div>`;
+ for(const b of el.over.querySelectorAll('[data-learn]'))b.onclick=()=>{S.tick();const k=b.dataset.learn;
+  if(p.moves.length<MAX_MOVES){p.moves.push(k);Z.news.push(`${p.name}は「${MOVES[k].name}」を覚えた！`);el.over.hidden=true;S.phrase(4);render();return;}
+  el.over.innerHTML=`<div class="sheet"><p class="tag">${p.face} ${p.name}</p><h1>どれを忘れる？</h1><p class="howto">「${MOVES[k].name}」を覚えるかわりに、ひとつ忘れる。</p>
+   <div class="pickgrid">${p.moves.map((m,j)=>`<button class="chip" data-forget="${j}"><b>${MOVES[m].name}</b><small>${MOVES[m].kind}・${MOVES[m].note}</small></button>`).join('')}</div><div class="row"><button class="btn" data-cancel>やめる</button></div></div>`;
+  for(const f of el.over.querySelectorAll('[data-forget]'))f.onclick=()=>{const old=p.moves[+f.dataset.forget];p.moves[+f.dataset.forget]=k;Z.news.push(`${p.name}は「${MOVES[old].name}」を忘れて「${MOVES[k].name}」を覚えた。`);el.over.hidden=true;render();};
+  el.over.querySelector('[data-cancel]').onclick=()=>openLearn(i,boss,ch);};
+ el.over.querySelector('[data-skip]').onclick=()=>{el.over.hidden=true;render();};
 }
 // the boss of a trip (#38): the player commands the pupil on the board
 function bossFight(i){
  const p=Z.pupils[i],t=p.trip,key=t.place.boss,F=V.FOES[key],u=foeUnit(key,t.bossAt+t.lv-1,t.place),me=boardFighter(p,t.sword);
  me.hp=Math.round(me.hp*clamp(t.sw.dur/Math.max(1,V.maxDurability(t.sword)),0.5,1));
- const foe={name:F.name,face:F.face,key,form:'katana',power:u.power*1.05,hp:Math.round(u.hp*0.9)};foe.maxHp=foe.hp;
- startBanjo({me,foe,title:`${p.face} ${p.name}対${F.name}（${t.place.name}・${t.bossAt}日目）`,moves:['kesa','tsuki','nagi','fumi','atari'],boss:true,onEnd:r=>{
+ const foe={name:F.name,face:F.face,key,kind:FOES2[key]?key:'kashira',power:u.power*0.8,hp:Math.round(u.hp*0.85)};foe.maxHp=foe.hp;
+ startBanjo({me,foe,title:`${p.face} ${p.name}対${F.name}（${t.place.name}・${t.bossAt}日目）　${(FOES2[foe.kind]||{}).note||''}`,boss:true,onEnd:r=>{
   t.sw.dur=Math.max(0,t.sw.dur-2);
   if(r.win){t.boss=true;t.cleared=t.bossAt;t.exp+=1.2;const loot=V.rollLoot(Math.random,t.place,t.bossAt,true);t.bag.money+=loot.money;for(const m of loot.mats)t.bag.mats[m]=(t.bag.mats[m]||0)+1;
    const ti=V.earnTitle(t.sw,{key,boss:true});t.sw.kills=ti.kills;t.sw.names=ti.names;
    t.lines.push(`${t.bossAt}日目：${F.name}（強敵）を${r.rounds}手で倒した！ ${loot.mats.map(m=>R.material(m).name).join('・')}と${yen(loot.money)}文。${ti.title?`刀は「${ti.title}」と呼ばれはじめた。`:''}`);}
   else{t.fell=true;t.bag.money=Math.floor(t.bag.money/2);for(const k in t.bag.mats)t.bag.mats[k]=Math.floor(t.bag.mats[k]/2);t.lines.push(`${t.bossAt}日目：${F.name}（強敵）に押し返された……`);}
-  t.bossDone=true;Z.news.push(r.win?`${p.name}が${F.name}を倒した！`:`${p.name}は${F.name}に敗れて引き返した。`);$('#over').hidden=true;render();}});
+  t.bossDone=true;Z.news.push(r.win?`${p.name}が${F.name}を倒した！`:`${p.name}は${F.name}に敗れて引き返した。`);$('#over').hidden=true;render();if(r.win)openLearn(i,true);}});
 }
 // 稽古（前の版）: five rings in a small canvas on the sheet; tap as each meets the middle
 function openMini(i){
