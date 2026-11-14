@@ -56,3 +56,8 @@ html,body{margin:0;height:100%;background:#0b0705;color:var(--paper);font-family
 .prov{font-size:13px;text-align:center;font-family:var(--mincho)}
 #over .sheet{max-height:92vh;overflow-y:auto}
 .p-dojo #cv{flex:0 0 30%}.p-dojo #panel{flex:1;max-height:none}
+/* 道場＋派遣（#36） */
+.news{padding:6px 8px;border-radius:10px;background:rgba(40,28,18,.85);border:1px solid rgba(212,170,82,.3)}
+.news p{margin:0;font-size:12px;line-height:1.6;font-family:var(--mincho);color:#e8dcc2}
+.pupil.away{border-color:rgba(143,211,255,.5)}.pupil.back{border-color:#ffd56a;box-shadow:0 0 0 2px rgba(255,213,106,.3)}
+.row.sticky{position:sticky;bottom:0;padding-top:6px;background:linear-gradient(rgba(20,13,10,0),#140d0a 30%)}
