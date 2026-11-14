@@ -42,7 +42,7 @@ export const ATK_MAX=150;
 export const atkOf=s=>Math.max(0,Math.min(ATK_MAX,(s.stats?.sharp||0)+(R.form(s.form).atk||0)+TITLE_ATK*(s.names?.length||0)));
 // 研ぎ直し (#26): the 耐久 comes back for money, more for a finer sword (a 名刀 twice); a broken sword is gone and cannot be
 export const repairPerPip=s=>50*(Math.max(0,R.GRADES.findIndex(g=>g.id===s.grade))+1)*(s.meito?2:1);
-export const repairCost=s=>Math.max(0,maxDurability(s)-durOf(s))*repairPerPip(s);
+export const repairCost=s=>durOf(s)<=0?0:Math.max(0,maxDurability(s)-durOf(s))*repairPerPip(s);
 export const maxDurability=s=>Math.max(1,2+Math.floor((s.stats?.tough||0)/25)+(s.meito?1:0)+(R.form(s.form).dur||0));
 export const durOf=s=>Math.min(s.dur??maxDurability(s),maxDurability(s));
 
@@ -127,8 +127,12 @@ export function finishDive(d){
  // depth: the deepest floor cleared
  return {money:lost?half(d.bag.money):d.bag.money,mats,fame:d.fame,lost,depth:d.won?d.depth:d.depth-1,carry:d.carry,taught:d.taught||[],titles:d.titles||[]};
 }
-// the rack after the dive: worn swords keep their wear, what they felled and their 二つ名; broken ones are gone
+// the rack after the dive: swords keep their wear, what they felled and their 二つ名; a broken one stays, at 耐久 0, to be re-forged (#32)
 export function returnSwords(rack,carry){
  const by=Object.fromEntries(carry.map(c=>[c.no,c]));
- return rack.flatMap(s=>{const c=by[s.no];if(!c)return [s];return c.dur>0?[{...s,dur:c.dur,kills:c.kills||s.kills,names:c.names||s.names}]:[];});
+ return rack.map(s=>{const c=by[s.no];if(!c)return s;return {...s,dur:Math.max(0,c.dur),kills:c.kills||s.kills,names:c.names||s.names};});
 }
+// 打ち直し (#32, owner: 「刀が壊れたらしゅうりできるようにしたい」→ 叩くだけ遊ぶ): a broken sword comes back whole after
+// 熱して叩く once more, for a little money (more for a finer sword, a 名刀 twice). 研ぎ直し is for swords that are only worn.
+export const isBroken=s=>durOf(s)<=0;
+export const reforgeCost=s=>100*(Math.max(0,R.GRADES.findIndex(g=>g.id===s.grade))+1)*(s.meito?2:1);

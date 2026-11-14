@@ -1,7 +1,7 @@
 // The save in the browser. Never thrown away when unreadable; a broken save is kept aside under a backup key and play starts fresh.
 import {formsBefore,START_FORMS} from './rules.js';
 import {fameLevel} from './market.js';
-import {repairCost,maxDurability} from './dive.js';
+import {repairCost,maxDurability,reforgeCost,isBroken} from './dive.js';
 
 export const SAVE_KEY='tamahagane-kobo.save.v1';
 export const MAX_SWORDS=200;
@@ -68,6 +68,12 @@ export function takeSteel(save,mats,shop){
 export function repairSword(save,no){
  const s=(save.rack||[]).find(x=>x.no===no);if(!s)return null;
  const cost=repairCost(s),money=save.money??START_MONEY;if(cost<=0||cost>money)return null;
+ return {...save,money:money-cost,rack:save.rack.map(x=>x.no===no?{...x,dur:maxDurability(x)}:x)};
+}
+// 打ち直し (#32): a broken sword back to full 耐久, paid when the hammering is done (null when it is not broken or the money is short)
+export function reforgeSword(save,no){
+ const s=(save.rack||[]).find(x=>x.no===no);if(!s||!isBroken(s))return null;
+ const cost=reforgeCost(s),money=save.money??START_MONEY;if(cost>money)return null;
  return {...save,money:money-cost,rack:save.rack.map(x=>x.no===no?{...x,dur:maxDurability(x)}:x)};
 }
 // the forms a dive taught (#25)

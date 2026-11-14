@@ -435,3 +435,6 @@ button{font:inherit;color:inherit}
 .result.rare .grade-row>*:first-child{box-shadow:0 0 16px var(--rare,#ffd56a)}
 .result.rare-3 .mei{text-shadow:0 0 22px var(--rare,#ffd56a),0 2px 6px #000}
 @media (prefers-reduced-motion:reduce){.result .rare-banner,.result.rare-intro .rare-banner{animation:none}}
+/* #32 折れた刀：刀掛けに残り、打ち直せる */
+.kura-row.broken{border-style:dashed;border-color:rgba(224,96,74,.6);background:rgba(40,14,10,.6)}
+.kura-row.broken:disabled{opacity:.55;cursor:default}

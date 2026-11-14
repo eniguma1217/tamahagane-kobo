@@ -34,3 +34,25 @@ html,body{margin:0;height:100%;background:#0b0705;color:var(--paper);font-family
 .menu{display:flex;flex-direction:column;gap:12px;padding:calc(24px + var(--safe-t)) 16px 24px;max-width:480px;margin:0 auto}
 .menu h1{margin:0;font-family:var(--mincho);font-size:28px;text-align:center}.menu p{margin:0;font-size:13.5px;line-height:1.7}
 .menu .btn small{display:block;font-family:var(--gothic);font-weight:400;font-size:12px;color:rgba(255,255,255,.85)}.menu .btn{flex-direction:column;min-height:72px}
+/* 試作その2（#34）：合戦・派遣・道場・国取り・村を守る */
+.p2 #cv{flex:1 1 55%;min-height:0}
+#panel{flex:0 1 auto;max-height:46%;overflow-y:auto;padding:6px 10px calc(10px + var(--safe-b));background:#140d0a;display:flex;flex-direction:column;gap:6px}
+.p-haken #panel{flex:1;max-height:none}
+.hint{margin:0;font-size:12.5px;text-align:center;color:rgba(239,230,210,.9)}
+.chips,.pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;border-radius:10px;border:1px solid rgba(239,230,210,.25);background:rgba(30,20,15,.95);color:var(--paper);text-align:left;cursor:pointer;font-family:inherit}
+.chip b{font-family:var(--mincho);font-size:13px}.chip small{font-size:11px;color:rgba(239,230,210,.75)}
+.chip.on{border-color:#ffd56a;box-shadow:0 0 0 2px rgba(255,213,106,.3)}.chip.dead,.chip.used{opacity:.45}.chip:disabled{cursor:default}
+.row{display:flex;gap:8px}.row .btn{flex:1}.btn.small{min-height:36px;font-size:13px;padding:4px 8px}
+.fn span{white-space:normal;font-size:13px}
+.guards,.pupils{display:flex;flex-direction:column;gap:8px}
+.guard,.pupil{padding:8px 10px;border-radius:12px;border:1px solid rgba(239,230,210,.2);background:rgba(30,20,15,.9);display:flex;flex-direction:column;gap:5px}
+.guard.away{border-color:rgba(143,211,255,.5)}.guard.back{border-color:#ffd56a;box-shadow:0 0 0 2px rgba(255,213,106,.3)}
+.gh{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.gh .gf{font-size:20px}.gh b{font-family:var(--mincho);font-size:16px}.gh small{font-size:11px;color:rgba(239,230,210,.75)}
+.gt,.letter{margin:0;font-size:12.5px}.letter{color:#d9cbb0;font-family:var(--mincho)}.ok{color:#ffe08a}
+.bar{display:block;height:7px;border-radius:4px;background:rgba(0,0,0,.5);overflow:hidden}.bar b{display:block;height:100%;background:linear-gradient(90deg,#3a7bd5,#8fd3ff)}
+.story{max-height:40vh;overflow-y:auto;text-align:left;font-size:13px;line-height:1.7;font-family:var(--mincho);margin-bottom:8px}.story p{margin:0 0 4px}
+.stats3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:12px}.stats3 .bar{grid-column:1/4}
+.prov{font-size:13px;text-align:center;font-family:var(--mincho)}
+#over .sheet{max-height:92vh;overflow-y:auto}
+.p-dojo #cv{flex:0 0 30%}.p-dojo #panel{flex:1;max-height:none}
