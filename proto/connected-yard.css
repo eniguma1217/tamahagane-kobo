@@ -1,0 +1,32 @@
+/* #54: one continuous settlement; the logical 7 x 9 building board is retained. */
+.yardwrap{isolation:isolate;overflow:hidden;border-radius:12px;background:#8fa957;border:1px solid #77623b}
+.yard{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));aspect-ratio:7/9;gap:0;padding:0;border:0;background:#a1bd68;position:relative}
+.yard::before{display:none}
+.yard .tile{background:none;box-shadow:none;border:0;border-radius:0;aspect-ratio:auto;min-height:0;overflow:visible;isolation:isolate;color:#38492c}
+.yard .tile:nth-child(3n),.yard .tile.closed,.yard .tile.forest,.yard .tile.gate{background:none}
+.yard .tile.closed{color:#ffefd1;opacity:1;text-shadow:0 1px 2px #271c0c}
+.yard .tile.closed .land-sign{position:absolute;z-index:3;min-width:64px;left:4px;top:32%;padding:4px 5px;background:#655334e8;border:1px solid #e7cc83;border-radius:3px;font-size:10px;line-height:1.4;pointer-events:none}
+.yard .tile.closed img{opacity:.85}
+.yard .tile .lbl{opacity:0;font-size:10px;line-height:1.3;bottom:0;left:0;right:0;background:#2c2e24cc;color:#fff4d7;border-radius:3px;padding:2px 0;transition:opacity .15s;pointer-events:none}
+.yard .tile:focus-visible .lbl,.yard .tile:hover .lbl,.yard .tile.sel .lbl{opacity:1}
+.yard .tile.sel,.yard .tile:focus-visible{outline:2px solid #ffeb9f;outline-offset:-3px;background:#fff3b833;z-index:20!important}
+.yard .tile.range{background:#e5f09f55;box-shadow:inset 0 0 0 1px #f2ffd588}
+.yard .tile.flash{box-shadow:inset 0 0 0 2px #ffdf85;border-radius:6px}
+.yard .tile:not(.b):not(.honden):not(.closed):hover{background:#f3f4b529}
+.yard .tile img{pointer-events:none;image-rendering:pixelated}
+.yard .tile.honden img{position:absolute;width:142%;height:142%;max-width:none;left:-21%;top:-28%;object-fit:contain}
+.yard .tile .bonus,.yard .tile .idle{z-index:4;top:0;right:1px;font-size:12px}
+.yard .tile .idle{background:#742c24;border-radius:50%;width:15px;height:15px;line-height:15px}
+.yard-scenery{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+#walk{z-index:30}
+.yard-toolbar{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#eee2bf;color:#524228;font-size:11px;line-height:1.4}
+.yard-toolbar span{flex:1}
+.yard-land{display:flex;gap:5px;flex-wrap:wrap}
+.yard-land:empty{display:none}
+.yard-land button{flex:1;min-width:0;padding:5px 3px;background:#516338;color:#fff5d7;border:1px solid #96a96a;border-radius:5px;font-size:11px;line-height:1.3}
+.yard-land small{display:block;color:#d7dfb9;font-size:10px}
+.yard-toolbar button{border:1px solid #a9925f;border-radius:5px;background:#fff7df;color:#524228;font-size:11px;padding:3px 8px}
+.yardwrap.names-on .lbl{opacity:1}
+.boards{gap:5px;align-items:center;min-height:28px}
+.board{writing-mode:horizontal-tb;min-height:0;font-size:12px;letter-spacing:.05em;padding:3px 7px;border-width:1px;box-shadow:none}
+@media(prefers-reduced-motion:reduce){.yard .tile .lbl{transition:none}}
