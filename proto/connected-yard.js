@@ -90,7 +90,7 @@
   cancelAnimationFrame(frame);const cv=$('#walk');if(!cv)return;
   const targets=g.stops.filter(s=>['honden','nagaya','keiko','kaji','chaya','katanaya','sumi','satetsu'].includes(s.b));
   const routes=targets.length?targets.map(s=>s.route):[[gate]];
-  scene={cv,idle:econ().idle,people:Array.from({length:Math.min(7,Math.max(3,Math.ceil(G.pupils/4)+2))},(_,n)=>({route:routes[n%routes.length],step:n%Math.max(1,routes[n%routes.length].length-1),progress:(n*.23)%1,back:false,wait:n*.3,visitor:n%3===0})),last:performance.now()};
+  scene={cv,idle:econ().idle,people:Array.from({length:Math.min(7,Math.max(3,Math.ceil(G.pupils/4)+2))},(_,n)=>({route:routes[n%routes.length],step:n%Math.max(1,routes[n%routes.length].length-1),progress:(n*.23)%1,back:false,wait:n*.3,visitor:n%3===0,look:`traveler-${1+Math.floor(n/3)%2}`})),last:performance.now()};
   frame=requestAnimationFrame(animate);
  }
  function animate(now){
@@ -102,7 +102,8 @@
    else if(p.route.length>1){p.progress+=dt*.62;if(p.progress>=1){p.progress=0;p.step++;if(p.step>=p.route.length-1){p.route=[...p.route].reverse();p.step=0;p.wait=1.5+Math.random()*2;}}}
    const a=point(p.route[p.step]),b=point(p.route[Math.min(p.step+1,p.route.length-1)]),v=p.wait>0?0:p.progress;
    const x=lerp(a.x,b.x,v)/700*W,y=(lerp(a.y,b.y,v)-cameraY*100)/((GH-cameraY)*100)*H,h=Math.max(19,W*.072);
-   if(p.visitor)chibi(ctx,x,y,h/23,'#bd8b4c',null,1,{hakama:'#40576b'});
+   // travelers are the #67 sprites, one look per person so their clothes do not flicker
+   if(p.visitor){if(!sprite(ctx,p.look,x,y,h*0.95,b.x>a.x))chibi(ctx,x,y,h/23,'#bd8b4c',null,1,{hakama:'#40576b'});}
    // pupils are the #55 sprite (it faces left; turned round when walking right)
    else if(!sprite(ctx,'chibi-monka',x,y,h*0.95,b.x>a.x))chibi(ctx,x,y,h/23,'#f1ead1',null,1,{hakama:'#283e63',band:'#d3b567'});
   }
