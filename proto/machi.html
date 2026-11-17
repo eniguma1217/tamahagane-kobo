@@ -185,8 +185,6 @@ button{font:inherit;color:inherit;cursor:pointer}
 .duelbar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-family:var(--display);font-weight:800}
 .duelbar .r{text-align:right}
 .pips{letter-spacing:3px;color:var(--gold);font-size:18px}
-.gauge{position:relative;height:30px;border-radius:15px;background:linear-gradient(90deg,#2a1d15,#6a3a1a 30%,#ffb35a 44%,#fff1c0 50%,#ffb35a 56%,#6a3a1a 70%,#2a1d15);border:1px solid var(--line)}
-.gauge i{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:#fff;border-radius:2px;box-shadow:0 0 6px #fff}
 .fbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .goal{background:linear-gradient(90deg,rgba(217,178,94,.2),rgba(217,178,94,.05));border:1px solid var(--gold);border-radius:12px;padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;align-items:center}
 .goal .gl{font-size:11px;color:var(--gold);letter-spacing:.1em}
@@ -212,6 +210,32 @@ button{font:inherit;color:inherit;cursor:pointer}
 .opt .pv.bad{color:#ffb3a3}
 details.rules summary{font-size:12px;color:var(--gold);cursor:pointer}
 details.rules p{margin:4px 0 0}
+#mforge .bhead{grid-template-columns:minmax(0,1fr) auto}
+.mfsteps{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.mfsteps span.now{color:var(--gold)}.mfsteps span.done{color:var(--paper)}.mfsteps i{font-style:normal;margin:0 5px;opacity:.5}
+.mfmeter{position:relative;height:18px;border-radius:9px;background:#2a1d14;overflow:hidden;flex:none}
+.mfmeter i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#8a5a20,var(--gold))}
+.mfmeter span{position:relative;font-size:11px;line-height:18px;padding:0 8px;font-weight:700}
+.mfstage{position:relative;flex:1;min-height:0;touch-action:none;user-select:none;-webkit-user-select:none}
+.mfstage canvas{position:absolute;inset:0;width:100%;height:100%}
+#mfPanel{position:absolute;inset:0;pointer-events:none}
+#mfPop{position:absolute;left:0;right:0;top:20%;text-align:center;font-family:var(--display);font-weight:800;font-size:32px;pointer-events:none;opacity:0;text-shadow:0 2px 8px rgba(0,0,0,.9);color:#fff}
+#mfPop.show{animation:mfpop 1.1s ease-out forwards}
+#mfPop.g-best{color:#ffe08a;text-shadow:0 0 18px rgba(255,190,60,.9),0 2px 6px #000;font-size:38px}
+#mfPop.g-weak{color:#f3c9a2}#mfPop.g-miss,#mfPop.g-bad,#mfPop.g-burn,#mfPop.g-crack{color:#ff8c7a}#mfPop.g-info{font-size:28px}
+@keyframes mfpop{0%{opacity:0;transform:scale(.6)}15%{opacity:1;transform:scale(1.08)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+.mftalk{display:flex;gap:8px;align-items:center;background:var(--washi);color:var(--sumi);border-radius:10px;padding:6px 8px;min-height:60px;flex:none}
+#mfFace{width:46px;height:46px;flex:none;border-radius:50%;overflow:hidden;background:#3a2a20}
+#mfFace img,#mfFace svg{width:100%;height:100%;object-fit:cover;display:block}
+#mfLine{margin:0;font-size:13px;line-height:1.5}
+.mfctl{display:flex;gap:8px;flex:none;min-height:46px}
+.mfctl .btn{flex:1;min-height:46px;touch-action:none}
+.mfctl .btn.hold.on{filter:brightness(1.25);transform:scale(.98)}
+.mf-sheet{position:absolute;inset:0;background:rgba(14,10,8,.7);display:flex;align-items:center;justify-content:center;pointer-events:auto;padding:8px}
+.mf-sheet .in{background:var(--wood-2,#2a1d14);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;max-height:100%;overflow:auto}
+.mf-sheet ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12px}
+.mf-sheet li{display:grid;grid-template-columns:110px 1fr;gap:6px;align-items:center}
+.mf-sheet img{width:110px;height:auto}
 .toast{position:absolute;left:14px;right:14px;top:6px;min-height:46px;display:flex;align-items:center;background:rgba(14,10,8,.95);border:1px solid var(--gold);border-radius:10px;padding:8px 12px;font-size:13px;opacity:0;transform:translateY(-8px);transition:.25s;pointer-events:none;z-index:9}
 .toast.on{opacity:1;transform:none}
 </style>
@@ -249,6 +273,13 @@ details.rules p{margin:4px 0 0}
     <div class="cvbox"><canvas id="fcv"></canvas></div>
     <div id="fCtl" style="display:flex;flex-direction:column;gap:8px"></div>
    </div>
+   <div class="over" id="mforge" hidden>
+    <div class="bhead"><span id="mfSteps" class="mfsteps"></span><span class="r"><button class="btn sm" id="mfClose">やめる</button></span></div>
+    <div id="mfMeter" class="mfmeter" hidden><i></i><span></span></div>
+    <div class="cvbox mfstage" id="mfStage"><canvas id="mfCv"></canvas><div id="mfPanel"></div><div id="mfPop"></div></div>
+    <div class="mftalk"><div id="mfFace"></div><p id="mfLine"></p></div>
+    <div id="mfCtl" class="mfctl"></div>
+   </div>
    <div class="toast" id="toast"></div>
   </div>
 
@@ -259,7 +290,7 @@ details.rules p{margin:4px 0 0}
      <li><b>絵と動き</b>：街並み（建物・飾り・門と林・草地・道・川・町の地図）は ChatGPT（Codex）が作った和風ドット絵です（#48・#49）。箱庭はマス目の線のない草地に、建物へつながる小道・川・橋を描いた一枚の町です（#54・#59）。ちびキャラと剣士8人の顔も、同じ和風ドット絵にそろえました（#55・#60）。箱庭の小道を門下生や旅人が歩きます。試合ではちびキャラが大勢で斬り合い、隊長の顔が出ます。絵の頼み方（24枚）はdocs/ART_PROMPTS.md の36〜59番にあります。</li>
      <li><b>戦いの見ごたえ</b>：門下生のちびキャラが駆け寄って斬り合い、倒れていきます。試合のはじめに、隊長どうしの一騎討ちがあります。名刀をもつ隊長は、刃文の必殺技をカットインで放ちます。剣士は一騎討ち・勝ち負け・入門のときに、ひとことしゃべります（せりふ案は #58・#61）。</li>
      <li><b>先の目標</b>：名声で道場の格が上がります（町道場 → 名門 → 大流派）。格が上がると、隊と建物が増えます。毎年霜月に御前試合（一騎討ちの勝ち抜き）があります。町一番になると、国の地図が開きます。町一番のあとも、目標が3つ続きます（地図を見る・次の名刀の材料・二人目の隊長に名刀）。ほかの町への出陣は制作中です。</li>
-     <li><b>刀鍛冶らしさ</b>：名刀は自分で打ちます（5回叩く → 刃文をなぞる → 焼き入れ）。叩いた出来で攻撃力が、なぞった刃文で必殺技が決まります。刀には戦歴が残り、敵の隊長を倒すと二つ名がつきます。打つほど鍛冶の腕が上がり、鍛冶場の刀の出来も良くなります。</li>
+     <li><b>刀鍛冶らしさ</b>：名刀は本編と同じ工房で打ちます（ふいごで熱する → 叩く → 刃文を描く → 焼き入れ。#74）。叩きの出来で攻撃力が、描いた刃文で必殺技が決まり、出来がよければ実在の名刀になります。刀には戦歴が残り、敵の隊長を倒すと二つ名がつきます。打つほど鍛冶の腕が上がり、鍛冶場の刀の出来も良くなります。</li>
     </ul>
    </section>
    <section>
@@ -298,7 +329,7 @@ details.rules p{margin:4px 0 0}
     <h2>見本だけの仮の決めごと</h2>
     <ul>
      <li>数字・道場・剣士の名前はすべて仮です。セーブはしません。</li>
-     <li>名刀を打つ画面は、本番の打つ画面を短くしたものです。本番では今の打つ画面（素材・焼き入れ）を使います。</li>
+     <li>名刀は本編の打つ画面で打ちます。材料は炭4・砂鉄4（並玉鋼として打つ）、御前試合の玉鋼があれば上玉鋼。本編のセーブと刀帳は変えません。</li>
      <li>国の地図は見えるだけで、まだ遊べません。</li>
      <li>参考：合戦!!ニンジャ村の仕組み（名前・絵・ステージ・数字の表は写していません）。</li>
     </ul>
@@ -644,7 +675,7 @@ function topBar(){
  $('#nextLabel').textContent=`毎月 ${f.net>=0?'＋':'−'}${yen(Math.abs(f.net))}文`;
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===G.tab));
 }
-function render(){topBar();({yard,town,kura,deshi})[G.tab]();
+function render(){topBar();if(render.tab!==G.tab){render.tab=G.tab;view.scrollTop=0;}({yard,town,kura,deshi})[G.tab]();
  view.insertAdjacentHTML('afterbegin',goalBar());bindGoal();goalNews();}
 // the 箱庭 alone, redrawn without losing the goal bar above it (Codex #68)
 function yardView(){yard();view.insertAdjacentHTML('afterbegin',goalBar());bindGoal();}
@@ -827,12 +858,12 @@ function kura(){
    <div class="rankline"><span class="meter"><i style="width:${sm.exp/(sm.lv*2)*100}%"></i></span><span>次まで ${sm.lv*2-sm.exp}振</span></div>
    <p class="small" style="margin:4px 0 0">名刀を打つほど腕が上がります。腕が上がると、鍛冶場の弟子が打つ刀の出来も良くなります（いま ＋${Math.round((smithMult()-1)*100)}%：門下生の攻めと、刀屋の値段に効く）。</p></div>
   <div class="panel"><h3>名刀を打つ</h3>
-   <p class="small" style="margin:0 0 6px">隊長にもたせる名刀を、ひと月に1振り、自分で打ちます。叩いた出来で攻撃力が、なぞった刃文で必殺技が決まります。${G.tamahagane?`<br><b style="color:var(--gold)">御前試合でもらった玉鋼があります（次の名刀の攻撃力 ＋10）</b>`:''}</p>
+   <p class="small" style="margin:0 0 6px">隊長にもたせる名刀を、ひと月に1振り、本編と同じ工房で打ちます（ふいごで熱する → 叩く → 刃文を描く → 焼き入れ）。叩きの出来で攻撃力が、描いた刃文で必殺技が決まり、出来がよければ実在の名刀になります。${G.tamahagane?`<br><b style="color:var(--gold)">御前試合でもらった玉鋼があります（次の名刀は上玉鋼で打ち、攻撃力 ＋10）</b>`:''}</p>
    ${G.forged?'<p class="small" style="margin:0">今月はもう打ちました。</p>':`<button class="btn main" id="forgeBtn" ${G.sumi>=4&&G.satetsu>=4?'':'disabled'}>名刀を打つ（炭4・砂鉄4）</button>${G.sumi>=4&&G.satetsu>=4?'':'<p class="warn" style="margin:4px 0 0">炭と砂鉄が4ずつ要ります（炭焼き小屋・砂鉄場で集める）</p>'}`}</div>
   ${G.meito.length?`<h3 style="font-size:15px;color:var(--gold)">刀帳</h3>${G.meito.map((m,i)=>`<div class="meito"><div><span class="nm">〈${m.name}〉</span>${m.title?`<span class="title">${m.title}</span>`:''} <span class="sm">${FORMS[m.form].name}・攻撃力 ${m.atk}${m.title?'（二つ名 ＋10%）':''}</span></div>
     <canvas data-blade="${i}"></canvas>
     <div class="sm">${HAMON[m.hamon].name}「${m.waza.name}」：${m.waza.text} ・ ${m.holder?`${m.holder}がもつ`:'だれももっていない'}</div>
-    <div class="sm">戦歴：${m.wins}勝・倒した敵 ${m.kills}人</div>${m.record.length?`<ul>${m.record.slice(-3).map(r=>`<li>${r}</li>`).join('')}</ul>`:''}</div>`).join('')}`:''}
+    ${m.info?`<div class="sm">実在の名刀（${m.info.k}）：${m.info.era}・${m.info.s}・${m.info.d}</div>`:''}<div class="sm">戦歴：${m.wins}勝・倒した敵 ${m.kills}人</div>${m.record.length?`<ul>${m.record.slice(-3).map(r=>`<li>${r}</li>`).join('')}</ul>`:''}</div>`).join('')}`:''}
   <div class="panel"><h3>蔵の刀</h3>
    ${FORM_KEYS.map(k=>`<div class="row" style="padding:2px 0"><span class="grow"><b style="font-family:var(--display)">${FORMS[k].name}</b> <span class="lv">${G.kura[k]}振</span>${G.tech[k]?'':' <span class="small">（技術がまだない）</span>'}</span>
     ${hasShop?`<button class="tog ${G.sell[k]?'on':''}" data-sell="${k}">刀屋で売る ${Math.round(FORMS[k].price*smithMult())}文</button>`:''}</div>`).join('')}
@@ -853,27 +884,20 @@ function kura(){
 let FG=null;
 function forgeStart(free){
  if(!free){G.sumi-=4;G.satetsu-=4;}
- FG={step:'form',form:'uchigatana',hits:[],t:0,sparks:[],hamon:null,profile:new Array(HN).fill(null),drawing:false,heat:1};
- $('#forge').hidden=false;phoneInView();$('#toast').classList.remove('on');$('#fClose').onclick=()=>{if(!free){G.sumi+=4;G.satetsu+=4;}FG=null;$('#forge').hidden=true;render();};
+ FG={step:'form',form:'uchigatana',free:!!free,t:0};
+ $('#forge').hidden=false;phoneInView();$('#toast').classList.remove('on');$('#fClose').onclick=()=>{if(FG&&FG.step!=='done'&&!free){G.sumi+=4;G.satetsu+=4;}FG=null;$('#forge').hidden=true;render();};
  forgeStep();requestAnimationFrame(forgeLoop);
 }
 function forgeStep(){
  const c=$('#fCtl');
  if(FG.step==='form'){$('#fStep').textContent='一 形を選ぶ';
-  c.innerHTML=`<p class="small" style="margin:0;text-align:center">打つ刀の形を選んでください（技術のある形だけ）。</p><div class="chips" style="justify-content:center">${FORM_KEYS.map(k=>`<button class="chip ${FG.form===k?'on':''}" data-ff="${k}" ${G.tech[k]?'':'disabled'}>${FORMS[k].name}（基本 ${FORMS[k].base}）</button>`).join('')}</div><button class="btn main" id="fNext">熱して叩く</button>`;
-  c.querySelectorAll('[data-ff]').forEach(b=>b.onclick=()=>{FG.form=b.dataset.ff;forgeStep();});$('#fNext').onclick=()=>{FG.step='hammer';FG.t=0;forgeStep();};}
- if(FG.step==='hammer'){$('#fStep').textContent=`二 熱して叩く ${FG.hits.length}/5`;
-  c.innerHTML=`<div class="gauge" id="gauge"><i id="gmark"></i></div><p class="small" style="margin:0;text-align:center">白く光る真ん中で叩くと「良」。5回叩きます。</p><button class="btn main" id="hit" style="font-size:20px;padding:12px">叩く！</button>`;
-  $('#hit').onclick=strike;}
- if(FG.step==='hamon'){$('#fStep').textContent='三 刃文をなぞる';
-  c.innerHTML=`<div class="chips" style="justify-content:center">${Object.entries(HAMON).map(([k,h])=>`<button class="chip ${FG.hamon===k?'on':''}" data-fh="${k}">${h.name}</button>`).join('')}</div><p class="small" style="margin:0;text-align:center">${FG.hamon?'金色の点線を、左から右へ指でなぞってください。':'刃文の形を選んでください。形で必殺技が変わります。'}</p>${FG.hamon?`<button class="btn sm" id="redo" style="align-self:center">なぞり直す</button>`:''}`;
-  c.querySelectorAll('[data-fh]').forEach(b=>b.onclick=()=>{FG.hamon=b.dataset.fh;FG.profile=new Array(HN).fill(null);forgeStep();});
-  const rd=$('#redo');if(rd)rd.onclick=()=>{FG.profile=new Array(HN).fill(null);};}
- if(FG.step==='quench'){$('#fStep').textContent='四 焼き入れ';c.innerHTML=`<p class="small" style="margin:0;text-align:center">じゅっ……</p>`;FG.t=0;}
+  c.innerHTML=`<p class="small" style="margin:0;text-align:center">打つ刀の形を選んでください（技術のある形だけ）。</p><div class="chips" style="justify-content:center">${FORM_KEYS.map(k=>`<button class="chip ${FG.form===k?'on':''}" data-ff="${k}" ${G.tech[k]?'':'disabled'}>${FORMS[k].name}（基本 ${FORMS[k].base}）</button>`).join('')}</div><p class="small" style="margin:0;text-align:center">${G.tamahagane?'御前試合の玉鋼で、上玉鋼として打ちます（鎌倉の名刀が出ます）':'炭と砂鉄から、並玉鋼として打ちます（室町の名刀が出ます）'}。ふいごで熱する → 叩く → 刃文を描く → 焼き入れ。</p><button class="btn main" id="fNext">工房へ（打ちはじめる）</button>`;
+  c.querySelectorAll('[data-ff]').forEach(b=>b.onclick=()=>{FG.form=b.dataset.ff;forgeStep();});$('#fNext').onclick=mainForge;}
  if(FG.step==='done'){const m=FG.result;$('#fStep').textContent='できあがり';
   const can=G.named.filter(n=>!n.meito);
-  c.innerHTML=`<div class="meito"><div><span class="nm">〈${m.name}〉</span> <span class="sm">${FORMS[m.form].name}・攻撃力 ${m.atk}（${m.grade}）</span></div>
-   <div class="sm">叩き：${FG.hits.map(h=>h>1.5?'良':h>0.5?'並':'外').join('・')} ／ 刃文のなぞり ${Math.round(m.q*100)}点</div>
+  c.innerHTML=`<div class="meito"><div><span class="nm">〈${m.name}〉</span>${m.info?` <span class="sm">${m.info.k}</span>`:''} <span class="sm">${FORMS[m.form].name}・攻撃力 ${m.atk}（${m.grade}）</span></div>
+   <div class="sm">${m.info?`実在の名刀：${m.info.era}・${m.info.s}・${m.info.d}`:m.crack?'焼き入れで割れた。名はつかず、攻撃力も下がった':'実在の名刀には届かなかった（形・刃文・時代・技の数で決まる）'}</div>
+   <div class="sm">技 ${m.successes}/16 ／ 描いた刃文：${m.mainHamonName}</div>
    <div class="sm"><b>${HAMON[m.hamon].name}「${m.waza.name}」</b>：${m.waza.text}</div>
    ${FG.levelUp?`<div class="sm" style="color:#8a2a18;font-weight:700">鍛冶の腕が Lv${G.smith.lv} に上がった！鍛冶場の刀の出来も良くなった</div>`:''}</div>
    <div class="chips" style="justify-content:center">${can.map((n,k)=>`<button class="${k===0?'btn main':'chip'}" data-give="${n.name}">${n.name}にもたせる</button>`).join('')}</div>
@@ -881,71 +905,48 @@ function forgeStep(){
   c.querySelectorAll('[data-give]').forEach(b=>b.onclick=()=>{const n=G.named.find(x=>x.name===b.dataset.give);n.meito=m.name;m.holder=n.name;toast(`${n.name}に〈${m.name}〉をもたせた`);$('#fDone').click();});
   $('#fDone').onclick=()=>{FG=null;$('#forge').hidden=true;G.tab='kura';render();};}
 }
-function strike(){
- const pos=(Math.sin(FG.t*FG.spd)+1)/2,off=Math.abs(pos-0.5),score=off<0.09?2:off<0.22?1:0;
- FG.hits.push(score);FG.flash=1;FG.label={t:score===2?'良！':score===1?'並':'外',c:score===2?'#ffd56a':score===1?'#efe6d2':'#ff9a80',age:0};
- for(let i=0;i<(score+1)*10;i++)FG.sparks.push({x:0,y:0,vx:(rnd()-0.5)*220,vy:-rnd()*200,age:0});
- if(FG.hits.length>=5){FG.step='hamon';setTimeout(forgeStep,500);}else $('#fStep').textContent=`二 熱して叩く ${FG.hits.length}/5`;
+// #74: the forging itself is the main game's (forge-main.js); the dojo turns the finished sword into its 名刀
+const MAIN_FORM={wakizashi:'wakizashi',yari:'yari',uchigatana:'katana',odachi:'odachi'};
+// the dojo's four 必殺技 from the main game's eight 刃文: the nearest kind
+const DOJO_HAMON={suguha:'suguha',gunome:'gunome',notare:'notare',choji:'choji',togari:'gunome',komidare:'choji',omidare:'choji',hitatsura:'notare'};
+async function mainForge(){
+ const mf=window.MainForge;if(!mf){toast('刀づくりの画面を読みこんでいます。少し待って、もう一度押してください');return;}
+ $('#forge').hidden=true;phoneInView();
+ const out=await mf.start({form:MAIN_FORM[FG.form],kawa:G.tamahagane?'jou':'nami',collection:Object.fromEntries(G.meito.filter(m=>m.real).map(m=>[m.real,true]))});
+ if(!FG)return;
+ if(!out){if(!FG.free){G.sumi+=4;G.satetsu+=4;}FG=null;render();toast('打つのをやめました（炭と砂鉄は戻しました）');return;}
+ finishForge(out);$('#forge').hidden=false;phoneInView();
 }
-function finishForge(){
- const filled=FG.profile.map((v,i)=>v!=null?v:null);
- // fill the gaps the finger skipped
- for(let i=0;i<HN;i++)if(filled[i]==null){let a=i-1,b=i+1;while(a>=0&&filled[a]==null)a--;while(b<HN&&filled[b]==null)b++;filled[i]=a<0?(filled[b]??0.5):b>=HN?filled[a]:lerp(filled[a],filled[b],(i-a)/(b-a));}
- const g=guideLine(FG.hamon),q=clamp(1-filled.reduce((s,v,i)=>s+Math.abs(v-g[i]),0)/HN/0.22,0,1);
- const hammer=FG.hits.reduce((s,h)=>s+h*3,0);
- const atk=Math.round(FORMS[FG.form].base+hammer+G.smith.lv*2+q*10+G.tamahagane*10);G.tamahagane=0;
- const name=MEITO_NAMES[G.meito.length%MEITO_NAMES.length]+(G.meito.length>=MEITO_NAMES.length?'二':'');
- const grade=atk>=100?'名刀':atk>=85?'上作':'並作';
- const m={name,form:FG.form,atk,hamon:FG.hamon,profile:filled,q,waza:wazaOf(FG.hamon,filled,q),holder:null,kills:0,wins:0,title:null,record:[],grade};
+function finishForge({sword,info,hamonName,eraName}){
+ // the main game's line runs 0 = edge … 1 = 鎬 at 96 points; the dojo's 0 = spine … 1 = edge at 40
+ const src=sword.profile||[],profile=Array.from({length:HN},(_,i)=>{if(!src.length)return 0.55;const x=(i+0.5)/HN*src.length-0.5,a=clamp(Math.floor(x),0,src.length-1),b=Math.min(src.length-1,a+1);return clamp(1-lerp(src[a],src[b],clamp(x-a,0,1)),0.05,0.95);});
+ const st=sword.steps,type=DOJO_HAMON[sword.hamon]||'suguha',q=clamp((st.hamon+st.quench)/2,0,1);
+ // 攻撃力 keeps the dojo's range: the form's base, the hammering (up to 30), the 刃文 and the quench (up to 10), the smith, the 玉鋼
+ let atk=Math.round(FORMS[FG.form].base+30*st.hammer+10*q+G.smith.lv*2+G.tamahagane*10);if(sword.crack)atk=Math.round(atk*0.6);G.tamahagane=0;
+ let name=sword.meito||`無銘の${FORMS[FG.form].name}`;
+ if(G.meito.some(m=>m.name===name)){let k=2;while(G.meito.some(m=>m.name===`${name}・${KAN(k)}`))k++;name=`${name}・${KAN(k)}`;}
+ const grade=sword.crack?'焼き割れ':atk>=100?'名刀':atk>=85?'上作':'並作';
+ const m={name,form:FG.form,atk,hamon:type,profile,q,waza:wazaOf(type,profile,q),holder:null,kills:0,wins:0,title:null,record:[],grade,
+  real:sword.meito||null,info:info?{k:info.k,s:info.s,d:info.d,era:eraName}:null,mainHamonName:hamonName,crack:!!sword.crack,successes:sword.successes};
  G.meito.push(m);G.forged=true;
  const sm=G.smith;sm.exp+=1+(q>0.7?1:0);FG.levelUp=false;while(sm.exp>=sm.lv*2){sm.exp-=sm.lv*2;sm.lv++;FG.levelUp=true;}
- FG.result=m;FG.step='quench';forgeStep();
+ FG.result=m;FG.step='done';forgeStep();
 }
-function forgeLoop(now){
+function forgeLoop(){
  if(!FG)return;const cv=$('#fcv'),{ctx,W,H}=sharp(cv);
- FG.t+=1/60;FG.spd=2.4+FG.hits.length*0.5;
  ctx.fillStyle='#1c120c';ctx.fillRect(0,0,W,H);
- if(FG.step==='form'||FG.step==='hammer'){
-  // the anvil and the glowing steel
+ if(FG.step==='form'){
+  // the anvil and the steel, waiting
   ctx.fillStyle='#3a3a3e';ctx.beginPath();ctx.moveTo(W*0.25,H*0.62);ctx.lineTo(W*0.75,H*0.62);ctx.lineTo(W*0.68,H*0.72);ctx.lineTo(W*0.32,H*0.72);ctx.fill();
   ctx.fillRect(W*0.4,H*0.72,W*0.2,H*0.16);
-  const heat=FG.step==='hammer'?1:0.6;const g=ctx.createLinearGradient(W*0.2,0,W*0.8,0);g.addColorStop(0,'#6a2a10');g.addColorStop(0.5,`rgba(255,${180+60*heat},120,1)`);g.addColorStop(1,'#6a2a10');
-  ctx.fillStyle=g;ctx.shadowColor='#ff9a3a';ctx.shadowBlur=20*heat;ctx.fillRect(W*0.22,H*0.57,W*0.56,H*0.05);ctx.shadowBlur=0;
-  if(FG.step==='hammer'){
-   const pos=(Math.sin(FG.t*FG.spd)+1)/2,m=$('#gmark');if(m)m.style.left=(pos*100)+'%';
-   const lift=FG.flash>0?0:Math.min(1,FG.t%1.2);FG.flash=Math.max(0,(FG.flash||0)-1/20);
-   ctx.save();ctx.translate(W*0.56,H*0.56-(FG.flash>0?0:18));ctx.rotate(FG.flash>0?0.1:-0.5);ctx.fillStyle='#5a3a20';ctx.fillRect(0,-3,W*0.22,6);ctx.fillStyle='#55585e';ctx.fillRect(-10,-12,20,24);ctx.restore();
-   if(FG.flash>0){ctx.fillStyle=`rgba(255,240,200,${FG.flash*0.5})`;ctx.fillRect(0,0,W,H);}
-   for(const s of FG.sparks){s.age+=1/60;s.vy+=400/60;s.x+=s.vx/60;s.y+=s.vy/60;ctx.fillStyle=`rgba(255,${200-s.age*200},80,${1-s.age})`;ctx.fillRect(W*0.5+s.x,H*0.57+s.y,2.5,2.5);}
-   FG.sparks=FG.sparks.filter(s=>s.age<1);
-   if(FG.label){FG.label.age+=1/60;ctx.globalAlpha=Math.max(0,1-FG.label.age);ctx.font='800 34px "Hiragino Mincho ProN",serif';ctx.textAlign='center';ctx.fillStyle=FG.label.c;ctx.fillText(FG.label.t,W/2,H*0.32-FG.label.age*20);ctx.globalAlpha=1;}
-  }else{ctx.font='600 15px "Hiragino Mincho ProN",serif';ctx.fillStyle='#d9b25e';ctx.textAlign='center';ctx.fillText(`${FORMS[FG.form].name}を打つ`,W/2,H*0.3);}
+  const g=ctx.createLinearGradient(W*0.2,0,W*0.8,0);g.addColorStop(0,'#6a2a10');g.addColorStop(0.5,'rgba(255,216,120,1)');g.addColorStop(1,'#6a2a10');
+  ctx.fillStyle=g;ctx.shadowColor='#ff9a3a';ctx.shadowBlur=12;ctx.fillRect(W*0.22,H*0.57,W*0.56,H*0.05);ctx.shadowBlur=0;
+  ctx.font='600 15px "Hiragino Mincho ProN",serif';ctx.fillStyle='#d9b25e';ctx.textAlign='center';ctx.fillText(`${FORMS[FG.form].name}を打つ`,W/2,H*0.3);
  }
- if(FG.step==='hamon'){
-  const b=drawBlade(ctx,W,H,null,{guide:FG.hamon?guideLine(FG.hamon):null,trace:FG.profile});
-  FG.blade=b;
-  if(FG.hamon){const done=FG.profile.filter(v=>v!=null).length;ctx.fillStyle='#d9b25e';ctx.font='600 13px sans-serif';ctx.textAlign='center';ctx.fillText(`なぞった ${Math.round(done/HN*100)}%`,W/2,H*0.85);}
- }
- if(FG.step==='quench'||FG.step==='done'){
-  const m=FG.result;FG.t+=0;const k=FG.step==='quench'?clamp(FG.t/1.4,0,1):1;
-  drawBlade(ctx,W,H,m.profile,{glow:FG.step==='done'?'rgba(255,240,200,.9)':null});
-  if(FG.step==='quench'){ctx.fillStyle=`rgba(255,120,40,${0.5*(1-k)})`;ctx.fillRect(0,0,W,H);
-   for(let i=0;i<14;i++){const x=W*(0.1+0.8*((i*0.37+FG.t*0.1)%1)),y=H*0.5-((FG.t*60+i*23)%90);ctx.fillStyle=`rgba(230,230,230,${0.25*(1-((FG.t*60+i*23)%90)/90)})`;ctx.beginPath();ctx.arc(x,y,8+i%4*3,0,Math.PI*2);ctx.fill();}
-   if(FG.t>1.5){FG.step='done';forgeStep();}}
-  else{ctx.font='800 22px "Hiragino Mincho ProN",serif';ctx.fillStyle='#ffd56a';ctx.textAlign='center';ctx.fillText(`〈${m.name}〉`,W/2,H*0.22);}
- }
+ if(FG.step==='done'){const m=FG.result;drawBlade(ctx,W,H,m.profile,{glow:'rgba(255,240,200,.9)'});
+  ctx.font='800 22px "Hiragino Mincho ProN",serif';ctx.fillStyle='#ffd56a';ctx.textAlign='center';ctx.fillText(`〈${m.name}〉`,W/2,H*0.22);}
  requestAnimationFrame(forgeLoop);
 }
-// tracing the 刃文 with a finger
-(()=>{const cv=$('#fcv');let down=false;
- const at=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
- const mark=p=>{if(!FG||FG.step!=='hamon'||!FG.hamon||!FG.blade)return;const b=FG.blade,i=Math.floor((p.x-b.x0)/(b.x1-b.x0)*HN);if(i<0||i>=HN)return;
-  const x=lerp(b.x0,b.x1,(i+0.5)/HN),top=b.yAt(x,b.band(0)),bot=b.yAt(x,b.band(1));FG.profile[i]=clamp((p.y-top)/(bot-top),0,1);
-  if(i>=HN-2&&FG.profile.filter(v=>v!=null).length>=HN*0.75){down=false;finishForge();}};
- cv.addEventListener('pointerdown',e=>{down=true;cv.setPointerCapture?.(e.pointerId);mark(at(e));});
- cv.addEventListener('pointermove',e=>{if(down)mark(at(e));});
- cv.addEventListener('pointerup',()=>{down=false;});
-})();
 
 // ===== 弟子 ================================================================
 function face(name,size=40){if(FIMG[name])return `<img src="../assets/dojo-v2/${FIMG[name]}.png" width="${size}" height="${size}" alt="" style="display:block;object-fit:cover;image-rendering:pixelated">`;const c=FACE[name]||'#6b5a48';return `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true"><rect width="40" height="40" fill="${c}"/><circle cx="20" cy="22" r="11" fill="${SKIN}"/><path d="M9 20 Q20 2 31 20 Q26 13 20 13 Q14 13 9 20Z" fill="#2a1d14"/><circle cx="16" cy="23" r="1.4" fill="#2a1d14"/><circle cx="24" cy="23" r="1.4" fill="#2a1d14"/><path d="M17 28 q3 2 6 0" stroke="#8a4a3a" stroke-width="1.2" fill="none"/><path d="M6 40 Q20 30 34 40Z" fill="#2a1d14"/></svg>`;}
@@ -1467,5 +1468,6 @@ window.__dojo={get G(){return G},get P(){return P},set P(v){P=v},get BT(){return
 </script>
 
 <script src="connected-yard.js"></script>
+<script type="module" src="forge-main.js"></script>
 </body>
 </html>
