@@ -997,11 +997,11 @@ function advance(silent){
  else log.push(`入門したい人が${e.app}人いたが、定員がいっぱいだった`);
  G.fame+=0.5*e.shopTypes.size;
  for(const r of Object.values(G.rivals)){r.str+=0.08;r.squads.forEach(q=>q.troops=Math.min(Math.round(q.base*1.5),q.troops+(rnd()<0.35?1:0)));r.champs.forEach(c=>c.lv+=0.1);}
- const news=rivalsMove();if(news)log.push(news);
+ G.calm=null;const news=rivalsMove();if(news)log.push(news);
  G.month=(G.month+1)%12;if(G.month===0)G.year++;
  G.forged=false;G.fought=false;
  rankCheck(log);
- const raid=raidCheck(),gozen=G.month===10;
+ const raid=raidCheck(),gozen=G.month===10;G.calm=null;
  if(join)flows.push({i:GW*5+3,text:`入門 +${join}`});
  if(silent)return {log,raid,gozen};
  G.flows=flows;
@@ -1025,11 +1025,12 @@ function rivalsMove(){
  for(const k in G.owner)if(G.owner[k]===lk)G.owner[k]=wk;
  W.squads.push(...L.squads.slice(0,1).map(q=>({...q,lead:undefined,rank:'back'})));W.champs.push(...L.champs);W.str=Math.max(W.str,L.str);
  W.reward={...W.reward,tech:W.reward.tech||L.reward.tech,book:(W.reward.book||0)+(L.reward.book||0),deed:(W.reward.deed||0)+(L.reward.deed||0)};
- delete G.rivals[lk];
- return `${W.name}が${L.name}を破り、看板を奪った。${W.name}が大きくなった！`;
+ delete G.rivals[lk];G.calm=wk;
+ return `${W.name}が${L.name}を破り、看板を奪った。${W.name}が大きくなった！（今月は、こちらへは攻めてこない）`;
 }
 function raidCheck(){
- const raiders=Object.keys(G.rivals).filter(k=>Object.keys(G.owner).some(n=>G.owner[n]===k&&adjacentTo(n).some(m=>G.owner[m]==='tama')));
+ // a school that has just taken another (G.calm, this month only) is busy with it and does not come (owner D89)
+ const raiders=Object.keys(G.rivals).filter(k=>k!==G.calm&&Object.keys(G.owner).some(n=>G.owner[n]===k&&adjacentTo(n).some(m=>G.owner[m]==='tama')));
  if(!raiders.length)return null;
  const due=G.year===1&&G.month===G.raidAt;
  if(!due&&(G.year===1&&G.month<G.raidAt||rnd()>0.06))return null;

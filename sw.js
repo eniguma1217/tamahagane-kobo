@@ -1,5 +1,5 @@
 // 玉鋼工房：オンラインなら最新を読み込み、読み込んだファイルはスマホに保存してオフラインでも遊べるようにする
-const CACHE="tamahagane-202611172354-527b9e4";
+const CACHE="tamahagane-202611172359-68ce3a8";
 const CORE=["./","./index.html","./style.css","./manifest.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting();});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("tamahagane-")&&k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
