@@ -90,6 +90,7 @@ async function start({form,kawa,collection:have={}}){
  if(!el)wire();
  art??=loadArt('../assets/').catch(()=>[]);await art;
  collection=have;api.run={form,structure:'maru',kawa};
+ el.pop.textContent='';el.pop.className='';el.panel.innerHTML='';el.line.innerHTML='';
  api.foresee=()=>R.rareOf(R.finishSword(api.run,MEITO,collection));
  el.root.hidden=false;live=true;resize();index=-1;runTime=0;
  return new Promise(ok=>{finish=ok;next();last=performance.now();requestAnimationFrame(frame);});

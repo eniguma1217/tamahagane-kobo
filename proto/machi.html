@@ -630,15 +630,16 @@ const GOALS=[
   G.tab='kura';render();pulse('#forgeBtn');}},
 ];
 const goalIndex=()=>{for(let i=0;i<GOALS.length;i++){if(G.goalDone[i])continue;if(GOALS[i].done()){G.goalDone[i]=true;continue;}return i;}return GOALS.length;};
-// the easiest school to challenge now, against what the dojo can send — the same yardsticks the battle result uses
+// the challengeable school with the fewest people, against what the dojo can send — the same yardsticks the battle result uses
 function nextFoeHint(){const ks=Object.keys(G.owner).filter(canChallenge);if(!ks.length)return '';
  const cand=ks.map(k=>({k,r:G.rivals[G.owner[k]]})).filter(x=>x.r).map(x=>({...x,n:x.r.squads.reduce((s,q)=>s+q.troops,0)})).sort((a,b)=>a.n-b.n)[0];if(!cand)return '';
  const r=cand.r,swords=FORM_KEYS.reduce((s,f)=>s+G.kura[f],0),send=Math.min(G.pupils,swords),lack=[];
  const foe={};r.squads.forEach(q=>foe[q.form]=(foe[q.form]||0)+q.troops);const top=Object.keys(foe).sort((a,b)=>foe[b]-foe[a])[0],beat=Object.keys(BEATS).find(k=>BEATS[k]===top);
- if(send<cand.n*0.85)lack.push(swords<G.pupils?`刀があと${G.pupils-swords}振あれば全員出せる`:'人数が足りない（長屋で定員を増やす）');
+ if(swords<G.pupils)lack.push(`刀があと${G.pupils-swords}振あれば、門下生を全員出せる`);
+ if(send<cand.n*0.85)lack.push(`人数の差が大きい（${cand.n}人 対 ${send}人。長屋で定員を増やす）`);
  if(G.str<r.str-0.5)lack.push('腕前が足りない（稽古場）');
  if(beat&&!G.kura[beat])lack.push(`${FORMS[beat].name}があると有利（${G.tech[beat]?'鍛冶場で打つ':'技術がまだない'}）`);
- return `いちばん挑みやすいのは${r.name}（${cand.n}人・腕前${r.str.toFixed(0)}）。こちらは出せる${send}人・腕前${G.str.toFixed(0)}。${lack.length?'目安：'+lack.join('、'):'いまの力で挑めそうです。'}`;}
+ return `挑める道場でいちばん人数が少ないのは${r.name}（${cand.n}人・腕前${r.str.toFixed(0)}）。こちらは出せる${send}人・腕前${G.str.toFixed(0)}。${lack.length?'目安：'+lack.join('、'):'いまの力で挑めそうです。'}`;}
 function goalBar(){const i=goalIndex(),g=GOALS[i];if(!g)return `<div class="goal done"><span class="gl">目標</span><b>ここから先（ほかの町への出陣）は制作中です</b><span class="small">看板を守り、毎年霜月の御前試合で腕を競えます。</span></div>`;return `<div class="goal"><span class="gl">目標 ${i+1}／${GOALS.length}</span><b>${g.text}</b><span class="small">${typeof g.hint==='function'?g.hint():g.hint}</span><button class="btn sm main" id="goalGo">やってみる</button></div>`;}
 function phoneInView(){const r=$('#phone').getBoundingClientRect();if(r.top<0||r.bottom>innerHeight)$('#phone').scrollIntoView({block:r.height>innerHeight?'start':'nearest'});}
 function pulse(sel){setTimeout(()=>{const e=document.querySelector(sel);if(e){if(view.contains(e)){const r=e.getBoundingClientRect(),v=view.getBoundingClientRect();view.scrollTop+=r.top-v.top-(v.height-r.height)/2;}e.classList.add('pulse');setTimeout(()=>e.classList.remove('pulse'),3800);}},80);}
@@ -1063,13 +1064,18 @@ function recommend(){
  P.sq=forms.map((f,i)=>({lead:null,form:f,troops:0,rank:i===0?'front':rankOfForm(f)}));
  const guard=leaders.find(x=>x.trait==='守'&&!x.meito);if(guard)P.sq[0].lead=guard.name;
  for(const l of leaders){if(P.sq.some(q=>q.lead===l.name))continue;const m=l.meito&&meitoOf(l.meito);const slot=P.sq.find(q=>!q.lead&&m&&q.form===m.form)||P.sq.find(q=>!q.lead);if(slot)slot.lead=l.name;}
- P.sq.forEach(q=>q.troops=0);const share=[0.4,0.3,0.2,0.1,0.1];P.sq.forEach((q,i)=>{q.troops=Math.min(maxTroops(i),Math.max(2,Math.round(G.pupils*(n===1?1:share[i]||0.15))));});
- P.sq.forEach((q,i)=>{q.troops=Math.min(maxTroops(i),q.troops+Math.max(0,G.pupils-usedPupils(-1)));});
- let swapped=null;
- for(let pass=0;pass<P.sq.length&&usedPupils(-1)<G.pupils;pass++){const used=usedSwords(-1),best=FORM_KEYS.filter(f=>G.kura[f]-(used[f]||0)>0).sort((a,b)=>(G.kura[b]-(used[b]||0))-(G.kura[a]-(used[a]||0)))[0];if(!best)break;
-  const i=P.sq.map((q,j)=>j).filter(j=>j>0&&P.sq[j].form!==best).sort((a,b)=>P.sq[a].troops-P.sq[b].troops)[0];if(i==null)break;
-  const q=P.sq[i],was=q.form,before=q.troops;q.form=best;q.rank=rankOfForm(best);q.troops=Math.min(maxTroops(i),before+G.pupils-usedPupils(-1));
-  if(q.troops<=before){q.form=was;q.rank=rankOfForm(was);q.troops=before;break;}swapped=best;}
+ const share=[0.4,0.3,0.2,0.1,0.1];
+ const fill=()=>{P.sq.forEach(q=>q.troops=0);P.sq.forEach((q,i)=>{q.troops=Math.min(maxTroops(i),Math.max(2,Math.round(G.pupils*(n===1?1:share[i]||0.15))));});
+  P.sq.forEach((q,i)=>{q.troops=Math.min(maxTroops(i),q.troops+Math.max(0,G.pupils-usedPupils(-1)));});return usedPupils(-1);};
+ let sent=fill(),swapped=null;
+ // nobody stays home for want of the right sword: try each squad (not the front one) with each sword in the 蔵,
+ // deal everyone out again, and keep the change that sends the most (Codex #76: judged by the total, not by that squad)
+ for(let pass=0;pass<n&&sent<G.pupils;pass++){let best=null;
+  // on a tie, a squad carrying the sword that beats the foe keeps it
+  for(let j=n-1;j>=1;j--)for(const f of FORM_KEYS){const q=P.sq[j];if(f===q.form||!G.kura[f])continue;const was=q.form;q.form=f;const got=fill();q.form=was;
+   const keep=want.includes(was)?0:1;if(got>sent&&(!best||got>best.got||(got===best.got&&keep>best.keep)))best={j,f,got,keep};}
+  if(!best)break;P.sq[best.j].form=best.f;P.sq[best.j].rank=rankOfForm(best.f);sent=fill();swapped=best.f;}
+ fill();
  const top=order[0],c=beat(top);
  const tail=swapped?`。刀の足りない隊には、余っている${FORMS[swapped].name}を持たせた`:'';
  P.why=c?(G.kura[c]>0?`相手は${FORMS[top].name}が多い → ${FORMS[c].name}が有利。打刀で前を固める`:`相手は${FORMS[top].name}が多い。有利な${FORMS[c].name}は${G.tech[c]?'蔵にない（鍛冶場で打つ）':'まだ打てない（技術がない）'}ので、打刀で前を固める`):`相手は${FORMS[top].name}が多い。打刀は相性の五分。人数と腕前で勝負`;
@@ -1099,8 +1105,10 @@ function drawPrep(){
  $('#fight').onclick=()=>{G.money-=cost;$('#sheet').hidden=true;startBattle();};
 }
 // who is left at home, and whether it is for want of swords
-function stayHome(){const left=G.pupils-usedPupils(-1);if(left<=0)return '';const used=usedSwords(-1),spare=FORM_KEYS.filter(f=>G.kura[f]-(used[f]||0)>0).map(f=>`${FORMS[f].name}${G.kura[f]-(used[f]||0)}`);
- return `<p class="warn" style="margin:0">${left}人がまだ出ていません。${spare.length?`蔵に余っている刀：${spare.join('・')}振（その刀の隊を＋で増やせます）`:'刀が足りず、これ以上は出せません（鍛冶場で打つ）'}</p>`;}
+function stayHome(){const left=G.pupils-usedPupils(-1);if(left<=0)return '';const used=usedSwords(-1),spare=FORM_KEYS.filter(f=>G.kura[f]-(used[f]||0)>0);
+ const inUse=spare.filter(f=>P.sq.some(q=>q.form===f)),idle=spare.filter(f=>!P.sq.some(q=>q.form===f)),nm=f=>`${FORMS[f].name}${G.kura[f]-(used[f]||0)}振`;
+ const how=[inUse.length?`${inUse.map(nm).join('・')}が余っています（その刀の隊を＋で増やせます）`:'',idle.length?`${idle.map(nm).join('・')}が余っています（どれかの隊の刀を${idle.map(f=>FORMS[f].name).join('か')}に変えると出せます）`:''].filter(Boolean).join('。');
+ return `<p class="warn" style="margin:0">${left}人がまだ出ていません。${how||'刀が足りず、これ以上は出せません（鍛冶場で打つ）'}</p>`;}
 function keep(fn){const y=$('#sheetIn').scrollTop;fn();$('#sheetIn').scrollTop=y;}
 
 // ===== the battle rules =====================================================
