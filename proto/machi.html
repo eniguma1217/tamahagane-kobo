@@ -69,14 +69,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 
 /* the 箱庭 */
 .yardwrap{position:relative}
-.yard{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#33412a;padding:5px;border-radius:12px;border:1px solid var(--line)}
-.tile{aspect-ratio:1;border-radius:5px;background:#5f7a45;border:0;display:flex;align-items:center;justify-content:center;position:relative;padding:0;font-size:10px;color:rgba(239,230,210,.45);line-height:1.1;min-width:0;overflow:hidden}
-.tile:nth-child(3n){background:#5a7442}
-.tile.closed{background:repeating-linear-gradient(45deg,#2a2a1c 0 5px,#30301f 5px 10px);color:#9a9070;font-size:9px;flex-direction:column}
-.tile.river{background:linear-gradient(180deg,#3d6f8f,#356582)}
-.tile.forest,.tile.gate{background:#5a7442}
+.yard{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;background:#e9c27d url(../assets/dojo-v2/tile-road.png) 0 0/96px 96px;image-rendering:pixelated;padding:5px;position:relative;border:6px solid #c9a54a;border-image:repeating-linear-gradient(90deg,#e6c66e 0 5px,#9c7a2c 5px 7px) 6}
+.yard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:calc(7.5px + (100% - 40px)/7);background:url(../assets/dojo-v2/tile-water.png) 0 0/96px 96px;image-rendering:pixelated;box-shadow:inset -3px 0 0 rgba(120,100,70,.55)}
+.tile{aspect-ratio:1;border-radius:3px;background:url(../assets/dojo-v2/tile-grass.png) 0 0/96px 96px;image-rendering:pixelated;box-shadow:inset 0 0 0 1px rgba(70,100,20,.35);border:0;z-index:1;display:flex;align-items:center;justify-content:center;position:relative;padding:0;font-size:10px;color:rgba(239,230,210,.45);line-height:1.1;min-width:0;overflow:hidden}
+.tile.closed{background:linear-gradient(rgba(24,18,10,.58),rgba(24,18,10,.58)),url(../assets/dojo-v2/tile-grass.png) 0 0/96px 96px;color:#f0dfb0;font-size:9px;flex-direction:column;text-shadow:0 0 2px #000}
+.tile.river,.tile.road{background:transparent;box-shadow:none}
+.tile.gate{background:transparent;box-shadow:none}
 .tile svg{width:100%;height:100%;display:block}
-.tile img{width:112%;height:112%;object-fit:contain;display:block;margin:-6%;pointer-events:none}
+.tile img{width:112%;height:112%;object-fit:contain;display:block;margin:-6%;pointer-events:none;image-rendering:pixelated}
+.tile img.fit,.opt .ic img.fit{position:absolute;margin:0;max-width:none}
+.tile.b{overflow:visible}
+.tile .lbl{z-index:1}
 .tile.honden img{width:100%;height:100%;margin:0}
 .tile.honden{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
 .tile .lbl{position:absolute;left:0;right:0;bottom:0;font-size:8px;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000;text-align:center;white-space:nowrap}
@@ -84,7 +87,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .tile .idle{position:absolute;top:0;right:2px;color:#ffb3a3;font-weight:800;font-size:11px;text-shadow:0 0 2px #000}
 .tile.range{box-shadow:inset 0 0 0 2px rgba(214,255,184,.85)}
 .tile.sel{outline:2px solid var(--gold);outline-offset:1px;z-index:1}
-#walk{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+#walk{position:absolute;inset:0;pointer-events:none;width:100%;height:100%;z-index:2}
 .smoke{animation:smoke 2.4s ease-out infinite;transform-origin:center}
 @keyframes smoke{from{opacity:.8;transform:translateY(0) scale(.8)}to{opacity:0;transform:translateY(-8px) scale(1.4)}}
 .glow{animation:glow 1.2s ease-in-out infinite alternate}
@@ -133,7 +136,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 .close{align-self:flex-end;background:none;border:0;color:var(--muted);font-size:13px}
 .opt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0 10px;align-items:center;text-align:left;background:var(--wood);border:1px solid var(--line);border-radius:10px;padding:5px 10px;width:100%}
 .opt:disabled{opacity:.42}
-.opt .ic{width:38px;height:38px;grid-row:span 2;border-radius:6px;overflow:hidden;background:#5f7a45}
+.opt .ic{position:relative;width:38px;height:38px;grid-row:span 2;border-radius:6px;overflow:hidden;background:url(../assets/dojo-v2/tile-grass.png) 0 0/48px 48px}
+.opt .ic img{image-rendering:pixelated}
 .opt .ic svg,.opt .ic img{width:100%;height:100%;object-fit:contain;display:block}
 .opt .nm{font-family:var(--display);font-weight:800}
 .opt .ds{font-size:11px;color:var(--muted);grid-column:2}
@@ -229,7 +233,7 @@ button{font:inherit;color:inherit;cursor:pointer}
    <section>
     <h2>第三案で入れたこと</h2>
     <ul>
-     <li><b>絵と動き</b>：作っていただいた24枚（建物・飾り・門と林・ちびキャラ・5人の顔・町の地図）を入れました。箱庭を門下生や旅人が歩きます。試合ではちびキャラが大勢で斬り合い、隊長の顔が出ます。絵の頼み方（24枚）はdocs/ART_PROMPTS.md の36〜59番にあります。</li>
+     <li><b>絵と動き</b>：街並み（建物・飾り・門と林・草地・道・川・町の地図）は ChatGPT（Codex）が作った和風ドット絵です（#48・#49）。箱庭は草地の区画と、そのあいだの道、途切れない川でつながった一枚の町にしました。ちびキャラと5人の顔は、作っていただいた絵のままです。箱庭を門下生や旅人が歩きます。試合ではちびキャラが大勢で斬り合い、隊長の顔が出ます。絵の頼み方（24枚）はdocs/ART_PROMPTS.md の36〜59番にあります。</li>
      <li><b>戦いの見ごたえ</b>：門下生のちびキャラが駆け寄って斬り合い、倒れていきます。試合のはじめに、隊長どうしの一騎討ちがあります。名刀をもつ隊長は、刃文の必殺技をカットインで放ちます。</li>
      <li><b>先の目標</b>：名声で道場の格が上がります（町道場 → 名門 → 大流派）。格が上がると、隊と建物が増えます。毎年霜月に御前試合（一騎討ちの勝ち抜き）があります。町一番になると、国の地図が開きます。</li>
      <li><b>刀鍛冶らしさ</b>：名刀は自分で打ちます（5回叩く → 刃文をなぞる → 焼き入れ）。叩いた出来で攻撃力が、なぞった刃文で必殺技が決まります。刀には戦歴が残り、敵の隊長を倒すと二つ名がつきます。打つほど鍛冶の腕が上がり、鍛冶場の刀の出来も良くなります。</li>
@@ -367,7 +371,7 @@ const SCHOOLS={
   squads:[{form:'uchigatana',troops:16,rank:'front',lead:0},{form:'wakizashi',troops:9,rank:'front'},{form:'yari',troops:13,rank:'mid'},{form:'odachi',troops:11,rank:'back'}],
   champs:[{name:'天神 一心',trait:'智',lv:7,hamon:'gunome'}],reward:{travel:5}},
 };
-const NODES={tama:{x:45,y:170},hayate:{x:54,y:52},suigetsu:{x:178,y:186},kito:{x:202,y:57},tenjin:{x:314,y:104}};
+const NODES={tama:{x:72,y:178},hayate:{x:81,y:50},suigetsu:{x:174,y:182},kito:{x:197,y:50},tenjin:{x:291,y:122}};
 const ROADS=[['tama','hayate'],['tama','suigetsu'],['hayate','kito'],['suigetsu','kito'],['kito','tenjin'],['suigetsu','tenjin']];
 const MEITO_NAMES=['霞','朧','燕','時雨','白鷺','不知火','村雨','雷丸'];
 const RONIN=[{name:'月島 源心',trait:'剛',lv:4},{name:'早瀬 弥九郎',trait:'速',lv:5},{name:'大庭 主水',trait:'守',lv:4}];
@@ -390,7 +394,8 @@ function newGame(){
 }
 const T=(x,y)=>G.yard[y*GW+x];
 function put(x,y,b){T(x,y).b=b;if(b==='honden'){T(x+1,y).b='honden';T(x,y+1).b='honden';T(x+1,y+1).b='honden';}}
-const terrain=(x,y)=>x===0?'river':FOREST.has(`${x},${y}`)?'forest':(x===GATE[0]&&y===GATE[1])?'gate':null;
+const ROAD=new Set(['3,7']); // the way from the gate up to the 本堂
+const terrain=(x,y)=>x===0?'river':FOREST.has(`${x},${y}`)?'forest':(x===GATE[0]&&y===GATE[1])?'gate':ROAD.has(`${x},${y}`)?'road':null;
 const isOpen=t=>t.d&&G.open[t.d];
 const near4=(x,y)=>[[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([a,b])=>a>=0&&b>=0&&a<GW&&b<GH);
 const touches=(x,y,fn)=>near4(x,y).some(([a,b])=>fn(a,b));
@@ -474,8 +479,15 @@ const terrSvg={
 // the owner's pictures (art/…): buildings, people and faces. The code-drawn ones stay as a fallback.
 const BIMG={nagaya:'bld-nagaya',yashiki:'bld-yashiki',keiko:'bld-keiko',sumi:'bld-sumi',satetsu:'bld-satetsu',kaji:'bld-kaji',chaya:'bld-chaya',katanaya:'bld-katanaya',sakura:'deco-sakura',toro:'deco-toro',ido:'deco-ido',nobori:'deco-nobori'};
 const FIMG={'太郎丸':'face-taromaru','風間 隼人':'face-kazama','水野 静':'face-mizuno','鬼頭 権蔵':'face-kito','天神 一心':'face-tenjin'};
-const bimg=b=>`<img src="../assets/dojo/${BIMG[b]}.png" alt="" draggable="false">`;
+// where each pixel picture's visible part is (docs/art-town-v2/manifest.json, out of 1254), so every building fills its plot the same way
+const BBOX={'bld-nagaya':[86,400,1170,963],'bld-yashiki':[130,131,1100,1145],'bld-keiko':[114,307,1134,996],'bld-kaji':[140,242,1117,1009],'bld-sumi':[233,287,1013,980],'bld-satetsu':[137,185,1112,1084],'bld-chaya':[152,342,1078,969],'bld-katanaya':[136,286,1107,940],
+ 'deco-sakura':[205,195,1041,1066],'deco-ido':[339,314,915,987],'deco-toro':[373,216,876,1033],'deco-nobori':[311,140,922,1113],'tile-gate':[123,412,1131,876],'tile-forest':[172,237,1084,993]};
+function pimg(k){const bb=BBOX[k],src=`../assets/dojo-v2/${k}.png`;if(!bb)return `<img src="${src}" alt="" draggable="false">`;
+ const small=!k.startsWith('bld'),vw=(bb[2]-bb[0])/1254,vh=(bb[3]-bb[1])/1254,s=Math.min((small?0.82:0.98)/vw,(small?1.0:1.15)/vh),cx=(bb[0]+bb[2])/2/1254,by=bb[3]/1254;
+ return `<img class="fit" src="${src}" alt="" draggable="false" style="width:${(s*100).toFixed(1)}%;height:${(s*100).toFixed(1)}%;left:${((0.5-s*cx)*100).toFixed(1)}%;top:${((0.95-s*by)*100).toFixed(1)}%">`;}
+const bimg=b=>pimg(BIMG[b]);
 const SPR={};for(const k of ['chibi-monka','chibi-foe'])(SPR[k]=new Image()).src=`../assets/dojo/${k}.png`;
+const GRASS=new Image();GRASS.src='../assets/dojo-v2/tile-grass.png';
 const FACEIMG={};for(const [n,k] of Object.entries(FIMG))(FACEIMG[n]=new Image()).src=`../assets/dojo/${k}.jpg`;
 const ready=im=>im&&im.complete&&im.naturalWidth>0;
 function sprite(ctx,key,x,y,h,flip,opt={}){const im=SPR[key];if(!ready(im))return false;ctx.save();ctx.translate(x,y);if(opt.rot)ctx.rotate(opt.rot);if(opt.tilt)ctx.rotate(opt.tilt);ctx.globalAlpha=opt.alpha??1;if(flip)ctx.scale(-1,1);
@@ -543,11 +555,12 @@ function yard(){
  const tiles=G.yard.map((t,i)=>{
   const ter=terrain(t.x,t.y);
   const inRange=selDeco&&Math.max(Math.abs(sel.x-t.x),Math.abs(sel.y-t.y))<=2&&t!==sel?' range':'';
-  if(ter==='river')return `<div class="tile river" data-i="${i}">${terrSvg.river}</div>`;
-  if(t.b==='honden'){if(T(t.x-1,t.y).b==='honden'||t.y>0&&T(t.x,t.y-1).b==='honden')return '';return `<button class="tile honden" data-t="${i}" data-i="${i}"><img src="../assets/dojo/${rk>=2?'bld-honden-big':'bld-honden'}.png" alt="">${rk===1?'<span class="bonus" style="font-size:10px">名門</span>':''}<span class="lbl">本堂</span></button>`;}
+  if(ter==='river')return `<div class="tile river" data-i="${i}"></div>`;
+  if(ter==='road'&&isOpen(t))return `<div class="tile road" data-i="${i}"></div>`;
+  if(t.b==='honden'){if(T(t.x-1,t.y).b==='honden'||t.y>0&&T(t.x,t.y-1).b==='honden')return '';return `<button class="tile honden" data-t="${i}" data-i="${i}"><img src="../assets/dojo-v2/${rk>=2?'bld-honden-big':'bld-honden'}.png" alt="">${rk===1?'<span class="bonus" style="font-size:10px">名門</span>':''}<span class="lbl">本堂</span></button>`;}
   if(!isOpen(t)){const first=G.yard.find(u=>u.d===t.d)===t,D=DIST[t.d];return `<button class="tile closed" data-t="${i}" data-i="${i}">${first?`<span>${D.name.slice(0,1)}</span><span>${D.deed?'権利証':yen(D.cost)+'文'}</span>`:ter==='forest'?'林':''}</button>`;}
-  if(ter)return `<div class="tile ${ter}${inRange}" data-i="${i}"><img src="../assets/dojo/tile-${ter}.png" alt="">${ter==='gate'?'<span class="lbl">入口</span>':''}</div>`;
-  if(t.b){const B=BUILD[t.b];return `<button class="tile${G.sel===i?' sel':''}${inRange}" data-t="${i}" data-i="${i}">${bimg(t.b)}<span class="lbl">${B.name}</span>${e.idle[i]?'<span class="idle">✕</span>':e.bon[i]?'<span class="bonus">＋</span>':''}</button>`;}
+  if(ter)return `<div class="tile b ${ter}${inRange}" data-i="${i}">${pimg('tile-'+ter)}${ter==='gate'?'<span class="lbl">入口</span>':''}</div>`;
+  if(t.b){const B=BUILD[t.b];return `<button class="tile b${G.sel===i?' sel':''}${inRange}" data-t="${i}" data-i="${i}">${bimg(t.b)}<span class="lbl">${B.name}</span>${e.idle[i]?'<span class="idle">✕</span>':e.bon[i]?'<span class="bonus">＋</span>':''}</button>`;}
   return `<button class="tile${G.sel===i?' sel':''}${inRange}" data-t="${i}" data-i="${i}"></button>`;}).join('');
  const nr=RANK[rk+1];
  view.innerHTML=`
@@ -641,7 +654,7 @@ function provinceSvg(){
 function town(){
  const col=k=>SCHOOLS[G.owner[k]].color;
  const svg=`<svg viewBox="0 0 360 240" role="img" aria-label="柳瀬宿の地図">
-  <rect width="360" height="240" fill="#3b4a2e"/><image href="../assets/dojo/map-yanase.jpg" x="0" y="0" width="360" height="240" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="360" height="240" fill="#3b4a2e"/><image href="../assets/dojo-v2/map-yanase.png" x="0" y="0" width="360" height="240" preserveAspectRatio="xMidYMid slice" style="image-rendering:pixelated"/>
   ${ROADS.map(([a,b])=>{const A=NODES[a],B=NODES[b];return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#2a1d10" stroke-width="6" stroke-linecap="round" opacity=".45"/><line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#fff3d0" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round"/>`;}).join('')}
   ${Object.entries(NODES).map(([k,p])=>{const mine=G.owner[k]==='tama',can=canChallenge(k);
    return `<g data-node="${k}" style="cursor:pointer">
@@ -1081,7 +1094,8 @@ function battleLoop(now){
 }
 function drawBattle(dt){
  const cv=$('#bcv'),ctx=cv.getContext('2d'),W=BT.W,H=BT.H;
- const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5a6a3a');g.addColorStop(0.5,'#6f7a44');g.addColorStop(1,'#5a6a3a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ if(ready(GRASS)){ctx.imageSmoothingEnabled=false;for(let y=0;y<H;y+=96)for(let x=0;x<W;x+=96)ctx.drawImage(GRASS,x,y,96,96);ctx.imageSmoothingEnabled=true;ctx.fillStyle='rgba(20,30,0,.28)';ctx.fillRect(0,0,W,H);}
+ else{const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5a6a3a');g.addColorStop(0.5,'#6f7a44');g.addColorStop(1,'#5a6a3a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}
  ctx.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<30;i++){ctx.fillRect((i*73)%W,(i*131)%H,18,3);}
  ctx.strokeStyle='rgba(255,255,255,.15)';ctx.setLineDash([4,6]);ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
  const A=BT.anim;
