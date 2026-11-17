@@ -1,0 +1,1250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>道場の町取り 見本</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* One deliberate look: the game's own dark wood and washi, so a single theme. */
+:root{
+ --ground:#17110d; --wood:#2a1d15; --wood-2:#3a291d; --wood-3:#4a3424; --line:rgba(217,178,94,.25);
+ --paper:#efe6d2; --muted:#b9a98d; --gold:#d9b25e; --shu:#e0604a; --ok:#9be07f; --ifh:#c9a2ff;
+ --washi:#efe4cc; --sumi:#2a211a;
+ --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+ --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+ color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.7;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:24px 56px;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(26px,6vw,36px);font-weight:800;letter-spacing:.06em}
+h2{font-size:19px;font-weight:800;letter-spacing:.04em;color:var(--gold)}
+.lead{max-width:62ch;margin:4px 0 0;color:var(--muted)}
+.tag{font-size:12px;letter-spacing:.18em;color:var(--gold)}
+.cols{display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:820px){.cols{grid-template-columns:minmax(0,1fr)}}
+.notes{display:flex;flex-direction:column;gap:20px;min-width:0}
+.notes ul,.notes ol{margin:6px 0 0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.notes li{max-width:62ch}
+.notes table{border-collapse:collapse;font-size:13px;width:100%}
+.notes th,.notes td{border-bottom:1px solid rgba(239,230,210,.12);padding:4px 6px;text-align:left;vertical-align:top}
+.notes th{font-family:var(--display);color:var(--gold);font-weight:600}
+.tw{overflow-x:auto}
+.cheat{display:flex;gap:8px;flex-wrap:wrap}
+
+/* the phone */
+.phone{background:#0e0a08;border:1px solid rgba(239,230,210,.18);border-radius:24px;padding:10px;width:100%;max-width:400px;height:780px;max-height:calc(100dvh - 32px);min-height:620px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.top{display:grid;grid-template-columns:auto 1fr;gap:0 8px;align-items:center;padding:0 4px 8px;border-bottom:1px solid rgba(239,230,210,.1)}
+.top .when{font-family:var(--display);font-size:15px;color:var(--gold);font-weight:800;line-height:1.3}
+.top .when small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.top .stats{display:flex;gap:4px 9px;justify-content:flex-end;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.top .stats b{color:var(--paper);font-weight:700;font-variant-numeric:tabular-nums}
+#view{flex:1;overflow-y:auto;padding:10px 2px 8px;display:flex;flex-direction:column;gap:10px;min-height:0}
+#view>*{flex-shrink:0}
+.foot{display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:6px;padding-top:8px;border-top:1px solid rgba(239,230,210,.1)}
+.tab{background:var(--wood);border:1px solid var(--line);border-radius:10px;padding:6px 0;font-size:11px;color:var(--muted);text-align:center;line-height:1.3}
+.tab b{display:block;font-family:var(--display);font-size:16px;color:var(--paper)}
+.tab.on{border-color:var(--gold);background:var(--wood-3)}
+.tab.on b{color:var(--gold)}
+.next{background:var(--gold);color:var(--sumi);border:0;border-radius:10px;font-family:var(--display);font-weight:800;font-size:14px;line-height:1.25;white-space:nowrap;padding:0 4px}
+.next small{display:block;font-family:var(--body);font-size:10px;font-weight:700}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--wood-2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-align:left;line-height:1.45}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.main{background:var(--gold);color:var(--sumi);border-color:var(--gold);font-weight:700;text-align:center;font-size:16px}
+.btn.sm{padding:3px 10px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>.grow{flex:1;min-width:0}
+.small{font-size:12px;color:var(--muted)}
+.panel{background:var(--wood);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.panel h3{font-size:15px;color:var(--gold);margin-bottom:4px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)}
+.kv b{font-variant-numeric:tabular-nums;font-weight:700}
+.plus{color:var(--ok)}.minus{color:#ff9a80}.warn{font-size:12px;color:#ffb3a3}
+
+/* the 箱庭 */
+.yardwrap{position:relative}
+.yard{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;background:#33412a;padding:5px;border-radius:12px;border:1px solid var(--line)}
+.tile{aspect-ratio:1;border-radius:5px;background:#5f7a45;border:0;display:flex;align-items:center;justify-content:center;position:relative;padding:0;font-size:10px;color:rgba(239,230,210,.45);line-height:1.1;min-width:0;overflow:hidden}
+.tile:nth-child(3n){background:#5a7442}
+.tile.closed{background:repeating-linear-gradient(45deg,#2a2a1c 0 5px,#30301f 5px 10px);color:#9a9070;font-size:9px;flex-direction:column}
+.tile.river{background:linear-gradient(180deg,#3d6f8f,#356582)}
+.tile.forest,.tile.gate{background:#5a7442}
+.tile svg{width:100%;height:100%;display:block}
+.tile img{width:112%;height:112%;object-fit:contain;display:block;margin:-6%;pointer-events:none}
+.tile.honden img{width:100%;height:100%;margin:0}
+.tile.honden{grid-column:span 2;grid-row:span 2;aspect-ratio:auto}
+.tile .lbl{position:absolute;left:0;right:0;bottom:0;font-size:8px;color:#fff;text-shadow:0 0 2px #000,0 0 2px #000;text-align:center;white-space:nowrap}
+.tile .bonus{position:absolute;top:0;right:2px;color:#d6ffb8;font-weight:800;font-size:11px;text-shadow:0 0 2px #000}
+.tile .idle{position:absolute;top:0;right:2px;color:#ffb3a3;font-weight:800;font-size:11px;text-shadow:0 0 2px #000}
+.tile.range{box-shadow:inset 0 0 0 2px rgba(214,255,184,.85)}
+.tile.sel{outline:2px solid var(--gold);outline-offset:1px;z-index:1}
+#walk{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+.smoke{animation:smoke 2.4s ease-out infinite;transform-origin:center}
+@keyframes smoke{from{opacity:.8;transform:translateY(0) scale(.8)}to{opacity:0;transform:translateY(-8px) scale(1.4)}}
+.glow{animation:glow 1.2s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.55}to{opacity:1}}
+.boards{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;align-items:flex-start}
+.board{writing-mode:vertical-rl;font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.1em;background:linear-gradient(#7a5434,#5e3f26);color:#f4e7c8;border:2px solid #2b1d12;border-radius:3px;padding:7px 3px;min-height:76px;box-shadow:0 2px 0 #1a120b;flex:none}
+.board.mine{background:linear-gradient(#caa45a,#9c7a3a);color:#2a1d10}
+.board.new{animation:hang .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes hang{from{transform:translateY(-40px) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.rankline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.rankline b{font-family:var(--display);color:var(--gold);font-size:14px}
+.meter{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--gold)}
+
+/* maps */
+.map{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#3b4a2e}
+.map svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;vertical-align:-1px}
+.locked{position:relative}
+.locked::after{content:"町一番になると開く";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(14,10,8,.7);font-family:var(--display);font-weight:800;color:var(--gold);letter-spacing:.1em}
+
+/* lists */
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;background:var(--wood);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.item .ic{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--wood-3);grid-row:span 2;overflow:hidden}
+.item .ic.t{font-family:var(--display);font-weight:800;font-size:22px}
+.item .nm{font-family:var(--display);font-weight:800;font-size:15px}
+.item .ds{font-size:12px;color:var(--muted);grid-column:2 / -1}
+.item .rt{text-align:right;font-size:12px}
+.lv{font-variant-numeric:tabular-nums;color:var(--gold)}
+.hurt{color:#ff9a80;font-size:11px}
+.tog{background:var(--wood-2);border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12px}
+.tog.on{background:var(--gold);color:var(--sumi);border-color:var(--gold);font-weight:700}
+.meito{background:var(--washi);color:var(--sumi);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:3px}
+.meito .nm{font-family:var(--display);font-weight:800;font-size:16px}
+.meito .title{display:inline-block;background:#b3261e;color:#fff;font-family:var(--display);font-size:12px;border-radius:3px;padding:0 6px;margin-left:6px}
+.meito canvas{width:100%;height:46px;display:block}
+.meito ul{margin:0;padding-left:1.1em;font-size:12px}
+.meito .sm{font-size:12px;color:#6a5638}
+
+/* sheets */
+.sheet{position:absolute;inset:0;background:rgba(8,5,3,.72);display:flex;align-items:flex-end;z-index:5}
+.sheet[hidden]{display:none}
+.sheet .in{background:#1c140f;border-top:1px solid var(--gold);border-radius:16px 16px 0 0;padding:12px 12px 14px;width:100%;max-height:94%;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.sheet h3{font-size:17px;color:var(--gold)}
+.close{align-self:flex-end;background:none;border:0;color:var(--muted);font-size:13px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0 10px;align-items:center;text-align:left;background:var(--wood);border:1px solid var(--line);border-radius:10px;padding:5px 10px;width:100%}
+.opt:disabled{opacity:.42}
+.opt .ic{width:38px;height:38px;grid-row:span 2;border-radius:6px;overflow:hidden;background:#5f7a45}
+.opt .ic svg,.opt .ic img{width:100%;height:100%;object-fit:contain;display:block}
+.opt .nm{font-family:var(--display);font-weight:800}
+.opt .ds{font-size:11px;color:var(--muted);grid-column:2}
+.opt .pr{grid-row:span 2;font-size:13px;color:var(--gold);white-space:nowrap;text-align:right}
+.cat{font-size:11px;letter-spacing:.2em;color:var(--gold);margin-top:2px}
+.report{margin:0;padding-left:1.1em}
+.report li{font-size:13px}
+.big{font-family:var(--display);font-size:16px;color:var(--shu);margin:0}
+.gold-big{font-family:var(--display);font-size:20px;color:var(--gold);text-align:center;margin:0}
+
+/* battle prep */
+.foe{background:rgba(224,96,74,.1);border:1px solid rgba(224,96,74,.45);border-radius:12px;padding:8px 10px;font-size:13px}
+.foe b{font-family:var(--display);color:#ffb3a3}
+.sq{background:var(--wood);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
+.sq .hd{display:flex;align-items:center;gap:8px}
+.sq .hd b{font-family:var(--display);color:var(--gold)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{background:var(--wood-2);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px}
+.chip.on{background:var(--gold);color:var(--sumi);border-color:var(--gold);font-weight:700}
+.chip:disabled{opacity:.35}
+.chip small{opacity:.8}
+.lbl2{font-size:11px;color:var(--muted);width:2.8em;flex:none}
+.step{display:flex;align-items:center;gap:6px}
+.step button{width:32px;height:28px;border-radius:8px;background:var(--wood-2);border:1px solid var(--line);font-size:15px}
+.step output{min-width:3em;text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+.rule{font-size:11px;color:var(--muted);line-height:1.55;margin:0}
+.rule b{color:var(--gold);font-weight:700}
+
+/* overlays: battle, duel, forge */
+.over{position:absolute;inset:0;background:#0e0a08;z-index:8;display:flex;flex-direction:column;padding:10px;gap:6px}
+.over[hidden]{display:none}
+.bhead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;font-family:var(--display);font-weight:800;font-size:14px}
+.bhead .r{text-align:right}
+.bhead .mid{color:var(--gold);font-size:13px;text-align:center}
+.cvbox{flex:1;position:relative;min-height:0;border-radius:12px;overflow:hidden}
+.cvbox canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.banner{position:absolute;left:0;right:0;top:42%;text-align:center;font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:.14em;text-shadow:0 2px 12px #000,0 0 3px #000;pointer-events:none;transition:opacity .35s;z-index:4;opacity:0}
+.blog{font-size:12px;color:var(--muted);min-height:1.6em;text-align:center}
+.cutin{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.88) 30%,rgba(0,0,0,.88) 70%,rgba(0,0,0,.2));pointer-events:none;opacity:0;transition:opacity .2s}
+.cutin.on{opacity:1}
+.cutin canvas{position:static;width:100%;height:110px}
+.cutin .wn{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.16em;color:#fff;text-shadow:0 0 18px var(--cc,#ffd56a),0 0 3px #000;animation:slam .5s cubic-bezier(.2,1.6,.4,1) both}
+.cutin .ciface{width:64px;height:64px;border-radius:50%;border:3px solid var(--cc,#ffd56a);object-fit:cover;box-shadow:0 0 16px var(--cc,#ffd56a)}
+.cutin .ciface[hidden]{display:none}
+.cutin .who{font-family:var(--display);font-size:14px;color:var(--cc,#ffd56a)}
+@keyframes slam{from{transform:scale(2.2);opacity:0}to{transform:none;opacity:1}}
+.duelbar{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-family:var(--display);font-weight:800}
+.duelbar .r{text-align:right}
+.pips{letter-spacing:3px;color:var(--gold);font-size:18px}
+.gauge{position:relative;height:30px;border-radius:15px;background:linear-gradient(90deg,#2a1d15,#6a3a1a 30%,#ffb35a 44%,#fff1c0 50%,#ffb35a 56%,#6a3a1a 70%,#2a1d15);border:1px solid var(--line)}
+.gauge i{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:#fff;border-radius:2px;box-shadow:0 0 6px #fff}
+.fbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.toast{position:absolute;left:14px;right:14px;bottom:70px;background:rgba(14,10,8,.95);border:1px solid var(--gold);border-radius:10px;padding:8px 12px;font-size:13px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header>
+  <p style="margin:0 0 6px"><a href="./" style="color:var(--gold)">← 試作をえらぶ</a></p>
+  <span class="tag">玉鋼工房 ・ 出陣の作り直し ・ 道場 ・ 遊べる見本（第三案）</span>
+  <h1>道場の町取り</h1>
+  <p class="lead">刀鍛冶が開いた小さな道場「玉鋼流」を育てて、宿場町・柳瀬の看板をすべて集めます。箱庭に建物を置き、刀を打って売り、門下生を増やします。他流試合は隊を組んで自動で戦います。隊長には自分で打った名刀をもたせ、刃文の必殺技で戦います。</p>
+ </header>
+ <div class="cols">
+  <div class="phone" id="phone">
+   <div class="top"><span class="when" id="when"></span><span class="stats" id="stats"></span></div>
+   <div id="view"></div>
+   <div class="foot">
+    <button class="tab" data-tab="yard"><b>道場</b>箱庭</button>
+    <button class="tab" data-tab="town"><b>町</b>地図</button>
+    <button class="tab" data-tab="kura"><b>蔵</b>刀と鍛冶</button>
+    <button class="tab" data-tab="deshi"><b>弟子</b>門下</button>
+    <button class="next" id="nextMonth">月を進める<small id="nextLabel"></small></button>
+   </div>
+   <div class="sheet" id="sheet" hidden><div class="in" id="sheetIn"></div></div>
+   <div class="over" id="battle" hidden>
+    <div class="bhead"><span id="bR"></span><span class="mid" id="bRound"></span><span class="r" id="bKind"></span></div>
+    <div class="cvbox" id="bbox"><canvas id="bcv"></canvas><div class="banner" id="banner"></div>
+     <div class="cutin" id="cutin"><img class="ciface" id="ciFace" alt="" hidden><span class="who" id="ciWho"></span><canvas id="cicv"></canvas><span class="wn" id="ciName"></span></div></div>
+    <div class="blog" id="blog"></div>
+    <div class="row"><button class="btn sm" id="speed">はやく</button><span class="grow"></span><span class="small" id="bL"></span><span class="grow"></span><button class="btn sm" id="skip">結果へ</button></div>
+   </div>
+   <div class="over" id="forge" hidden>
+    <div class="bhead"><span id="fTitle">名刀を打つ</span><span class="mid" id="fStep"></span><span class="r"><button class="btn sm" id="fClose">やめる</button></span></div>
+    <div class="cvbox"><canvas id="fcv"></canvas></div>
+    <div id="fCtl" style="display:flex;flex-direction:column;gap:8px"></div>
+   </div>
+   <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="notes">
+   <section>
+    <h2>第三案で入れたこと</h2>
+    <ul>
+     <li><b>絵と動き</b>：作っていただいた24枚（建物・飾り・門と林・ちびキャラ・5人の顔・町の地図）を入れました。箱庭を門下生や旅人が歩きます。試合ではちびキャラが大勢で斬り合い、隊長の顔が出ます。絵の頼み方（24枚）はdocs/ART_PROMPTS.md の36〜59番にあります。</li>
+     <li><b>戦いの見ごたえ</b>：門下生のちびキャラが駆け寄って斬り合い、倒れていきます。試合のはじめに、隊長どうしの一騎討ちがあります。名刀をもつ隊長は、刃文の必殺技をカットインで放ちます。</li>
+     <li><b>先の目標</b>：名声で道場の格が上がります（町道場 → 名門 → 大流派）。格が上がると、隊と建物が増えます。毎年霜月に御前試合（一騎討ちの勝ち抜き）があります。町一番になると、国の地図が開きます。</li>
+     <li><b>刀鍛冶らしさ</b>：名刀は自分で打ちます（5回叩く → 刃文をなぞる → 焼き入れ）。叩いた出来で攻撃力が、なぞった刃文で必殺技が決まります。刀には戦歴が残り、敵の隊長を倒すと二つ名がつきます。打つほど鍛冶の腕が上がり、鍛冶場の刀の出来も良くなります。</li>
+    </ul>
+   </section>
+   <section>
+    <h2>見本用の近道</h2>
+    <p class="small" style="margin:0">先の画面をすぐ見るためのボタンです（本番にはありません）。</p>
+    <div class="cheat">
+     <button class="btn sm" data-cheat="forge">名刀を打ってみる</button>
+     <button class="btn sm" data-cheat="strong">半年すすめた道場にする</button>
+     <button class="btn sm" data-cheat="gozen">御前試合を始める</button>
+     <button class="btn sm" data-cheat="win">町一番にする（国の地図）</button>
+     <button class="btn sm" data-cheat="reset">最初から</button>
+    </div>
+   </section>
+   <section>
+    <h2>遊び方</h2>
+    <ol>
+     <li><b>道場（箱庭）</b>：あいたマスを押して建てます。炭焼き小屋は林のとなり、砂鉄場は川のとなりでないと働きません。鍛冶場は、炭焼き小屋と砂鉄場が近いほど多く打てます。飾りは周り5×5マスに効きます。入口の近くに店がないと、旅人が引き返します。</li>
+     <li><b>月を進める</b>：月謝と店の売り上げが入り、鍛冶場が刀を打ち、入門者が来ます。よその道場も強くなり、ときどき道場破りが来ます。</li>
+     <li><b>町</b>：道でつながった道場に、ひと月に一度、他流試合を申しこめます。</li>
+     <li><b>隊を組む</b>：隊ごとに隊長・刀・人数・位置（前・中・後）を決めます。</li>
+     <li><b>戦い</b>：自動で3回の「合」を戦います。毎合、脇差 → 槍 → 打刀 → 大太刀の順に動きます。3合で決着しなければ引き分けです。</li>
+    </ol>
+   </section>
+   <section>
+    <h2>刀の役目</h2>
+    <div class="tw"><table>
+     <tr><th>刀</th><th>動く順</th><th>届く位置</th><th>とくちょう</th></tr>
+     <tr><td>脇差</td><td>1番</td><td>前・中から</td><td>先手。打たれ弱い（受ける傷 ×1.25）</td></tr>
+     <tr><td>槍</td><td>2番</td><td>前・中から</td><td>味方の後ろからも突け、相手の前の列ごしに中の列も突ける</td></tr>
+     <tr><td>打刀</td><td>3番</td><td>いちばん前の列だけ</td><td>打たれ強い（×0.8）。前に立って後ろを守る</td></tr>
+     <tr><td>大太刀</td><td>4番</td><td>どこからでも</td><td>敵の隊すべてを、まとめてなぎ払う</td></tr>
+    </table></div>
+    <p class="small">相性：槍 ＞ 大太刀 ＞ 脇差 ＞ 槍（×1.5）。必殺技：直刃「一文字斬り」（大きな一太刀）／互の目「◯ツ山斬り」（描いた山の数だけ連続）／湾れ「大波斬り」（敵の隊すべて）／丁子「乱れ咲き」（細かい連撃がすべて有利あつかい）。</p>
+   </section>
+   <section>
+    <h2>見本だけの仮の決めごと</h2>
+    <ul>
+     <li>数字・道場・剣士の名前はすべて仮です。セーブはしません。</li>
+     <li>名刀を打つ画面は、本番の打つ画面を短くしたものです。本番では今の打つ画面（素材・焼き入れ）を使います。</li>
+     <li>国の地図は見えるだけで、まだ遊べません。</li>
+     <li>参考：合戦!!ニンジャ村の仕組み（名前・絵・ステージ・数字の表は写していません）。</li>
+    </ul>
+   </section>
+  </div>
+ </div>
+</div>
+
+<script>
+// ===== data ================================================================
+const $=s=>document.querySelector(s);
+const view=$('#view');
+const MONTHS=['睦月','如月','弥生','卯月','皐月','水無月','文月','葉月','長月','神無月','霜月','師走'];
+const KAN=n=>['〇','一','二','三','四','五','六','七','八','九','十'][n]||String(n);
+const yen=n=>Math.round(n).toLocaleString('ja-JP');
+const rnd=Math.random;
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+const GW=7,GH=9,GATE=[3,8];
+const FOREST=new Set(['6,7','1,2','6,3','5,0','6,0','2,0']);
+const DISTRICT=(x,y)=>x===0?null:y>=5?'A':y>=2?(x<=3?'B':'C'):'D';
+const DIST={A:{name:'本の区画'},B:{name:'西の区画',cost:200},C:{name:'東の区画',cost:400},D:{name:'北の区画',deed:true}};
+const RANK=[{name:'町道場',need:0},{name:'名門',need:40,text:'隊 ＋1・屋敷とのぼりが建てられる'},{name:'大流派',need:90,text:'隊 ＋1・旅人 ＋5・本堂が大きくなる'}];
+
+const BUILD={
+ nagaya:{name:'長屋',cost:40,up:2,cat:'home',text:'定員 ＋5'},
+ yashiki:{name:'屋敷',cost:120,up:6,cat:'home',rank:1,text:'定員 ＋10（長屋の上に建て替えられる）'},
+ keiko:{name:'稽古場',cost:150,up:6,cat:'train',text:'門下生の腕前 ＋0.6／月'},
+ sumi:{name:'炭焼き小屋',cost:60,up:2,cat:'prod',text:'炭 ＋5／月。林のとなりでないと働かない'},
+ satetsu:{name:'砂鉄場',cost:80,up:3,cat:'prod',text:'砂鉄 ＋5／月。川のとなりでないと働かない'},
+ kaji:{name:'鍛冶場',cost:150,up:8,cat:'prod',text:'炭2＋砂鉄2で刀1振。月に2振、となりの炭焼き小屋・砂鉄場1つにつき＋1振（＋2まで）'},
+ chaya:{name:'茶屋',cost:50,up:4,cat:'shop',text:'旅人15人まで、1人8文'},
+ katanaya:{name:'刀屋',cost:200,up:10,cat:'shop',text:'蔵の刀を旅人に売る（月4振まで。蔵で売る刀を選ぶ）'},
+ sakura:{name:'桜',cost:20,up:0,cat:'deco',range:{train:5,prod:5,sales:5},text:'周り5×5の稽古・生産・売上 ＋5%'},
+ toro:{name:'石灯籠',cost:100,up:0,cat:'deco',range:{train:10},text:'周り5×5の稽古 ＋10%'},
+ ido:{name:'井戸',cost:150,up:0,cat:'deco',range:{prod:10},text:'周り5×5の生産 ＋10%'},
+ nobori:{name:'のぼり',cost:120,up:2,cat:'deco',rank:1,range:{sales:12},text:'周り5×5の売上 ＋12%'},
+};
+const CAT_NAME={home:'住まい',train:'稽古',prod:'生産',shop:'店',deco:'飾り（周り5×5に効く）'};
+const CAT_OF={keiko:'train',sumi:'prod',satetsu:'prod',kaji:'prod',chaya:'sales',katanaya:'sales'};
+
+const FORMS={
+ wakizashi:{name:'脇差',k:'脇',pow:1.0,take:1.25,from:['front','mid'],price:40,base:50,len:0.55},
+ yari:{name:'槍',k:'槍',pow:0.95,take:1,from:['front','mid'],price:55,base:58,len:1.25},
+ uchigatana:{name:'打刀',k:'打',pow:1.1,take:0.8,from:'first',price:50,base:60,len:0.8},
+ odachi:{name:'大太刀',k:'大',pow:1.0,take:1,from:['front','mid','back'],all:0.45,price:75,base:70,len:1.1},
+};
+const FORM_KEYS=['wakizashi','yari','uchigatana','odachi'];
+const BEATS={yari:'odachi',odachi:'wakizashi',wakizashi:'yari'};
+const counter=(a,b)=>BEATS[a]===b?1.5:BEATS[b]===a?0.8:1;
+const RANKS=['front','mid','back'],RANK_NAME={front:'前',mid:'中',back:'後'};
+const TRAIT={
+ 剛:{name:'攻めの心得',text:t=>`隊の攻め ＋${10+5*(t-1)}%`},
+ 速:{name:'連撃',text:t=>`${20+10*(t-1)}%でもう一太刀`},
+ 守:{name:'鉄壁',text:t=>`隊の受ける傷 −${10+5*(t-1)}%`},
+ 智:{name:'戦術',text:t=>`味方の全隊の攻め ＋${5*t}%`},
+};
+const tierOf=lv=>clamp(1+Math.floor((lv-1)/3),1,5);
+
+// 刃文: the guide the player traces, and the 必殺技 the drawn line makes
+const HAMON={suguha:{name:'直刃'},gunome:{name:'互の目'},notare:{name:'湾れ'},choji:{name:'丁子'}};
+const HN=40;
+function guide(type,x){ // 0 = near the spine, 1 = near the edge
+ if(type==='suguha')return 0.55+0.03*Math.sin(x*Math.PI*2);
+ if(type==='gunome'){const f=(x*4)%1;return 0.72-0.42*Math.sqrt(Math.max(0,1-(2*f-1)**2));}
+ if(type==='notare')return 0.52+0.22*Math.sin(x*Math.PI*3);
+ const f=(x*7)%1;return 0.7-0.38*Math.pow(Math.max(0,1-Math.abs(2*f-1)),2.2);
+}
+const guideLine=type=>Array.from({length:HN},(_,i)=>guide(type,(i+0.5)/HN));
+function peaksOf(p){let n=0;const s=p.map((v,i)=>(p[Math.max(0,i-1)]+v+p[Math.min(p.length-1,i+1)])/3),m=s.reduce((a,b)=>a+b,0)/s.length;
+ for(let i=1;i<s.length-1;i++)if(s[i]<s[i-1]&&s[i]<=s[i+1]&&s[i]<m-0.06)n++;return n;}
+function wazaOf(type,p,q){
+ if(type==='suguha')return {type,name:'一文字斬り',text:'大きな一太刀',hits:1,mult:1.4+0.6*q};
+ if(type==='gunome'){const n=clamp(peaksOf(p),3,5);return {type,name:`${KAN(n)}ツ山斬り`,text:`${n}回続けて斬る`,hits:n,mult:0.4+0.2*q};}
+ if(type==='notare')return {type,name:'大波斬り',text:'敵の隊すべてを斬る',hits:1,all:true,mult:0.5+0.25*q};
+ const n=clamp(peaksOf(p),6,9);return {type,name:`乱れ咲き・${KAN(n)}連`,text:`${n}つの連撃がすべて有利あつかい`,hits:n,mult:0.2+0.1*q,crit:true};
+}
+
+const SCHOOLS={
+ tama:{name:'玉鋼流',color:'#d9b25e'},
+ hayate:{name:'疾風流',color:'#7fb8ff',str:7.5,hint:'脇差の速い隊が二つ。先手を取ってくる',
+  squads:[{form:'wakizashi',troops:12,rank:'front',lead:0},{form:'wakizashi',troops:9,rank:'mid'}],
+  champs:[{name:'風間 隼人',trait:'速',lv:3}],reward:{book:1,travel:3}},
+ suigetsu:{name:'水月流',color:'#6fd0c0',str:8.5,hint:'槍の隊を前と中に並べ、打刀で守りを固める',
+  squads:[{form:'uchigatana',troops:9,rank:'front',lead:0},{form:'yari',troops:11,rank:'mid'},{form:'yari',troops:9,rank:'mid'}],
+  champs:[{name:'水野 静',trait:'守',lv:4}],reward:{tech:'yari',deed:1,travel:3}},
+ kito:{name:'鬼頭流',color:'#e0604a',str:15,hint:'大太刀でまとめてなぎ払ってくる。隊長は大波斬りを使う',
+  squads:[{form:'uchigatana',troops:22,rank:'front'},{form:'odachi',troops:21,rank:'mid',lead:0},{form:'odachi',troops:17,rank:'back'}],
+  champs:[{name:'鬼頭 権蔵',trait:'剛',lv:6,hamon:'notare'}],reward:{tech:'odachi',book:1,travel:3}},
+ tenjin:{name:'天神流',color:'#c9a2ff',str:12.5,hint:'町一番。四つの刀をそろえた大きな隊。隊長は四ツ山斬りを使う',
+  squads:[{form:'uchigatana',troops:16,rank:'front',lead:0},{form:'wakizashi',troops:9,rank:'front'},{form:'yari',troops:13,rank:'mid'},{form:'odachi',troops:11,rank:'back'}],
+  champs:[{name:'天神 一心',trait:'智',lv:7,hamon:'gunome'}],reward:{travel:5}},
+};
+const NODES={tama:{x:45,y:170},hayate:{x:54,y:52},suigetsu:{x:178,y:186},kito:{x:202,y:57},tenjin:{x:314,y:104}};
+const ROADS=[['tama','hayate'],['tama','suigetsu'],['hayate','kito'],['suigetsu','kito'],['kito','tenjin'],['suigetsu','tenjin']];
+const MEITO_NAMES=['霞','朧','燕','時雨','白鷺','不知火','村雨','雷丸'];
+const RONIN=[{name:'月島 源心',trait:'剛',lv:4},{name:'早瀬 弥九郎',trait:'速',lv:5},{name:'大庭 主水',trait:'守',lv:4}];
+const FACE={太郎丸:'#b8642a','風間 隼人':'#3d6fb0','水野 静':'#2f8f86','鬼頭 権蔵':'#a8342a','天神 一心':'#7a52b0'};
+
+// ===== state ===============================================================
+let G;
+function newGame(){
+ const yard=[];for(let y=0;y<GH;y++)for(let x=0;x<GW;x++)yard.push({x,y,b:null,d:DISTRICT(x,y)});
+ G={month:3,year:1,money:1000,fame:5,pupils:12,str:10,yard,open:{A:true},deeds:0,books:0,travelBonus:0,
+  named:[{name:'太郎丸',trait:'剛',lv:3,meito:null,hurt:0,trained:false}],wanting:[],
+  kura:{wakizashi:8,yari:0,uchigatana:16,odachi:0},sell:{wakizashi:false,yari:false,uchigatana:false,odachi:false},
+  sumi:0,satetsu:0,tech:{wakizashi:true,uchigatana:true,yari:false,odachi:false},kajiForm:'uchigatana',meito:[],
+  smith:{lv:1,exp:0},tamahagane:0,rankSeen:0,
+  owner:{tama:'tama',hayate:'hayate',suigetsu:'suigetsu',kito:'kito',tenjin:'tenjin'},
+  rivals:JSON.parse(JSON.stringify(Object.fromEntries(Object.entries(SCHOOLS).filter(([k])=>k!=='tama')))),
+  boards:[],forged:false,fought:false,tab:'yard',sel:null,raidAt:7,won:false,newBoard:null,history:[]};
+ for(const r of Object.values(G.rivals))r.squads.forEach(q=>q.base=q.troops);
+ put(3,5,'honden');put(2,7,'nagaya');put(4,8,'chaya');
+}
+const T=(x,y)=>G.yard[y*GW+x];
+function put(x,y,b){T(x,y).b=b;if(b==='honden'){T(x+1,y).b='honden';T(x,y+1).b='honden';T(x+1,y+1).b='honden';}}
+const terrain=(x,y)=>x===0?'river':FOREST.has(`${x},${y}`)?'forest':(x===GATE[0]&&y===GATE[1])?'gate':null;
+const isOpen=t=>t.d&&G.open[t.d];
+const near4=(x,y)=>[[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([a,b])=>a>=0&&b>=0&&a<GW&&b<GH);
+const touches=(x,y,fn)=>near4(x,y).some(([a,b])=>fn(a,b));
+const rankOf=()=>G.fame>=RANK[2].need?2:G.fame>=RANK[1].need?1:0;
+const smithMult=()=>1+0.04*(G.smith.lv-1);
+function econ(){
+ const bon={},idle={},out={cap:8,train:0,sumi:0,satetsu:0,kajiMax:0,chaya:0,katanaya:0,up:0,shopTypes:new Set(),gateShop:false};
+ const decos=G.yard.filter(t=>t.b&&BUILD[t.b]?.cat==='deco');
+ for(const t of G.yard){if(!t.b||t.b==='honden')continue;const B=BUILD[t.b];out.up+=B.up;
+  const c=CAT_OF[t.b];let pct=0;
+  if(c)for(const d of decos){if(Math.max(Math.abs(d.x-t.x),Math.abs(d.y-t.y))<=2)pct+=BUILD[d.b].range[c]||0;}
+  pct=Math.min(60,pct);const m=1+pct/100;if(pct)bon[t.y*GW+t.x]=pct;
+  if(t.b==='nagaya')out.cap+=5;
+  if(t.b==='yashiki')out.cap+=10;
+  if(t.b==='keiko')out.train+=0.6*m;
+  if(t.b==='sumi'){if(touches(t.x,t.y,(a,b)=>terrain(a,b)==='forest'))out.sumi+=5*m;else idle[t.y*GW+t.x]=1;}
+  if(t.b==='satetsu'){if(touches(t.x,t.y,(a,b)=>terrain(a,b)==='river'))out.satetsu+=5*m;else idle[t.y*GW+t.x]=1;}
+  if(t.b==='kaji'){const n=Math.min(2,near4(t.x,t.y).filter(([a,b])=>['sumi','satetsu'].includes(T(a,b).b)).length);out.kajiMax+=(2+n)*m;}
+  if(t.b==='chaya'||t.b==='katanaya'){out.shopTypes.add(t.b);out[t.b]+=m;
+   if(Math.max(Math.abs(t.x-GATE[0]),Math.abs(t.y-GATE[1]))<=2)out.gateShop=true;}
+ }
+ out.travelers=Math.round((8+4*out.shopTypes.size+Math.floor(G.fame/8)+G.travelBonus+(rankOf()>=2?5:0))*(out.gateShop?1:0.5));
+ out.fee=G.pupils*5;
+ const nc=G.yard.filter(t=>t.b==='chaya').length;
+ out.chayaIncome=Math.min(out.travelers,15*nc)*8*(out.chaya/Math.max(1,nc));
+ out.swordSellMax=Math.min(4*G.yard.filter(t=>t.b==='katanaya').length,Math.floor(out.travelers/3));
+ out.app=3+Math.floor(G.fame/6);
+ out.bon=bon;out.idle=idle;
+ return out;
+}
+function swordSales(e){
+ let left=e.swordSellMax,income=0;const sold={};const nk=G.yard.filter(t=>t.b==='katanaya').length,mult=e.katanaya/Math.max(1,nk)*smithMult();
+ for(const f of FORM_KEYS){if(!G.sell[f]||left<=0)continue;const n=Math.min(left,G.kura[f]);if(n){sold[f]=n;left-=n;income+=n*FORMS[f].price*mult;}}
+ return {sold,income};
+}
+function forecast(){const e=econ(),s=swordSales(e),kaji=Math.max(0,Math.floor(Math.min(e.kajiMax,(G.sumi+e.sumi-4)/2,(G.satetsu+e.satetsu-4)/2)));
+ return {e,s,kaji,net:e.fee+e.chayaIncome+s.income-e.up};}
+const owned=()=>Object.keys(G.owner).filter(k=>G.owner[k]==='tama');
+const adjacentTo=node=>ROADS.filter(r=>r.includes(node)).map(r=>r[0]===node?r[1]:r[0]);
+const canChallenge=node=>G.owner[node]!=='tama'&&adjacentTo(node).some(n=>G.owner[n]==='tama');
+const squadSlots=()=>2+G.books+Math.min(2,rankOf());
+const meitoOf=name=>G.meito.find(m=>m.name===name);
+
+// ===== code-drawn pictures ================================================
+const SKIN='#f0d2b0';
+function roof(c,dark,x0,x1,yTop,yEave){return `<path d="M${x0} ${yEave} L${(x0+x1)/2} ${yTop} L${x1} ${yEave} Z" fill="${c}" stroke="${dark}" stroke-width="1"/>`;}
+function bsvg(b,rank=0){
+ const W='#efe4cc',D='#2a1d10';
+ const S={
+  nagaya:`${roof('#7a5434',D,2,38,12,22)}<rect x="5" y="22" width="30" height="13" fill="${W}" stroke="${D}"/><rect x="9" y="26" width="5" height="9" fill="#6b4a2e"/><rect x="18" y="26" width="5" height="9" fill="#6b4a2e"/><rect x="27" y="26" width="5" height="9" fill="#6b4a2e"/>`,
+  yashiki:`${roof('#4a5f78',D,1,39,6,19)}<rect x="4" y="19" width="32" height="16" fill="${W}" stroke="${D}"/><rect x="15" y="24" width="10" height="11" fill="#7a5434"/><path d="M6 19h28" stroke="#2f3f52" stroke-width="2"/>`,
+  keiko:`${roof('#6b4a8a',D,2,38,8,18)}<rect x="5" y="18" width="30" height="17" fill="#c9a26a" stroke="${D}"/><path d="M5 23h30M5 28h30M5 33h30" stroke="#a07c48"/><circle cx="16" cy="25" r="2.2" fill="${SKIN}"/><path d="M16 27v5" stroke="#fff" stroke-width="2.5"/><path d="M18 26l6-5" stroke="#d9c08a" stroke-width="1.5"/>`,
+  sumi:`<circle class="smoke" cx="26" cy="9" r="4" fill="#cfcfcf"/><path d="M8 34 Q20 10 32 34 Z" fill="#4a4a4a" stroke="${D}"/><rect x="17" y="26" width="6" height="8" fill="#ff8a3a" class="glow"/>`,
+  satetsu:`<rect x="4" y="22" width="32" height="10" rx="2" fill="#7a5434" stroke="${D}"/><rect x="6" y="24" width="28" height="5" fill="#5fa0c8"/><path d="M8 20 q4-8 8 0 M20 20 q4-7 8 0" fill="#3a3a3a"/><circle cx="12" cy="18" r="3" fill="#2a2a2a"/><circle cx="25" cy="18" r="3.4" fill="#2a2a2a"/>`,
+  kaji:`<circle class="smoke" cx="30" cy="6" r="4" fill="#bdbdbd"/><rect x="27" y="7" width="5" height="12" fill="#5a4a3a"/>${roof('#8a3a24',D,2,36,9,20)}<rect x="5" y="20" width="28" height="15" fill="#6b4a2e" stroke="${D}"/><rect x="12" y="24" width="12" height="11" fill="#ff8a3a" class="glow"/>`,
+  chaya:`<rect x="6" y="20" width="22" height="15" fill="${W}" stroke="${D}"/>${roof('#6a7a3a',D,3,31,9,20)}<path d="M28 12 L38 18 L28 18 Z" fill="#c8402a"/><path d="M33 18v15" stroke="#5a3a20" stroke-width="1.5"/><rect x="26" y="29" width="12" height="3" fill="#c8402a"/><rect x="10" y="24" width="10" height="5" fill="#c8402a"/>`,
+  katanaya:`${roof('#8a2f2f',D,2,38,8,19)}<rect x="5" y="19" width="30" height="16" fill="${W}" stroke="${D}"/><rect x="8" y="19" width="24" height="7" fill="#2f4a7a"/><path d="M12 31 L30 25" stroke="#d8dde4" stroke-width="2.5" stroke-linecap="round"/><path d="M12 31 l-3 1" stroke="#3a2a1a" stroke-width="3"/>`,
+  sakura:`<rect x="18" y="22" width="4" height="13" fill="#6b4a2e"/><circle cx="20" cy="16" r="11" fill="#f2a5bb"/><circle cx="13" cy="20" r="6" fill="#f7c1d0"/><circle cx="27" cy="19" r="6" fill="#eb93ab"/>`,
+  toro:`<rect x="16" y="28" width="8" height="7" fill="#8a8278"/><rect x="18" y="20" width="4" height="8" fill="#9a9288"/><rect x="13" y="13" width="14" height="8" fill="#a8a096"/><rect x="17" y="15" width="6" height="4" fill="#ffd56a" class="glow"/><path d="M11 13 L20 6 L29 13 Z" fill="#8a8278"/>`,
+  ido:`<ellipse cx="20" cy="29" rx="11" ry="5" fill="#8a8278"/><ellipse cx="20" cy="28" rx="8" ry="3" fill="#2f6a8a"/><path d="M10 28V12M30 28V12" stroke="#6b4a2e" stroke-width="2.5"/>${roof('#6b4a2e',D,6,34,6,13)}`,
+  nobori:`<path d="M12 6v29M27 6v29" stroke="#5a3a20" stroke-width="1.6"/><rect x="13" y="7" width="8" height="20" fill="#c8402a"/><rect x="28" y="7" width="8" height="20" fill="#d9b25e"/>`,
+ };
+ return `<svg viewBox="0 0 40 40" aria-hidden="true">${S[b]||''}</svg>`;
+}
+function hondenSvg(rank){
+ const big=rank>=2,mid=rank>=1,D='#2a1d10';
+ return `<svg viewBox="0 0 80 80" aria-hidden="true">
+  ${big?`<path d="M6 30 L40 6 L74 30 Z" fill="#5a3a26" stroke="${D}"/>`:''}
+  <path d="M${big?10:6} ${big?40:34} L40 ${big?18:12} L${big?70:74} ${big?40:34} Z" fill="#8a5a32" stroke="${D}"/>
+  <rect x="14" y="${big?40:34}" width="52" height="${big?34:38}" fill="#efe4cc" stroke="${D}"/>
+  <rect x="16" y="${big?40:34}" width="4" height="${big?34:38}" fill="#b3261e"/><rect x="60" y="${big?40:34}" width="4" height="${big?34:38}" fill="#b3261e"/>
+  <rect x="30" y="52" width="20" height="22" fill="#6b4a2e"/>
+  ${mid?`<rect x="33" y="${big?28:22}" width="14" height="10" fill="#caa45a" stroke="${D}"/><text x="40" y="${big?36:30}" font-size="7" text-anchor="middle" fill="#2a1d10" font-family="serif" font-weight="700">玉鋼</text>`:''}
+ </svg>`;
+}
+const terrSvg={
+ river:`<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 12 q6-4 12 0 t12 0 M10 26 q6-4 12 0 t12 0" stroke="#a9d0e6" stroke-width="1.5" fill="none" opacity=".7"/></svg>`,
+ forest:`<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M12 8 L4 26 H20 Z" fill="#2f5a2f"/><path d="M27 4 L17 26 H37 Z" fill="#3a6a35"/><rect x="11" y="26" width="2.5" height="7" fill="#5a3a20"/><rect x="26" y="26" width="2.5" height="8" fill="#5a3a20"/><path d="M20 18 L12 34 H28 Z" fill="#2a4f2a"/></svg>`,
+ gate:`<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="0" y="0" width="40" height="40" fill="#b09868"/><path d="M8 34V10M32 34V10" stroke="#5a3a20" stroke-width="4"/><path d="M4 10h32" stroke="#3a2614" stroke-width="5"/><path d="M8 16h24" stroke="#5a3a20" stroke-width="2"/></svg>`,
+};
+// the owner's pictures (art/…): buildings, people and faces. The code-drawn ones stay as a fallback.
+const BIMG={nagaya:'bld-nagaya',yashiki:'bld-yashiki',keiko:'bld-keiko',sumi:'bld-sumi',satetsu:'bld-satetsu',kaji:'bld-kaji',chaya:'bld-chaya',katanaya:'bld-katanaya',sakura:'deco-sakura',toro:'deco-toro',ido:'deco-ido',nobori:'deco-nobori'};
+const FIMG={'太郎丸':'face-taromaru','風間 隼人':'face-kazama','水野 静':'face-mizuno','鬼頭 権蔵':'face-kito','天神 一心':'face-tenjin'};
+const bimg=b=>`<img src="../assets/dojo/${BIMG[b]}.png" alt="" draggable="false">`;
+const SPR={};for(const k of ['chibi-monka','chibi-foe'])(SPR[k]=new Image()).src=`../assets/dojo/${k}.png`;
+const FACEIMG={};for(const [n,k] of Object.entries(FIMG))(FACEIMG[n]=new Image()).src=`../assets/dojo/${k}.jpg`;
+const ready=im=>im&&im.complete&&im.naturalWidth>0;
+function sprite(ctx,key,x,y,h,flip,opt={}){const im=SPR[key];if(!ready(im))return false;ctx.save();ctx.translate(x,y);if(opt.rot)ctx.rotate(opt.rot);if(opt.tilt)ctx.rotate(opt.tilt);ctx.globalAlpha=opt.alpha??1;if(flip)ctx.scale(-1,1);
+ ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(0,0,h*0.2,h*0.06,0,0,Math.PI*2);ctx.fill();ctx.drawImage(im,-h/2,-h*0.96,h,h);ctx.restore();return true;}
+function faceBadge(ctx,name,x,y,r,color){const im=FACEIMG[name];ctx.save();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle='#1c140f';ctx.fill();if(ready(im)){ctx.clip();ctx.drawImage(im,x-r*1.1,y-r,r*2.2,r*2.2);}else{ctx.fillStyle=color;ctx.font=`800 ${Math.round(r*1.1)}px "Hiragino Mincho ProN",serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(name[0],x,y+1);ctx.textBaseline='alphabetic';}ctx.restore();ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();}
+// a little figure: x,y at the feet; s scale; gi colour; weapon form; dir −1 up / +1 down
+function chibi(ctx,x,y,s,gi,form,dir,opt={}){
+ ctx.save();ctx.translate(x,y);if(opt.rot)ctx.rotate(opt.rot);ctx.globalAlpha=opt.alpha??1;
+ ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(0,0,5*s,2*s,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=opt.hakama||'#2f3a52';ctx.beginPath();ctx.moveTo(-4*s,0);ctx.lineTo(4*s,0);ctx.lineTo(3*s,-5*s);ctx.lineTo(-3*s,-5*s);ctx.fill();
+ ctx.fillStyle=gi;ctx.beginPath();ctx.roundRect(-3.6*s,-10*s,7.2*s,6*s,2*s);ctx.fill();
+ ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(0,-13.5*s,4*s,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#2a1d14';ctx.beginPath();ctx.arc(0,-14.5*s,4*s,Math.PI*1.05,Math.PI*1.95);ctx.fill();
+ if(opt.band){ctx.fillStyle=opt.band;ctx.fillRect(-4*s,-15.5*s,8*s,1.6*s);}
+ if(form){const L={wakizashi:8,uchigatana:12,odachi:16,yari:20}[form]*s,sx=4*s*(dir<0?1:-1);
+  ctx.strokeStyle=form==='yari'?'#8a6a40':'#e6ebf0';ctx.lineWidth=(form==='odachi'?2.2:1.4)*s;ctx.lineCap='round';
+  const a=opt.swing!=null?opt.swing:(dir<0?-0.9:0.9+Math.PI);ctx.beginPath();ctx.moveTo(sx,-7*s);ctx.lineTo(sx+Math.cos(a)*L,-7*s+Math.sin(a)*L);ctx.stroke();
+  if(form==='yari'){ctx.fillStyle='#e6ebf0';ctx.beginPath();ctx.arc(sx+Math.cos(a)*L,-7*s+Math.sin(a)*L,1.6*s,0,Math.PI*2);ctx.fill();}}
+ ctx.restore();
+}
+function drawBlade(ctx,W,H,profile,opt={}){ // a sword seen side-on, with the 刃文 drawn on it
+ const x0=W*0.08,x1=W*0.9,top=H*0.38,bot=H*0.62,bend=H*0.06;
+ const yAt=(x,y)=>y-bend*Math.sin(((x-x0)/(x1-x0))*Math.PI*0.9);
+ ctx.save();
+ ctx.fillStyle='#3a2614';ctx.fillRect(W*0.01,yAt(x0,top)-2,x0-W*0.01,bot-top+4);
+ ctx.fillStyle='#caa45a';ctx.fillRect(x0-4,yAt(x0,top)-6,5,bot-top+12);
+ const g=ctx.createLinearGradient(0,top,0,bot);g.addColorStop(0,'#6f7a86');g.addColorStop(0.5,'#c9d2dc');g.addColorStop(1,'#eef3f7');
+ ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x0,yAt(x0,top));
+ for(let i=0;i<=30;i++){const x=lerp(x0,x1,i/30);ctx.lineTo(x,yAt(x,top));}
+ ctx.lineTo(x1+W*0.06,yAt(x1,top)+ (bot-top)*0.75);
+ for(let i=30;i>=0;i--){const x=lerp(x0,x1,i/30);ctx.lineTo(x,yAt(x,bot));}
+ ctx.closePath();ctx.fill();
+ const band=(v)=>top+(bot-top)*(0.18+0.72*v);
+ if(opt.guide){ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(255,213,106,.9)';ctx.lineWidth=2;ctx.beginPath();
+  opt.guide.forEach((v,i)=>{const x=lerp(x0,x1,(i+0.5)/HN),y=yAt(x,band(v));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();ctx.setLineDash([]);}
+ if(opt.trace){ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=3;ctx.lineCap='round';let on=false;ctx.beginPath();
+  opt.trace.forEach((v,i)=>{if(v==null){on=false;return;}const x=lerp(x0,x1,(i+0.5)/HN),y=yAt(x,band(v));on?ctx.lineTo(x,y):ctx.moveTo(x,y);on=true;});ctx.stroke();}
+ if(profile){ctx.fillStyle='rgba(255,255,255,.88)';ctx.beginPath();
+  profile.forEach((v,i)=>{if(v==null)return;const x=lerp(x0,x1,(i+0.5)/HN),y=yAt(x,band(v));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  for(let i=HN-1;i>=0;i--){const x=lerp(x0,x1,(i+0.5)/HN);ctx.lineTo(x,yAt(x,bot));}ctx.closePath();ctx.fill();
+  if(opt.glow){ctx.shadowColor=opt.glow;ctx.shadowBlur=14;ctx.strokeStyle=opt.glow;ctx.lineWidth=2;ctx.beginPath();
+   profile.forEach((v,i)=>{const x=lerp(x0,x1,(i+0.5)/HN),y=yAt(x,band(v));i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();}}
+ ctx.restore();
+ return {x0,x1,band,yAt,top,bot};
+}
+function sharp(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1),w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;}const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);return {ctx:c,W:r.width,H:r.height};}
+
+// ===== top bar & tabs ======================================================
+function topBar(){
+ const f=forecast();
+ $('#when').innerHTML=`${KAN(G.year)}年目 ${MONTHS[G.month]}<small>${RANK[rankOf()].name}</small>`;
+ $('#stats').innerHTML=`<span>所持金 <b>${yen(G.money)}</b>文</span><span>門下生 <b>${G.pupils}</b>/${f.e.cap}</span><span>名声 <b>${Math.floor(G.fame)}</b></span><span>看板 <b>${owned().length}</b>/5</span>`;
+ $('#nextLabel').textContent=`毎月 ${f.net>=0?'＋':'−'}${yen(Math.abs(f.net))}文`;
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===G.tab));
+}
+function render(){topBar();({yard,town,kura,deshi})[G.tab]();}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{G.tab=b.dataset.tab;G.sel=null;G.moving=null;$('#toast').classList.remove('on');render();view.scrollTop=0;});
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),2600);}
+function sheet(html){$('#sheetIn').innerHTML=`<button class="close" data-close>とじる ✕</button>`+html;$('#sheet').hidden=false;$('#sheetIn').scrollTop=0;$('#sheetIn').querySelectorAll('[data-close]').forEach(b=>b.onclick=closeSheet);}
+function closeSheet(){$('#sheet').hidden=true;if(G.sel!==null){G.sel=null;if(G.tab==='yard')yard();}}
+
+// ===== 道場（箱庭） ==========================================================
+function yard(){
+ const f=forecast(),e=f.e,sel=G.sel!==null?G.yard[G.sel]:null,selDeco=sel&&BUILD[sel.b]?.cat==='deco',rk=rankOf();
+ const tiles=G.yard.map((t,i)=>{
+  const ter=terrain(t.x,t.y);
+  const inRange=selDeco&&Math.max(Math.abs(sel.x-t.x),Math.abs(sel.y-t.y))<=2&&t!==sel?' range':'';
+  if(ter==='river')return `<div class="tile river" data-i="${i}">${terrSvg.river}</div>`;
+  if(t.b==='honden'){if(T(t.x-1,t.y).b==='honden'||t.y>0&&T(t.x,t.y-1).b==='honden')return '';return `<button class="tile honden" data-t="${i}" data-i="${i}"><img src="../assets/dojo/${rk>=2?'bld-honden-big':'bld-honden'}.png" alt="">${rk===1?'<span class="bonus" style="font-size:10px">名門</span>':''}<span class="lbl">本堂</span></button>`;}
+  if(!isOpen(t)){const first=G.yard.find(u=>u.d===t.d)===t,D=DIST[t.d];return `<button class="tile closed" data-t="${i}" data-i="${i}">${first?`<span>${D.name.slice(0,1)}</span><span>${D.deed?'権利証':yen(D.cost)+'文'}</span>`:ter==='forest'?'林':''}</button>`;}
+  if(ter)return `<div class="tile ${ter}${inRange}" data-i="${i}"><img src="../assets/dojo/tile-${ter}.png" alt="">${ter==='gate'?'<span class="lbl">入口</span>':''}</div>`;
+  if(t.b){const B=BUILD[t.b];return `<button class="tile${G.sel===i?' sel':''}${inRange}" data-t="${i}" data-i="${i}">${bimg(t.b)}<span class="lbl">${B.name}</span>${e.idle[i]?'<span class="idle">✕</span>':e.bon[i]?'<span class="bonus">＋</span>':''}</button>`;}
+  return `<button class="tile${G.sel===i?' sel':''}${inRange}" data-t="${i}" data-i="${i}"></button>`;}).join('');
+ const nr=RANK[rk+1];
+ view.innerHTML=`
+  <div class="boards">${[`<span class="board mine">玉鋼流</span>`,...G.boards.map(b=>`<span class="board ${G.newBoard===b?'new':''}">${SCHOOLS[b].name}</span>`)].join('')}<span class="small" style="align-self:center;padding-left:4px">看板 ${G.boards.length}/4</span></div>
+  <div class="rankline"><b>${RANK[rk].name}</b>${nr?`<span class="meter"><i style="width:${clamp((G.fame-RANK[rk].need)/(nr.need-RANK[rk].need),0,1)*100}%"></i></span><span>${nr.name}まで 名声 ${Math.max(0,Math.ceil(nr.need-G.fame))}</span>`:'<span>格はいちばん上</span>'}</div>
+  <div class="yardwrap"><div class="yard" id="yardGrid">${tiles}</div><canvas id="walk"></canvas></div>
+  <div class="panel"><h3>今月の見こみ</h3><div class="kv">
+   <span>月謝</span><b class="plus">＋${yen(e.fee)}文（${G.pupils}人×5）</b>
+   <span>旅人</span><b>${e.travelers}人${e.gateShop?'':' <span class="warn">（入口の近くに店がなく、半分が引き返す）</span>'}</b>
+   <span>茶屋</span><b class="plus">＋${yen(e.chayaIncome)}文</b>
+   <span>刀屋</span><b class="plus">${G.yard.some(t=>t.b==='katanaya')?`＋${yen(f.s.income)}文（${Object.entries(f.s.sold).map(([k,n])=>FORMS[k].name+n).join('・')||'売る刀なし'}）`:'なし'}</b>
+   <span>維持費</span><b class="minus">−${yen(e.up)}文</b>
+   <span>材料</span><b>炭 ＋${e.sumi.toFixed(0)}（${G.sumi}）・砂鉄 ＋${e.satetsu.toFixed(0)}（${G.satetsu}）</b>
+   <span>鍛冶場</span><b>${e.kajiMax?`${FORMS[G.kajiForm].name} ${f.kaji}振（最大 ${Math.floor(e.kajiMax)}）`:'なし'}</b>
+   <span>入門</span><b>${e.app}人まで（定員 ${G.pupils}/${e.cap}）</b>
+   <span>稽古</span><b>腕前 ＋${e.train.toFixed(2)}（いま ${G.str.toFixed(1)}）</b></div></div>
+  <p class="small">「＋」は飾りの効き目が届いているしるし、「✕」は働けていない（林・川のとなりでない）しるしです。飾りを押すと、届く範囲が光ります。</p>`;
+ G.newBoard=null;
+ view.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tapTile(+b.dataset.t));
+ startWalkers();
+}
+// people walking on the 箱庭
+let WK=null;
+function startWalkers(){
+ const cv=$('#walk');if(!cv)return;const grid=$('#yardGrid');
+ const centers=i=>{const el=grid.querySelector(`[data-i="${i}"]`);if(!el)return null;const g=grid.getBoundingClientRect(),r=el.getBoundingClientRect();return {x:r.left-g.left+r.width/2,y:r.top-g.top+r.height*0.75};};
+ const walkable=G.yard.map((t,i)=>i).filter(i=>{const t=G.yard[i];return isOpen(t)&&!t.b&&terrain(t.x,t.y)!=='river'&&terrain(t.x,t.y)!=='forest';});
+ const spots=k=>G.yard.map((t,i)=>i).filter(i=>G.yard[i].b===k);
+ const e=econ(),people=[];
+ const nP=Math.min(8,Math.ceil(G.pupils/4)),nT=Math.min(6,Math.ceil(e.travelers/4));
+ for(let k=0;k<nP;k++)people.push({kind:'p',at:pick(walkable.length?walkable:[59]),t:rnd()});
+ for(let k=0;k<nT;k++)people.push({kind:'t',at:59,goal:pick([...spots('chaya'),...spots('katanaya')].concat([59])),t:rnd()*3,back:false});
+ people.forEach(p=>{const c=centers(p.at)||{x:0,y:0};p.x=c.x;p.y=c.y;p.to=null;});
+ WK={cv,people,centers,walkable,last:performance.now()};
+ if(!startWalkers.running){startWalkers.running=true;requestAnimationFrame(walkLoop);}
+}
+function walkLoop(now){
+ if(!WK||!document.body.contains(WK.cv)||G.tab!=='yard'){startWalkers.running=false;return;}
+ const dt=Math.min(0.05,(now-WK.last)/1000);WK.last=now;
+ const {ctx,W,H}=sharp(WK.cv);
+ ctx.clearRect(0,0,W,H);
+ const s=Math.max(0.6,W/420);
+ for(const p of WK.people){
+  if(p.t>0){p.t-=dt;}
+  else if(!p.to){let next;
+   if(p.kind==='p')next=pick(WK.walkable.length?WK.walkable:[p.at]);
+   else next=p.back?59:p.goal;
+   const c=WK.centers(next);if(c){p.to=c;p.dest=next;}}
+  else{const dx=p.to.x-p.x,dy=p.to.y-p.y,d=Math.hypot(dx,dy),v=22*s;
+   if(d<1){p.to=null;p.at=p.dest;p.t=0.8+rnd()*2;if(p.kind==='t'){if(p.back){p.back=false;p.t=2+rnd()*3;}else p.back=true;}}
+   else{p.x+=dx/d*Math.min(d,v*dt);p.y+=dy/d*Math.min(d,v*dt);}}
+  if(!(p.kind==='p'&&sprite(ctx,'chibi-monka',p.x,p.y,17*s,p.to&&p.to.x>p.x)))chibi(ctx,p.x,p.y,0.62*s,p.kind==='p'?'#f4efe2':'#5a6f9a',null,1,{hakama:p.kind==='p'?'#2f3a52':'#6b4a2e'});
+ }
+ requestAnimationFrame(walkLoop);
+}
+function tapTile(i){
+ const t=G.yard[i];
+ if(t.b==='honden'){sheet(`<h3>本堂</h3><p class="small" style="margin:0">玉鋼流の本堂。定員 8。道場の格が上がると大きくなります。</p>`);return;}
+ if(!isOpen(t)){const D=DIST[t.d];
+  if(D.deed){sheet(`<h3>${D.name}</h3><p class="small" style="margin:0">ここを開くには「土地の権利証」がいります（他流試合に勝つと手に入ることがあります）。いま ${G.deeds}枚。</p>${G.deeds?`<button class="btn main" id="openD">権利証を使って開く</button>`:''}`);
+   const b=$('#openD');if(b)b.onclick=()=>{G.deeds--;G.open[t.d]=true;closeSheet();render();toast(`${D.name}が開いた`);};return;}
+  sheet(`<h3>${D.name}を開く</h3><p class="small" style="margin:0">敷地が広がります。</p><button class="btn main" id="openD" ${G.money<D.cost?'disabled':''}>${yen(D.cost)}文で開く</button>`);
+  $('#openD').onclick=()=>{G.money-=D.cost;G.open[t.d]=true;closeSheet();render();toast(`${D.name}が開いた`);};return;}
+ if(G.moving!=null&&!t.b){const from=G.yard[G.moving];if(G.money>=20){t.b=from.b;from.b=null;G.money-=20;}G.moving=null;G.sel=null;render();return;}
+ G.sel=i;yard();
+ if(t.b){const B=BUILD[t.b],e=econ(),bo=e.bon[i];
+  sheet(`<h3>${B.name}</h3><p class="small" style="margin:0">${B.text}<br>維持費 ${B.up}文／月</p>${bo?`<p class="plus" style="margin:0;font-size:13px">飾りの効き目 ＋${bo}%</p>`:''}${e.idle[i]?`<p class="warn" style="margin:0">働けていません：${t.b==='sumi'?'林':'川'}のとなりに置いてください</p>`:''}
+   ${t.b==='nagaya'?`<button class="btn" id="up" ${G.money<BUILD.yashiki.cost||rankOf()<1?'disabled':''}>屋敷に建て替える（${BUILD.yashiki.cost}文${rankOf()<1?'・名門になると':''}）</button>`:''}
+   <button class="btn" id="move">ほかのマスへ移す（20文）</button><button class="btn" id="raze">取り壊す（お金は戻りません）</button>`);
+  const up=$('#up');if(up)up.onclick=()=>{G.money-=BUILD.yashiki.cost;t.b='yashiki';closeSheet();render();toast('屋敷に建て替えた');};
+  $('#move').onclick=()=>{G.moving=i;G.sel=null;$('#sheet').hidden=true;toast('移す先のあいたマスを押してください');};
+  $('#raze').onclick=()=>{t.b=null;closeSheet();render();};return;}
+ const groups=['home','train','prod','shop','deco'],rk=rankOf();
+ sheet(`<h3>何を建てますか</h3>${groups.map(g=>`<div class="cat">${CAT_NAME[g]}</div>${Object.entries(BUILD).filter(([,B])=>B.cat===g).map(([k,B])=>{const lock=(B.rank||0)>rk;return `<button class="opt" data-b="${k}" ${G.money<B.cost||lock?'disabled':''}><span class="ic">${bimg(k)}</span><span class="nm">${B.name}</span><span class="ds">${lock?`${RANK[B.rank].name}になると建てられる`:B.text}</span><span class="pr">${yen(B.cost)}文<br><span class="small">維持 ${B.up}</span></span></button>`;}).join('')}`).join('')}`);
+ $('#sheetIn').querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{const B=BUILD[b.dataset.b];G.money-=B.cost;t.b=b.dataset.b;G.sel=null;$('#sheet').hidden=true;render();
+  const e=econ();toast(e.idle[i]?`${B.name}を建てた。でも${t.b==='sumi'?'林':'川'}のとなりでないので働けない`:`${B.name}を建てた`);});
+}
+
+// ===== 町（地図） ============================================================
+const PROVINCE=[{name:'柳瀬宿',x:70,y:200,school:'玉鋼流（町一番）',mine:true},{name:'白鷺城下',x:230,y:80,school:'白鷺一心流',star:3},{name:'潮見湊',x:290,y:210,school:'潮見流',star:2},{name:'霧ヶ峰',x:110,y:70,school:'霧ヶ峰流',star:2}];
+function provinceSvg(){
+ return `<svg viewBox="0 0 360 260" role="img" aria-label="国の地図"><rect width="360" height="260" fill="#2f3f2a"/>
+  <path d="M0 230 C 120 200 220 250 360 215 L360 260 L0 260 Z" fill="#2f5f7f" opacity=".8"/>
+  <path d="M60 40 l20 -24 l20 24 Z M90 50 l16 -18 l16 18 Z" fill="#4a5a3a"/>
+  ${[['柳瀬宿','白鷺城下'],['柳瀬宿','霧ヶ峰'],['白鷺城下','潮見湊'],['霧ヶ峰','白鷺城下'],['柳瀬宿','潮見湊']].map(([a,b])=>{const A=PROVINCE.find(p=>p.name===a),B=PROVINCE.find(p=>p.name===b);return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#c8b48a" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round"/>`;}).join('')}
+  ${PROVINCE.map(p=>`<g><circle cx="${p.x}" cy="${p.y}" r="${p.star===3?26:20}" fill="#1c140f" stroke="${p.mine?'#d9b25e':'#8a7f70'}" stroke-width="4"/>
+   <text x="${p.x}" y="${p.y+5}" fill="${p.mine?'#ffd56a':'#efe6d2'}" font-size="13" text-anchor="middle" font-family="serif" font-weight="700">${p.name.slice(0,2)}</text>
+   <text x="${p.x}" y="${p.y+(p.star===3?42:36)}" fill="#efe6d2" font-size="10" text-anchor="middle" font-family="serif">${p.name}・${p.school}${p.star?' '+'★'.repeat(p.star):''}</text></g>`).join('')}
+ </svg>`;
+}
+function town(){
+ const col=k=>SCHOOLS[G.owner[k]].color;
+ const svg=`<svg viewBox="0 0 360 240" role="img" aria-label="柳瀬宿の地図">
+  <rect width="360" height="240" fill="#3b4a2e"/><image href="../assets/dojo/map-yanase.jpg" x="0" y="0" width="360" height="240" preserveAspectRatio="xMidYMid slice"/>
+  ${ROADS.map(([a,b])=>{const A=NODES[a],B=NODES[b];return `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#2a1d10" stroke-width="6" stroke-linecap="round" opacity=".45"/><line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#fff3d0" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round"/>`;}).join('')}
+  ${Object.entries(NODES).map(([k,p])=>{const mine=G.owner[k]==='tama',can=canChallenge(k);
+   return `<g data-node="${k}" style="cursor:pointer">
+    ${can&&!G.fought?`<circle cx="${p.x}" cy="${p.y}" r="22" fill="none" stroke="#ffd56a" stroke-width="2.5" stroke-dasharray="4 4"><animate attributeName="r" values="20;24;20" dur="1.6s" repeatCount="indefinite"/></circle>`:''}
+    <circle cx="${p.x}" cy="${p.y}" r="16" fill="#1c140f" stroke="${col(k)}" stroke-width="3.5"/>
+    <path d="M${p.x-10} ${p.y-1} L${p.x} ${p.y-9} L${p.x+10} ${p.y-1} Z" fill="${col(k)}"/>
+    <rect x="${p.x-7}" y="${p.y-1}" width="14" height="8" fill="${col(k)}" opacity=".8"/>
+    <rect x="${p.x-38}" y="${p.y+18}" width="76" height="16" rx="4" fill="#1c140f" opacity=".85"/>
+    <text x="${p.x}" y="${p.y+30}" fill="${mine?'#ffd56a':'#efe6d2'}" font-size="11" text-anchor="middle" font-family="serif" font-weight="700">${SCHOOLS[k].name}${G.owner[k]!==k&&!mine?'（'+SCHOOLS[G.owner[k]].name[0]+'）':''}</text>
+   </g>`;}).join('')}
+ </svg>`;
+ view.innerHTML=`<div class="map">${svg}</div>
+  <div class="legend">${['tama',...Object.keys(G.rivals)].map(k=>`<span><i style="background:${SCHOOLS[k].color}"></i>${SCHOOLS[k].name}</span>`).join('')}</div>
+  <p class="small" style="margin:0">${G.fought?'今月はもう試合をしました。':'点線の輪の道場に、他流試合を申しこめます（ひと月に一度）。'}毎年霜月には御前試合があります。</p>
+  ${Object.entries(G.rivals).map(([k,r])=>`<div class="item"><span class="ic t" style="color:${r.color}">${r.name[0]}</span><span class="nm">${r.name}</span><span class="rt">${r.squads.length}隊・${r.squads.reduce((s,q)=>s+q.troops,0)}人<br>腕前 ${r.str.toFixed(0)}</span><span class="ds">${r.squads.map(q=>FORMS[q.form].name).join('・')} ／ ${r.champs.map(c=>c.name).join('、')}</span></div>`).join('')}
+  <h3 style="font-size:15px;color:var(--gold)">国の地図</h3>
+  <div class="map ${G.won?'':'locked'}">${provinceSvg()}</div>
+  <p class="small" style="margin:0">${G.won?'町一番になったので、国の地図が開きました。ほかの町にも大きな流派があります（見本では見るだけ。本番で遊べます）。':'町一番になると、国の地図が開き、ほかの町の流派に挑めるようになります。'}</p>`;
+ view.querySelectorAll('[data-node]').forEach(g=>g.onclick=()=>tapNode(g.dataset.node));
+}
+function rewardText(r){const w=r.reward,a=[];if(w.tech)a.push(`${FORMS[w.tech].name}の技術`);if(w.deed)a.push(`土地の権利証`);if(w.book)a.push(`兵法書（隊 ＋1）`);if(w.travel)a.push(`旅人 ＋${w.travel}`);return a.join('・');}
+function foeBox(r,full){
+ return `<div class="foe"><b>${r.name}</b> 腕前 ${r.str.toFixed(0)}<br>${r.squads.map(q=>`${RANK_NAME[q.rank]}：${FORMS[q.form].name}の隊 ${full?q.troops+'人':(q.troops>=15?'大勢':'少なめ')}${q.lead!=null?`（隊長 ${r.champs[q.lead].name}・${r.champs[q.lead].trait}${r.champs[q.lead].hamon?`・${HAMON[r.champs[q.lead].hamon].name}の名刀`:''}）`:''}`).join('<br>')}<br><span class="small">うわさ：${r.hint}</span></div>`;
+}
+function tapNode(k){
+ const o=G.owner[k];
+ if(o==='tama'){sheet(`<h3>${SCHOOLS[k].name}の看板</h3><p class="small" style="margin:0">${k==='tama'?'玉鋼流の本堂です。':'玉鋼流の看板です。'}</p>`);return;}
+ const r=G.rivals[o];
+ sheet(`<h3>${SCHOOLS[k].name}${o!==k?`（いまは${r.name}のもの）`:''}</h3>${foeBox(r,false)}
+  <p class="small" style="margin:0">勝つと：看板・${rewardText(r)}・${r.champs.map(c=>c.name).join('、')}が入門を望む</p>
+  ${canChallenge(k)?(G.fought?'<p class="small">今月はもう試合をしました。</p>':`<button class="btn main" id="go">隊を組んで申しこむ</button>`):'<p class="small">道がつながっていないので、まだ申しこめません。となりの看板を先に取りましょう。</p>'}`);
+ const go=$('#go');if(go)go.onclick=()=>prep({node:k,owner:o,attack:true});
+}
+
+// ===== 蔵（刀と鍛冶） =========================================================
+function kura(){
+ const f=forecast(),e=f.e,hasShop=G.yard.some(t=>t.b==='katanaya'),sm=G.smith;
+ view.innerHTML=`
+  <div class="panel"><h3>鍛冶の腕 Lv${sm.lv}</h3>
+   <div class="rankline"><span class="meter"><i style="width:${sm.exp/(sm.lv*2)*100}%"></i></span><span>次まで ${sm.lv*2-sm.exp}振</span></div>
+   <p class="small" style="margin:4px 0 0">名刀を打つほど腕が上がります。腕が上がると、鍛冶場の弟子が打つ刀の出来も良くなります（いま ＋${Math.round((smithMult()-1)*100)}%：門下生の攻めと、刀屋の値段に効く）。</p></div>
+  <div class="panel"><h3>名刀を打つ</h3>
+   <p class="small" style="margin:0 0 6px">隊長にもたせる名刀を、ひと月に1振り、自分で打ちます。叩いた出来で攻撃力が、なぞった刃文で必殺技が決まります。${G.tamahagane?`<br><b style="color:var(--gold)">御前試合でもらった玉鋼があります（次の名刀の攻撃力 ＋10）</b>`:''}</p>
+   ${G.forged?'<p class="small" style="margin:0">今月はもう打ちました。</p>':`<button class="btn main" id="forgeBtn" ${G.sumi>=4&&G.satetsu>=4?'':'disabled'}>名刀を打つ（炭4・砂鉄4）</button>${G.sumi>=4&&G.satetsu>=4?'':'<p class="warn" style="margin:4px 0 0">炭と砂鉄が4ずつ要ります（炭焼き小屋・砂鉄場で集める）</p>'}`}</div>
+  ${G.meito.length?`<h3 style="font-size:15px;color:var(--gold)">刀帳</h3>${G.meito.map((m,i)=>`<div class="meito"><div><span class="nm">〈${m.name}〉</span>${m.title?`<span class="title">${m.title}</span>`:''} <span class="sm">${FORMS[m.form].name}・攻撃力 ${m.atk}${m.title?'（二つ名 ＋10%）':''}</span></div>
+    <canvas data-blade="${i}"></canvas>
+    <div class="sm">${HAMON[m.hamon].name}「${m.waza.name}」：${m.waza.text} ・ ${m.holder?`${m.holder}がもつ`:'だれももっていない'}</div>
+    <div class="sm">戦歴：${m.wins}勝・倒した敵 ${m.kills}人</div>${m.record.length?`<ul>${m.record.slice(-3).map(r=>`<li>${r}</li>`).join('')}</ul>`:''}</div>`).join('')}`:''}
+  <div class="panel"><h3>蔵の刀</h3>
+   ${FORM_KEYS.map(k=>`<div class="row" style="padding:2px 0"><span class="grow"><b style="font-family:var(--display)">${FORMS[k].name}</b> <span class="lv">${G.kura[k]}振</span>${G.tech[k]?'':' <span class="small">（技術がまだない）</span>'}</span>
+    ${hasShop?`<button class="tog ${G.sell[k]?'on':''}" data-sell="${k}">刀屋で売る ${Math.round(FORMS[k].price*smithMult())}文</button>`:''}</div>`).join('')}
+   <p class="rule">試合に出る門下生は、蔵の刀を持って出ます。人数ぶんの刀がないと出せません。${hasShop?'':'刀屋を建てると、余った刀を旅人に売れます。'}</p></div>
+  <div class="panel"><h3>材料と鍛冶場</h3>
+   <div class="kv"><span>炭</span><b>${G.sumi}（＋${e.sumi.toFixed(0)}／月）</b><span>砂鉄</span><b>${G.satetsu}（＋${e.satetsu.toFixed(0)}／月）</b></div>
+   ${e.kajiMax?'':'<p class="warn" style="margin:4px 0 0">鍛冶場がまだありません。</p>'}
+   <p class="small" style="margin:6px 0 4px">鍛冶場で打つ刀（来月 ${f.kaji}振。名刀のぶんの炭4・砂鉄4は残します）</p>
+   <div class="chips">${FORM_KEYS.map(k=>`<button class="chip ${G.kajiForm===k?'on':''}" data-kf="${k}" ${G.tech[k]?'':'disabled'}>${FORMS[k].name}</button>`).join('')}</div>
+   <p class="rule" style="margin-top:4px">槍と大太刀は、技術を手に入れると打てます（他流試合の勝ちで）。</p></div>`;
+ view.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{const k=b.dataset.sell;G.sell[k]=!G.sell[k];render();});
+ view.querySelectorAll('[data-kf]').forEach(b=>b.onclick=()=>{G.kajiForm=b.dataset.kf;render();});
+ view.querySelectorAll('[data-blade]').forEach(cv=>{const m=G.meito[+cv.dataset.blade],{ctx,W,H}=sharp(cv);drawBlade(ctx,W,H,m.profile);});
+ const fb=$('#forgeBtn');if(fb)fb.onclick=()=>forgeStart();
+}
+
+// ===== 名刀を打つ ============================================================
+let FG=null;
+function forgeStart(free){
+ if(!free){G.sumi-=4;G.satetsu-=4;}
+ FG={step:'form',form:'uchigatana',hits:[],t:0,sparks:[],hamon:null,profile:new Array(HN).fill(null),drawing:false,heat:1};
+ $('#forge').hidden=false;$('#fClose').onclick=()=>{if(!free){G.sumi+=4;G.satetsu+=4;}FG=null;$('#forge').hidden=true;render();};
+ forgeStep();requestAnimationFrame(forgeLoop);
+}
+function forgeStep(){
+ const c=$('#fCtl');
+ if(FG.step==='form'){$('#fStep').textContent='一 形を選ぶ';
+  c.innerHTML=`<p class="small" style="margin:0;text-align:center">打つ刀の形を選んでください（技術のある形だけ）。</p><div class="chips" style="justify-content:center">${FORM_KEYS.map(k=>`<button class="chip ${FG.form===k?'on':''}" data-ff="${k}" ${G.tech[k]?'':'disabled'}>${FORMS[k].name}（基本 ${FORMS[k].base}）</button>`).join('')}</div><button class="btn main" id="fNext">熱して叩く</button>`;
+  c.querySelectorAll('[data-ff]').forEach(b=>b.onclick=()=>{FG.form=b.dataset.ff;forgeStep();});$('#fNext').onclick=()=>{FG.step='hammer';FG.t=0;forgeStep();};}
+ if(FG.step==='hammer'){$('#fStep').textContent=`二 熱して叩く ${FG.hits.length}/5`;
+  c.innerHTML=`<div class="gauge" id="gauge"><i id="gmark"></i></div><p class="small" style="margin:0;text-align:center">白く光る真ん中で叩くと「良」。5回叩きます。</p><button class="btn main" id="hit" style="font-size:20px;padding:12px">叩く！</button>`;
+  $('#hit').onclick=strike;}
+ if(FG.step==='hamon'){$('#fStep').textContent='三 刃文をなぞる';
+  c.innerHTML=`<div class="chips" style="justify-content:center">${Object.entries(HAMON).map(([k,h])=>`<button class="chip ${FG.hamon===k?'on':''}" data-fh="${k}">${h.name}</button>`).join('')}</div><p class="small" style="margin:0;text-align:center">${FG.hamon?'金色の点線を、左から右へ指でなぞってください。':'刃文の形を選んでください。形で必殺技が変わります。'}</p>${FG.hamon?`<button class="btn sm" id="redo" style="align-self:center">なぞり直す</button>`:''}`;
+  c.querySelectorAll('[data-fh]').forEach(b=>b.onclick=()=>{FG.hamon=b.dataset.fh;FG.profile=new Array(HN).fill(null);forgeStep();});
+  const rd=$('#redo');if(rd)rd.onclick=()=>{FG.profile=new Array(HN).fill(null);};}
+ if(FG.step==='quench'){$('#fStep').textContent='四 焼き入れ';c.innerHTML=`<p class="small" style="margin:0;text-align:center">じゅっ……</p>`;FG.t=0;}
+ if(FG.step==='done'){const m=FG.result;$('#fStep').textContent='できあがり';
+  const can=G.named.filter(n=>!n.meito);
+  c.innerHTML=`<div class="meito"><div><span class="nm">〈${m.name}〉</span> <span class="sm">${FORMS[m.form].name}・攻撃力 ${m.atk}（${m.grade}）</span></div>
+   <div class="sm">叩き：${FG.hits.map(h=>h>1.5?'良':h>0.5?'並':'外').join('・')} ／ 刃文のなぞり ${Math.round(m.q*100)}点</div>
+   <div class="sm"><b>${HAMON[m.hamon].name}「${m.waza.name}」</b>：${m.waza.text}</div>
+   ${FG.levelUp?`<div class="sm" style="color:#8a2a18;font-weight:700">鍛冶の腕が Lv${G.smith.lv} に上がった！鍛冶場の刀の出来も良くなった</div>`:''}</div>
+   <div class="chips" style="justify-content:center">${can.map(n=>`<button class="chip" data-give="${n.name}">${n.name}にもたせる</button>`).join('')}</div>
+   <button class="btn main" id="fDone">刀帳にしまう</button>`;
+  c.querySelectorAll('[data-give]').forEach(b=>b.onclick=()=>{const n=G.named.find(x=>x.name===b.dataset.give);n.meito=m.name;m.holder=n.name;toast(`${n.name}に〈${m.name}〉をもたせた`);$('#fDone').click();});
+  $('#fDone').onclick=()=>{FG=null;$('#forge').hidden=true;G.tab='kura';render();};}
+}
+function strike(){
+ const pos=(Math.sin(FG.t*FG.spd)+1)/2,off=Math.abs(pos-0.5),score=off<0.09?2:off<0.22?1:0;
+ FG.hits.push(score);FG.flash=1;FG.label={t:score===2?'良！':score===1?'並':'外',c:score===2?'#ffd56a':score===1?'#efe6d2':'#ff9a80',age:0};
+ for(let i=0;i<(score+1)*10;i++)FG.sparks.push({x:0,y:0,vx:(rnd()-0.5)*220,vy:-rnd()*200,age:0});
+ if(FG.hits.length>=5){FG.step='hamon';setTimeout(forgeStep,500);}else $('#fStep').textContent=`二 熱して叩く ${FG.hits.length}/5`;
+}
+function finishForge(){
+ const filled=FG.profile.map((v,i)=>v!=null?v:null);
+ // fill the gaps the finger skipped
+ for(let i=0;i<HN;i++)if(filled[i]==null){let a=i-1,b=i+1;while(a>=0&&filled[a]==null)a--;while(b<HN&&filled[b]==null)b++;filled[i]=a<0?(filled[b]??0.5):b>=HN?filled[a]:lerp(filled[a],filled[b],(i-a)/(b-a));}
+ const g=guideLine(FG.hamon),q=clamp(1-filled.reduce((s,v,i)=>s+Math.abs(v-g[i]),0)/HN/0.22,0,1);
+ const hammer=FG.hits.reduce((s,h)=>s+h*3,0);
+ const atk=Math.round(FORMS[FG.form].base+hammer+G.smith.lv*2+q*10+G.tamahagane*10);G.tamahagane=0;
+ const name=MEITO_NAMES[G.meito.length%MEITO_NAMES.length]+(G.meito.length>=MEITO_NAMES.length?'二':'');
+ const grade=atk>=100?'名刀':atk>=85?'上作':'並作';
+ const m={name,form:FG.form,atk,hamon:FG.hamon,profile:filled,q,waza:wazaOf(FG.hamon,filled,q),holder:null,kills:0,wins:0,title:null,record:[],grade};
+ G.meito.push(m);G.forged=true;
+ const sm=G.smith;sm.exp+=1+(q>0.7?1:0);FG.levelUp=false;while(sm.exp>=sm.lv*2){sm.exp-=sm.lv*2;sm.lv++;FG.levelUp=true;}
+ FG.result=m;FG.step='quench';forgeStep();
+}
+function forgeLoop(now){
+ if(!FG)return;const cv=$('#fcv'),{ctx,W,H}=sharp(cv);
+ FG.t+=1/60;FG.spd=2.4+FG.hits.length*0.5;
+ ctx.fillStyle='#1c120c';ctx.fillRect(0,0,W,H);
+ if(FG.step==='form'||FG.step==='hammer'){
+  // the anvil and the glowing steel
+  ctx.fillStyle='#3a3a3e';ctx.beginPath();ctx.moveTo(W*0.25,H*0.62);ctx.lineTo(W*0.75,H*0.62);ctx.lineTo(W*0.68,H*0.72);ctx.lineTo(W*0.32,H*0.72);ctx.fill();
+  ctx.fillRect(W*0.4,H*0.72,W*0.2,H*0.16);
+  const heat=FG.step==='hammer'?1:0.6;const g=ctx.createLinearGradient(W*0.2,0,W*0.8,0);g.addColorStop(0,'#6a2a10');g.addColorStop(0.5,`rgba(255,${180+60*heat},120,1)`);g.addColorStop(1,'#6a2a10');
+  ctx.fillStyle=g;ctx.shadowColor='#ff9a3a';ctx.shadowBlur=20*heat;ctx.fillRect(W*0.22,H*0.57,W*0.56,H*0.05);ctx.shadowBlur=0;
+  if(FG.step==='hammer'){
+   const pos=(Math.sin(FG.t*FG.spd)+1)/2,m=$('#gmark');if(m)m.style.left=(pos*100)+'%';
+   const lift=FG.flash>0?0:Math.min(1,FG.t%1.2);FG.flash=Math.max(0,(FG.flash||0)-1/20);
+   ctx.save();ctx.translate(W*0.56,H*0.56-(FG.flash>0?0:18));ctx.rotate(FG.flash>0?0.1:-0.5);ctx.fillStyle='#5a3a20';ctx.fillRect(0,-3,W*0.22,6);ctx.fillStyle='#55585e';ctx.fillRect(-10,-12,20,24);ctx.restore();
+   if(FG.flash>0){ctx.fillStyle=`rgba(255,240,200,${FG.flash*0.5})`;ctx.fillRect(0,0,W,H);}
+   for(const s of FG.sparks){s.age+=1/60;s.vy+=400/60;s.x+=s.vx/60;s.y+=s.vy/60;ctx.fillStyle=`rgba(255,${200-s.age*200},80,${1-s.age})`;ctx.fillRect(W*0.5+s.x,H*0.57+s.y,2.5,2.5);}
+   FG.sparks=FG.sparks.filter(s=>s.age<1);
+   if(FG.label){FG.label.age+=1/60;ctx.globalAlpha=Math.max(0,1-FG.label.age);ctx.font='800 34px "Hiragino Mincho ProN",serif';ctx.textAlign='center';ctx.fillStyle=FG.label.c;ctx.fillText(FG.label.t,W/2,H*0.32-FG.label.age*20);ctx.globalAlpha=1;}
+  }else{ctx.font='600 15px "Hiragino Mincho ProN",serif';ctx.fillStyle='#d9b25e';ctx.textAlign='center';ctx.fillText(`${FORMS[FG.form].name}を打つ`,W/2,H*0.3);}
+ }
+ if(FG.step==='hamon'){
+  const b=drawBlade(ctx,W,H,null,{guide:FG.hamon?guideLine(FG.hamon):null,trace:FG.profile});
+  FG.blade=b;
+  if(FG.hamon){const done=FG.profile.filter(v=>v!=null).length;ctx.fillStyle='#d9b25e';ctx.font='600 13px sans-serif';ctx.textAlign='center';ctx.fillText(`なぞった ${Math.round(done/HN*100)}%`,W/2,H*0.85);}
+ }
+ if(FG.step==='quench'||FG.step==='done'){
+  const m=FG.result;FG.t+=0;const k=FG.step==='quench'?clamp(FG.t/1.4,0,1):1;
+  drawBlade(ctx,W,H,m.profile,{glow:FG.step==='done'?'rgba(255,240,200,.9)':null});
+  if(FG.step==='quench'){ctx.fillStyle=`rgba(255,120,40,${0.5*(1-k)})`;ctx.fillRect(0,0,W,H);
+   for(let i=0;i<14;i++){const x=W*(0.1+0.8*((i*0.37+FG.t*0.1)%1)),y=H*0.5-((FG.t*60+i*23)%90);ctx.fillStyle=`rgba(230,230,230,${0.25*(1-((FG.t*60+i*23)%90)/90)})`;ctx.beginPath();ctx.arc(x,y,8+i%4*3,0,Math.PI*2);ctx.fill();}
+   if(FG.t>1.5){FG.step='done';forgeStep();}}
+  else{ctx.font='800 22px "Hiragino Mincho ProN",serif';ctx.fillStyle='#ffd56a';ctx.textAlign='center';ctx.fillText(`〈${m.name}〉`,W/2,H*0.22);}
+ }
+ requestAnimationFrame(forgeLoop);
+}
+// tracing the 刃文 with a finger
+(()=>{const cv=$('#fcv');let down=false;
+ const at=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+ const mark=p=>{if(!FG||FG.step!=='hamon'||!FG.hamon||!FG.blade)return;const b=FG.blade,i=Math.floor((p.x-b.x0)/(b.x1-b.x0)*HN);if(i<0||i>=HN)return;
+  const x=lerp(b.x0,b.x1,(i+0.5)/HN),top=b.yAt(x,b.band(0)),bot=b.yAt(x,b.band(1));FG.profile[i]=clamp((p.y-top)/(bot-top),0,1);
+  if(i>=HN-2&&FG.profile.filter(v=>v!=null).length>=HN*0.75){down=false;finishForge();}};
+ cv.addEventListener('pointerdown',e=>{down=true;cv.setPointerCapture?.(e.pointerId);mark(at(e));});
+ cv.addEventListener('pointermove',e=>{if(down)mark(at(e));});
+ cv.addEventListener('pointerup',()=>{down=false;});
+})();
+
+// ===== 弟子 ================================================================
+function face(name,size=40){if(FIMG[name])return `<img src="../assets/dojo/${FIMG[name]}.jpg" width="${size}" height="${size}" alt="" style="display:block;object-fit:cover">`;const c=FACE[name]||'#6b5a48';return `<svg viewBox="0 0 40 40" width="${size}" height="${size}" aria-hidden="true"><rect width="40" height="40" fill="${c}"/><circle cx="20" cy="22" r="11" fill="${SKIN}"/><path d="M9 20 Q20 2 31 20 Q26 13 20 13 Q14 13 9 20Z" fill="#2a1d14"/><circle cx="16" cy="23" r="1.4" fill="#2a1d14"/><circle cx="24" cy="23" r="1.4" fill="#2a1d14"/><path d="M17 28 q3 2 6 0" stroke="#8a4a3a" stroke-width="1.2" fill="none"/><path d="M6 40 Q20 30 34 40Z" fill="#2a1d14"/></svg>`;}
+function deshi(){
+ view.innerHTML=`
+  <div class="panel"><h3>門下生</h3><div class="kv"><span>人数</span><b>${G.pupils}人（定員 ${econ().cap}）</b><span>腕前</span><b>${G.str.toFixed(1)}</b><span>隊の数</span><b>${squadSlots()}隊まで（兵法書 ${G.books}冊・格 ${RANK[rankOf()].name}）</b></div>
+   <p class="small" style="margin:4px 0 0">名前のない門下生は人数で数えます。新しく入る人は腕前 8 から。稽古場で上がります。</p></div>
+  ${G.wanting.length?`<h3 style="font-size:15px;color:var(--gold)">入門を望む剣士</h3>${G.wanting.map((c,i)=>`<div class="item"><span class="ic">${face(c.name)}</span><span class="nm">${c.name}</span><span class="rt"><span class="lv">Lv${c.lv}</span></span><span class="ds">${c.trait}：${TRAIT[c.trait].name}（${TRAIT[c.trait].text(tierOf(c.lv))}）<br><button class="btn sm" data-hire="${i}" ${G.money<c.cost?'disabled':''}>交渉費 ${c.cost}文で迎える</button></span></div>`).join('')}`:''}
+  <h3 style="font-size:15px;color:var(--gold)">名のある弟子（隊長）</h3>
+  ${G.named.map((n,i)=>{const cost=100*Math.floor(n.lv),m=n.meito&&meitoOf(n.meito);return `<div class="item"><span class="ic">${face(n.name)}</span><span class="nm">${n.name}</span>
+   <span class="rt"><span class="lv">Lv${Math.floor(n.lv)}</span>${n.hurt?`<br><span class="hurt">けが（あと${n.hurt}月）</span>`:''}</span>
+   <span class="ds">${n.trait}：${TRAIT[n.trait].name} 段${tierOf(n.lv)}（${TRAIT[n.trait].text(tierOf(n.lv))}）<br>刀：${m?`〈${m.name}〉${m.title?`「${m.title}」`:''}・${HAMON[m.hamon].name}「${m.waza.name}」`:'蔵の刀（必殺技なし）'}<br>
+    <button class="btn sm" data-train="${i}" ${n.trained||G.money<cost||n.lv>=30?'disabled':''}>稽古をつける ${cost}文${n.trained?'（今月は済み）':''}</button>
+    ${G.meito.some(x=>!x.holder)?` <button class="btn sm" data-give="${i}">名刀をもたせる</button>`:''}</span></div>`;}).join('')}
+  <p class="rule">名刀をもった隊長だけが、刃文の必殺技を使えます。稽古をつけると Lv が1上がり、3つ上がるごとに技の段が上がります。</p>`;
+ view.querySelectorAll('[data-train]').forEach(b=>b.onclick=()=>{const n=G.named[+b.dataset.train],cost=100*Math.floor(n.lv);G.money-=cost;n.lv=Math.floor(n.lv)+1;n.trained=true;render();toast(`${n.name} が Lv${n.lv} になった`);});
+ view.querySelectorAll('[data-hire]').forEach(b=>b.onclick=()=>{const c=G.wanting.splice(+b.dataset.hire,1)[0];G.money-=c.cost;G.named.push({name:c.name,trait:c.trait,lv:c.lv,meito:null,hurt:0,trained:false});render();toast(`${c.name} が玉鋼流に入った`);});
+ view.querySelectorAll('[data-give]').forEach(b=>b.onclick=()=>{const n=G.named[+b.dataset.give];
+  sheet(`<h3>${n.name}にもたせる名刀</h3>${G.meito.filter(m=>!m.holder||m.holder===n.name).map(m=>`<button class="opt" data-m="${m.name}"><span class="ic" style="background:#efe4cc"></span><span class="nm">〈${m.name}〉${m.title?`「${m.title}」`:''}</span><span class="ds">${FORMS[m.form].name}・攻撃力 ${m.atk}・${HAMON[m.hamon].name}「${m.waza.name}」</span><span class="pr"></span></button>`).join('')}`);
+  $('#sheetIn').querySelectorAll('[data-m]').forEach(o=>o.onclick=()=>{const m=meitoOf(o.dataset.m);if(n.meito){const old=meitoOf(n.meito);if(old)old.holder=null;}m.holder=n.name;n.meito=m.name;closeSheet();render();toast(`${n.name}に〈${m.name}〉をもたせた`);});});
+}
+
+// ===== a month passes ======================================================
+$('#nextMonth').onclick=()=>advance();
+function rankCheck(lines){const r=rankOf();if(r>G.rankSeen){G.rankSeen=r;lines.push(`<b style="color:var(--gold)">道場の格が「${RANK[r].name}」に上がった！</b>（${RANK[r].text}）`);}}
+function advance(silent){
+ const f=forecast(),e=f.e,log=[];
+ G.money+=f.net;
+ log.push(`月謝 ＋${yen(e.fee)}文・茶屋 ＋${yen(e.chayaIncome)}文${f.s.income?`・刀屋 ＋${yen(f.s.income)}文`:''}・維持費 −${yen(e.up)}文`);
+ for(const [k,n] of Object.entries(f.s.sold))G.kura[k]-=n;
+ if(Object.keys(f.s.sold).length)log.push(`刀屋で${Object.entries(f.s.sold).map(([k,n])=>`${FORMS[k].name}${n}振`).join('・')}が売れた`);
+ G.sumi+=Math.round(e.sumi);G.satetsu+=Math.round(e.satetsu);
+ if(f.kaji){G.sumi-=f.kaji*2;G.satetsu-=f.kaji*2;G.kura[G.kajiForm]+=f.kaji;log.push(`鍛冶場で${FORMS[G.kajiForm].name}を ${f.kaji}振 打った`);}
+ else if(e.kajiMax)log.push('材料が足りず、鍛冶場は刀を打てなかった');
+ if(e.train){G.str+=e.train;}
+ G.named.forEach(n=>{if(n.hurt)n.hurt--;n.trained=false;});
+ const room=Math.max(0,e.cap-G.pupils),join=Math.min(room,e.app);
+ if(join){G.str=(G.str*G.pupils+8*join)/(G.pupils+join);G.pupils+=join;log.push(`入門 ${join}人${room<e.app?`（定員いっぱいで、あと${e.app-join}人は入れなかった）`:''}`);}
+ else log.push(`入門したい人が${e.app}人いたが、定員がいっぱいだった`);
+ G.fame+=0.5*e.shopTypes.size;
+ for(const r of Object.values(G.rivals)){r.str+=0.08;r.squads.forEach(q=>q.troops=Math.min(Math.round(q.base*1.5),q.troops+(rnd()<0.35?1:0)));r.champs.forEach(c=>c.lv+=0.1);}
+ const news=rivalsMove();if(news)log.push(news);
+ G.month=(G.month+1)%12;if(G.month===0)G.year++;
+ G.forged=false;G.fought=false;
+ rankCheck(log);
+ const raid=raidCheck(),gozen=G.month===10;
+ if(silent)return {log,raid,gozen};
+ topBar();
+ sheet(`<h3>${KAN(G.year)}年目 ${MONTHS[G.month]}になった</h3><ul class="report">${log.map(l=>`<li>${l}</li>`).join('')}</ul>
+  ${raid?`<p class="big">道場破りだ！ ${raid.r.name}が攻めてきた</p><button class="btn main" id="defend">隊を組んで迎え撃つ</button>`
+   :gozen?`<p class="big" style="color:var(--gold)">御前試合の知らせが届いた！</p><p class="small" style="margin:0">町じゅうの剣士が一騎討ちで勝ち抜きを競う、年に一度の大会です。</p><button class="btn main" id="gozen">出る剣士を選ぶ</button><button class="btn" data-close>今年は見送る</button>`
+   :'<button class="btn main" data-close>つづける</button>'}`);
+ if(raid)$('#defend').onclick=()=>prep({node:raid.target,owner:raid.key,attack:false});
+ if(gozen&&!raid)$('#gozen').onclick=()=>gozenStart();
+ render();
+}
+function rivalsMove(){
+ if(G.year===1&&G.month<8)return null;
+ if(rnd()>0.15)return null;
+ const pairs=ROADS.filter(([a,b])=>G.owner[a]!=='tama'&&G.owner[b]!=='tama'&&G.owner[a]!==G.owner[b]);
+ if(!pairs.length)return null;
+ const [a,b]=pick(pairs),ka=G.owner[a],kb=G.owner[b],A=G.rivals[ka],Bv=G.rivals[kb];
+ const pw=r=>r.squads.reduce((s,q)=>s+q.troops,0)*r.str*(0.8+0.4*rnd());
+ const [wk,lk]=pw(A)>=pw(Bv)?[ka,kb]:[kb,ka],W=G.rivals[wk],L=G.rivals[lk];
+ for(const k in G.owner)if(G.owner[k]===lk)G.owner[k]=wk;
+ W.squads.push(...L.squads.slice(0,1).map(q=>({...q,lead:undefined,rank:'back'})));W.champs.push(...L.champs);W.str=Math.max(W.str,L.str);
+ W.reward={...W.reward,tech:W.reward.tech||L.reward.tech,book:(W.reward.book||0)+(L.reward.book||0),deed:(W.reward.deed||0)+(L.reward.deed||0)};
+ delete G.rivals[lk];
+ return `${W.name}が${L.name}を破り、看板を奪った。${W.name}が大きくなった！`;
+}
+function raidCheck(){
+ const raiders=Object.keys(G.rivals).filter(k=>Object.keys(G.owner).some(n=>G.owner[n]===k&&adjacentTo(n).some(m=>G.owner[m]==='tama')));
+ if(!raiders.length)return null;
+ const due=G.year===1&&G.month===G.raidAt;
+ if(!due&&(G.year===1&&G.month<G.raidAt||rnd()>0.06))return null;
+ const key=raiders.includes('hayate')&&due?'hayate':pick(raiders);
+ const from=Object.keys(G.owner).filter(n=>G.owner[n]===key);
+ const targets=owned().filter(n=>adjacentTo(n).some(m=>from.includes(m)));
+ return {key,r:G.rivals[key],target:targets.find(t=>t!=='tama')||targets[0]||'tama'};
+}
+
+// ===== battle prep =========================================================
+let P;
+function prep(ctx){
+ const r=G.rivals[ctx.owner],n=squadSlots();
+ const free=G.named.filter(x=>!x.hurt).sort((a,b)=>(b.meito?1:0)-(a.meito?1:0)||b.lv-a.lv).map(x=>x.name);
+ P={...ctx,r,scouted:!ctx.attack,sq:[]};
+ for(let i=0;i<n;i++)P.sq.push({lead:free[i]||null,form:i===0?'uchigatana':'wakizashi',troops:0,rank:i===0?'front':'mid'});
+ P.sq.forEach(q=>{const m=q.lead&&meitoOf(G.named.find(x=>x.name===q.lead)?.meito);if(m&&G.kura[m.form]>0)q.form=m.form;});
+ autoTroops();drawPrep();
+}
+function usedSwords(skip){const u={};P.sq.forEach((q,i)=>{if(i!==skip)u[q.form]=(u[q.form]||0)+q.troops;});return u;}
+function usedPupils(skip){return P.sq.reduce((s,q,i)=>s+(i===skip?0:q.troops),0);}
+function maxTroops(i){const q=P.sq[i];return Math.max(0,Math.min(G.pupils-usedPupils(i),G.kura[q.form]-(usedSwords(i)[q.form]||0)));}
+function autoTroops(){P.sq.forEach(q=>q.troops=0);P.sq.forEach((q,i)=>{q.troops=Math.min(maxTroops(i),Math.ceil(G.pupils/P.sq.length)+2);});}
+function drawPrep(){
+ const r=P.r,leaders=G.named.filter(x=>!x.hurt).map(x=>x.name);
+ const cost=P.sq.reduce((s,q)=>s+q.troops,0);
+ sheet(`<h3>${P.attack?'他流試合':'道場破りを迎え撃つ'}：${r.name}</h3>
+  ${foeBox(r,P.scouted)}
+  ${P.scouted?'':`<button class="btn sm" id="scout" ${G.money<50?'disabled':''}>物見を出す（50文）：相手の人数がわかる</button>`}
+  <p class="rule">隊は人数が0になると崩れ、隊長はけがで退く。毎合 <b>脇差 → 槍 → 打刀 → 大太刀</b> の順。相性 <b>槍 ＞ 大太刀 ＞ 脇差 ＞ 槍</b>（×1.5）。打刀はいちばん前の列でだけ斬り、打たれ強い。前の列が残っているあいだ、後ろは斬られない（槍だけは前の列ごしに中の列も突ける）。試合のはじめに隊長どうしの一騎討ち（負けた隊は動揺して人数が減り、攻めが落ちる）。名刀をもつ隊長は、隊が初めて動くときに必殺技を放つ。</p>
+  ${P.sq.map((q,i)=>{const n=q.lead&&G.named.find(x=>x.name===q.lead),m=n&&n.meito&&meitoOf(n.meito);return `<div class="sq"><div class="hd"><b>第${KAN(i+1)}隊</b><span class="grow small">${q.lead?`隊長 ${q.lead}${m?`・〈${m.name}〉${m.waza.name}`:''}`:'隊長なし'}</span>
+    <div class="step"><button data-tr="${i}" data-d="-2">−</button><output>${q.troops}人</output><button data-tr="${i}" data-d="2">＋</button></div></div>
+   <div class="row"><span class="lbl2">隊長</span><div class="chips grow">${[null,...leaders].map(l=>`<button class="chip ${q.lead===l?'on':''}" data-ld="${i}" data-v="${l??''}" ${l&&P.sq.some((o,j)=>j!==i&&o.lead===l)?'disabled':''}>${l??'なし'}</button>`).join('')}</div></div>
+   <div class="row"><span class="lbl2">刀</span><div class="chips grow">${FORM_KEYS.map(k=>`<button class="chip ${q.form===k?'on':''}" data-fm="${i}" data-v="${k}" ${G.kura[k]?'':'disabled'}>${FORMS[k].name}<small> ${G.kura[k]}</small></button>`).join('')}</div></div>
+   <div class="row"><span class="lbl2">位置</span><div class="chips grow">${RANKS.map(k=>`<button class="chip ${q.rank===k?'on':''}" data-rk="${i}" data-v="${k}">${RANK_NAME[k]}</button>`).join('')}</div></div></div>`;}).join('')}
+  <p class="small" style="margin:0">門下生 ${usedPupils(-1)}/${G.pupils}人を出す ・ 出陣の費用 ${cost}文（1人1文）</p>
+  <button class="btn main" id="fight" ${cost&&G.money>=cost?'':'disabled'}>${P.attack?'試合を始める':'迎え撃つ'}</button>`);
+ const S=$('#sheetIn');
+ S.querySelectorAll('[data-tr]').forEach(b=>b.onclick=()=>{const i=+b.dataset.tr,q=P.sq[i];q.troops=clamp(q.troops+ +b.dataset.d,0,maxTroops(i));keep(drawPrep);});
+ S.querySelectorAll('[data-ld]').forEach(b=>b.onclick=()=>{P.sq[+b.dataset.ld].lead=b.dataset.v||null;keep(drawPrep);});
+ S.querySelectorAll('[data-fm]').forEach(b=>b.onclick=()=>{const i=+b.dataset.fm;P.sq[i].form=b.dataset.v;P.sq[i].troops=Math.min(P.sq[i].troops,maxTroops(i));keep(drawPrep);});
+ S.querySelectorAll('[data-rk]').forEach(b=>b.onclick=()=>{P.sq[+b.dataset.rk].rank=b.dataset.v;keep(drawPrep);});
+ const sc=$('#scout');if(sc)sc.onclick=()=>{G.money-=50;P.scouted=true;topBar();keep(drawPrep);};
+ $('#fight').onclick=()=>{G.money-=cost;$('#sheet').hidden=true;startBattle();};
+}
+function keep(fn){const y=$('#sheetIn').scrollTop;fn();$('#sheetIn').scrollTop=y;}
+
+// ===== the battle rules =====================================================
+function troopHp(str){return 1+str*0.1;}
+function leadOf(n,champ){const m=n.meito?(typeof n.meito==='string'?meitoOf(n.meito):n.meito):null;
+ return {name:n.name,trait:n.trait,lv:n.lv,meito:m,waza:m?m.waza:null,title:m?.title||null,champ:!!champ,school:champ||null,profile:m?.profile||null,hamon:m?.hamon||null};}
+function champLead(c,key){
+ if(!c.hamon)return leadOf({name:c.name,trait:c.trait,lv:c.lv},key);
+ const p=guideLine(c.hamon),m={name:c.name+'の刀',atk:60+c.lv*4,waza:wazaOf(c.hamon,p,0.8),profile:p,hamon:c.hamon,title:null};
+ return {...leadOf({name:c.name,trait:c.trait,lv:c.lv},key),meito:m,waza:m.waza,profile:p,hamon:c.hamon};
+}
+function makeArmy(side){
+ const part=side==='R'&&!P.attack?0.7:1;
+ if(side==='L'){
+  const tactic=Math.max(0,...P.sq.filter(q=>q.lead&&q.troops>0).map(q=>{const n=G.named.find(x=>x.name===q.lead);return n&&n.trait==='智'?5*tierOf(n.lv):0;}));
+  return {side,name:'玉鋼流',color:SCHOOLS.tama.color,str:G.str,tactic,smith:smithMult(),squads:P.sq.filter(q=>q.troops>0).map(q=>{const n=q.lead&&G.named.find(x=>x.name===q.lead);
+   return squad(q.form,q.troops,q.rank,n?leadOf(n):null,G.str);})};
+ }
+ const r=P.r,key=P.owner,tactic=Math.max(0,...r.champs.map(c=>c.trait==='智'?5*tierOf(c.lv):0));
+ return {side,name:r.name,color:r.color,str:r.str,tactic,smith:1,squads:r.squads.map(q=>squad(q.form,Math.max(3,Math.round(q.troops*part)),q.rank,q.lead!=null?champLead(r.champs[q.lead],key):null,r.str))};
+}
+function squad(form,troops,rank,lead,str){return {form,troops,max:troops,rank,lead,str,killed:0,morale:1,used:false};}
+const alive=q=>q.troops>0;
+function frontRank(army){for(const r of RANKS)if(army.squads.some(q=>alive(q)&&q.rank===r))return r;return null;}
+function canStrike(q,army){const F=FORMS[q.form];if(!alive(q))return false;if(F.from==='first')return q.rank===frontRank(army);return F.from.includes(q.rank);}
+function leaderPart(q){return q.lead?q.lead.lv*2.2*(q.lead.meito?q.lead.meito.atk/60:1)*(q.lead.title?1.1:1):0;}
+function boost(q,army){const t=q.lead?tierOf(q.lead.lv):0;return FORMS[q.form].pow*(1+army.tactic/100)*q.morale*(q.lead?.trait==='剛'?1+(10+5*(t-1))/100:1);}
+function attackOf(q,army){return (q.troops*q.str*0.1*(army.smith||1)+leaderPart(q))*boost(q,army);}
+function hitSquad(q,dmg){
+ let m=FORMS[q.form].take;if(q.lead?.trait==='守')m*=1-(10+5*(tierOf(q.lead.lv)-1))/100;
+ const per=troopHp(q.str)/m,want=Math.round(dmg/per),lost=Math.min(q.troops,want);q.troops-=lost;
+ return {lost,over:want>lost?(want-lost)*per:0};
+}
+function duelPower(l){return (l.lv*10+(l.meito?l.meito.atk:45)+(l.title?8:0)+(l.trait==='剛'?8:0))*(0.85+0.3*rnd());}
+// one whole battle as events: round / phase / duel / waza / act / end
+function fightEvents(L,R){
+ const ev=[];
+ const deal=(p,targets,mult,forceCrit)=>{ // p = {me,q,i}; returns hits
+  const them=p.me===L?R:L,ts=p.me===L?'R':'L',out=[];
+  for(const tg of targets){let t=tg.t,j=tg.j,dmg=tg.dmg*mult*(0.9+0.2*rnd()),guard=0;
+   while(t&&dmg>0.5&&guard++<6){if(!alive(t))break;const c=forceCrit?1.5:counter(p.q.form,t.form);const r=hitSquad(t,dmg*c);p.q.killed+=r.lost;
+    const broke=!alive(t);if(broke&&t.lead?.champ&&p.me===L)p.q.brokeChamp=t.lead.school;
+    out.push({side:ts,i:j,lost:r.lost,crit:c>1,broke});
+    dmg=r.over/c;if(tg.noCarry||dmg<=0.5)break;const fr=frontRank(them);if(!fr)break;const nx=them.squads.map((x,jj)=>({x,jj})).filter(({x})=>alive(x)&&x.rank===fr)[0];if(!nx)break;t=nx.x;j=nx.jj;}}
+  return out;};
+ for(let round=1;round<=3;round++){
+  ev.push({round});
+  if(round===1){ // 一騎討ち between the leaders nearest the front, before the clash
+   const lead=a=>{for(const r of RANKS){const j=a.squads.findIndex(q=>alive(q)&&q.lead&&q.rank===r);if(j>=0)return j;}return -1;};
+   const li=lead(L),ri=lead(R);
+   if(li>=0&&ri>=0){const a=L.squads[li],b=R.squads[ri];let wa=0,wb=0;const bouts=[];
+    while(wa<2&&wb<2){const x=duelPower(a.lead),y=duelPower(b.lead);if(x>=y)wa++;else wb++;bouts.push(x>=y?'L':'R');}
+    const win=wa>wb?'L':'R',lose=win==='L'?b:a,winS=win==='L'?a:b,lost=Math.round(lose.troops*0.08);
+    lose.troops-=lost;lose.morale=0.95;winS.morale=1.05;
+    ev.push({duel:{li,ri,Ln:a.lead.name,Rn:b.lead.name,win,bouts,lost,loserSide:win==='L'?'R':'L',loserI:win==='L'?ri:li}});
+   }
+  }
+  for(const fk of FORM_KEYS){
+   const acts=[];
+   for(const [me,them] of [[L,R],[R,L]])me.squads.forEach((q,i)=>{if(q.form===fk&&canStrike(q,me))acts.push({me,them,q,i});});
+   if(!acts.length)continue;ev.push({phase:fk});
+   // squads that move at the same time strike at the same time: their strength is taken before anyone is hit
+   acts.forEach(p=>{p.a=attackOf(p.q,p.me);p.fr=frontRank(p.them);});
+   for(const p of acts){const them=p.them,fr=frontRank(them)||null;if(!fr)break;
+    const a=p.a,side=p.me===L?'L':'R';
+    // 槍 reach over the front line to the rank behind it (like bows over infantry)
+    const behind=RANKS[RANKS.indexOf(fr)+1];
+    const pool=them.squads.map((t,j)=>({t,j})).filter(({t})=>alive(t)&&(FORMS[fk].all?true:t.rank===fr||(fk==='yari'&&t.rank===behind)));
+    if(!pool.length)continue;
+    const single=()=>{const best=list=>list.slice().sort((u,v)=>counter(fk,v.t.form)-counter(fk,u.t.form)||u.t.troops-v.t.troops)[0];
+     const f=best(pool.filter(x=>x.t.rank===fr)),b=best(pool.filter(x=>x.t.rank!==fr));
+     const x=f&&b&&counter(fk,b.t.form)>counter(fk,f.t.form)?b:(f||b);return [{...x,dmg:a}];};
+    // the 必殺技: once, the first time a leader with a 名刀 strikes
+    if(p.q.lead?.waza&&!p.q.used){const w=p.q.lead.waza;p.q.used=true;
+     ev.push({waza:{side,i:p.i,name:w.name,who:p.q.lead.name,profile:p.q.lead.profile,hamon:p.q.lead.hamon}});
+     const base=FORMS[fk].all?pool.map(x=>({...x,dmg:a*FORMS[fk].all,noCarry:true})):single();
+     let hits=deal(p,base,1,false);const lp=leaderPart(p.q)*boost(p.q,p.me);
+     if(w.all)hits=hits.concat(deal(p,them.squads.map((t,j)=>({t,j})).filter(({t})=>alive(t)).map(x=>({...x,dmg:lp,noCarry:true})),w.mult,false));
+     else for(let k=0;k<w.hits;k++){const fr2=frontRank(them);if(!fr2)break;const pl=them.squads.map((t,j)=>({t,j})).filter(({t})=>alive(t)&&t.rank===fr2);if(!pl.length)break;hits=hits.concat(deal(p,[{...pl[0],dmg:lp}],w.mult,!!w.crit));}
+     ev.push({act:{side,i:p.i,hits,waza:true}});continue;}
+    const targets=FORMS[fk].all?pool.map(x=>({...x,dmg:a*FORMS[fk].all,noCarry:true})):single();
+    let times=1;if(p.q.lead?.trait==='速'&&rnd()<(20+10*(tierOf(p.q.lead.lv)-1))/100)times=2;
+    let hits=[];for(let k=0;k<times;k++){hits=hits.concat(deal(p,targets.map(t=>({...t})),1,false).map(h=>({...h,twice:k>0})));}
+    if(hits.length)ev.push({act:{side,i:p.i,hits}});
+   }
+   if(!L.squads.some(alive)||!R.squads.some(alive))break;
+  }
+  if(!L.squads.some(alive)||!R.squads.some(alive))break;
+ }
+ const l=L.squads.some(alive),r=R.squads.some(alive);
+ ev.push({end:l&&!r?'win':!l&&r?'lose':'draw'});
+ return ev;
+}
+
+// ===== the battle, shown =====================================================
+let BT=null;
+function startBattle(){
+ const L=makeArmy('L'),R=makeArmy('R');
+ const shown={L:JSON.parse(JSON.stringify(L)),R:JSON.parse(JSON.stringify(R))};
+ const ev=fightEvents(L,R);
+ BT={L,R,shown,ev,k:0,speed:1,res:ev[ev.length-1].end,anim:null,fx:[],wait:1.4,figs:null};
+ $('#battle').hidden=false;
+ $('#bR').innerHTML=`<span style="color:${R.color}">${R.name}</span>`;$('#bKind').textContent=P.attack?'他流試合':'道場破り';
+ $('#bL').innerHTML=`<span style="color:var(--gold)">玉鋼流</span>`;$('#bRound').textContent='';$('#blog').textContent='';
+ $('#speed').textContent='はやく';
+ layoutFigs();banner(`${P.attack?'他流試合':'道場破り'}<br><span style="font-size:15px">三合で決着せねば引き分け</span>`,1300);
+ BT.last=performance.now();requestAnimationFrame(battleLoop);
+}
+function squadPos(side,i){
+ const S=BT.shown[side].squads,q=S[i],inRank=S.map((x,j)=>({x,j})).filter(o=>o.x.rank===q.rank),k=inRank.findIndex(o=>o.j===i),W=BT.W,H=BT.H;
+ const y={R:{back:0.12,mid:0.25,front:0.39},L:{front:0.62,mid:0.76,back:0.9}}[side][q.rank]*H;
+ return {x:W*(k+1)/(inRank.length+1),y};
+}
+function layoutFigs(){
+ const {W,H}=sharp($('#bcv'));BT.W=W;BT.H=H;BT.figs={L:[],R:[]};
+ for(const side of ['L','R'])BT.shown[side].squads.forEach((q,i)=>{const c=squadPos(side,i),n=Math.min(12,Math.ceil(q.troops/2)),list=[];
+  for(let k=0;k<n;k++){const col=k%4,row=Math.floor(k/4),hx=c.x+(col-1.5)*16,hy=c.y+(side==='L'?1:-1)*(row*13)+((col%2)?3:0);list.push({hx,hy,x:hx,y:hy,alive:true,fall:0});}
+  BT.figs[side][i]={list,lead:q.lead?{hx:c.x,hy:c.y+(side==='L'?-17:17),x:c.x,y:c.y+(side==='L'?-17:17),alive:true,fall:0}:null,c};});
+}
+function banner(html,ms){const b=$('#banner');b.innerHTML=html;b.style.opacity=1;clearTimeout(banner.t);if(ms)banner.t=setTimeout(()=>b.style.opacity=0,ms);}
+function nextEvent(){
+ const e=BT.ev[BT.k++];if(!e)return;const sp=BT.speed;
+ if(e.round){$('#bRound').textContent=`${['','一','二','三'][e.round]}の合`;banner(`${['','一','二','三'][e.round]}の合`,650/sp);BT.wait=0.8/sp;return;}
+ if(e.phase){$('#blog').textContent=`${FORMS[e.phase].name}の隊が動く`;BT.wait=0.15/sp;return;}
+ if(e.duel){BT.anim={type:'duel',e:e.duel,t:0,dur:3.2/sp};$('#blog').textContent='一騎討ち！';return;}
+ if(e.waza){cutin(e.waza);BT.wait=1.7/sp;return;}
+ if(e.act){const a=e.act,from=BT.figs[a.side][a.i];BT.anim={type:'act',a,t:0,dur:(a.waza?1.0:0.75)/sp,applied:false,from};
+  const who=BT.shown[a.side].squads[a.i];$('#blog').textContent=`${a.side==='L'?'玉鋼流':BT.R.name}の${who.lead?who.lead.name+'の隊':FORMS[who.form].name+'隊'}が斬りこむ`;return;}
+ if(e.end){banner(e.end==='win'?'<span style="color:#9be07f">勝ち！</span>':e.end==='lose'?'<span style="color:#ff9a80">負け……</span>':'引き分け',0);BT.wait=1.5;BT.ending=true;}
+}
+function applyHits(a){
+ for(const h of a.hits){const q=BT.shown[h.side].squads[h.i];q.troops-=h.lost;
+  const F=BT.figs[h.side][h.i];if(!F)continue;const want=Math.min(F.list.length,Math.ceil(q.troops/2)),live=F.list.filter(f=>f.alive);
+  for(let k=0;k<live.length-want;k++){live[live.length-1-k].alive=false;}
+  if(q.troops<=0&&F.lead){F.lead.alive=false;}
+  BT.fx.push({txt:`−${h.lost}人${h.crit?' 有利！':''}${h.twice?' 連撃':''}${h.broke?' 崩れた':''}`,x:F.c.x,y:F.c.y-20,age:0,c:h.crit?'#ffd56a':'#fff'});
+  BT.fx.push({arc:true,x:F.c.x,y:F.c.y,age:0,c:a.side==='L'?'255,225,160':'255,150,130',big:!!a.waza});}
+}
+function cutin(w){
+ const sp=BT?BT.speed:1,el=$('#cutin');el.style.setProperty('--cc',w.side==='L'?'#ffd56a':(BT?BT.R.color:'#c9a2ff'));
+ $('#ciWho').textContent=`${w.who}の必殺技`;const cf=$('#ciFace');if(FIMG[w.who]){cf.src=`../assets/dojo/${FIMG[w.who]}.jpg`;cf.hidden=false;}else cf.hidden=true;$('#ciName').textContent=w.name;el.classList.add('on');
+ const cv=$('#cicv'),{ctx,W,H}=sharp(cv);ctx.clearRect(0,0,W,H);drawBlade(ctx,W,H,w.profile,{glow:w.side==='L'?'rgba(255,220,140,.95)':'rgba(220,180,255,.95)'});
+ const n=$('#ciName');n.style.animation='none';void n.offsetWidth;n.style.animation='';
+ clearTimeout(cutin.t);cutin.t=setTimeout(()=>el.classList.remove('on'),1500/sp);
+}
+function battleLoop(now){
+ if(!BT)return;const dt=Math.min(0.05,(now-BT.last)/1000);BT.last=now;
+ if(BT.anim){BT.anim.t+=dt;
+  if(BT.anim.type==='act'){const A=BT.anim,k=A.t/A.dur;
+   if(k>0.45&&!A.applied){A.applied=true;applyHits(A.a);}
+   if(k>=1){BT.anim=null;BT.wait=0.08;}}
+  else if(BT.anim.type==='duel'){if(BT.anim.t>=BT.anim.dur){const d=BT.anim.e,ls=d.loserSide,q=BT.shown[ls].squads[d.loserI];q.troops-=d.lost;
+    const F=BT.figs[ls][d.loserI];if(F){const want=Math.ceil(q.troops/2),live=F.list.filter(f=>f.alive);for(let k=0;k<live.length-want;k++)live[live.length-1-k].alive=false;
+     BT.fx.push({txt:`動揺 −${d.lost}人`,x:F.c.x,y:F.c.y-20,age:0,c:'#ff9a80'});}
+    BT.fx.push({txt:`${d.win==='L'?d.Ln:d.Rn}の勝ち！`,x:BT.W/2,y:BT.H*0.5,age:0,c:'#ffd56a'});BT.anim=null;BT.wait=0.5;}}}
+ else{BT.wait-=dt;if(BT.wait<=0){if(BT.ending){BT.ending=false;endBattle();return;}nextEvent();}}
+ drawBattle(dt);
+ if(BT)requestAnimationFrame(battleLoop);
+}
+function drawBattle(dt){
+ const cv=$('#bcv'),ctx=cv.getContext('2d'),W=BT.W,H=BT.H;
+ const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#5a6a3a');g.addColorStop(0.5,'#6f7a44');g.addColorStop(1,'#5a6a3a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='rgba(0,0,0,.08)';for(let i=0;i<30;i++){ctx.fillRect((i*73)%W,(i*131)%H,18,3);}
+ ctx.strokeStyle='rgba(255,255,255,.15)';ctx.setLineDash([4,6]);ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+ const A=BT.anim;
+ for(const side of ['R','L']){const col=side==='L'?'#d9b25e':BT.R.color;
+  BT.figs[side].forEach((F,i)=>{if(!F)return;const q=BT.shown[side].squads[i];
+   // dash toward the target when this squad acts
+   let off={x:0,y:0},swing=null;
+   if(A&&A.type==='act'&&A.a.side===side&&A.a.i===i&&A.a.hits.length){const t=BT.figs[A.a.hits[0].side][A.a.hits[0].i];if(t){const k=A.t/A.dur,p=k<0.45?k/0.45:k<0.6?1:1-(k-0.6)/0.4,reach=FORMS[q.form].from==='first'||q.form==='wakizashi'?0.78:0.45;off={x:(t.c.x-F.c.x)*reach*p,y:(t.c.y-F.c.y)*reach*p};if(k>0.4&&k<0.65)swing=(side==='L'?-0.9:2.2)+(k-0.4)*8;}}
+   // flag
+   const fx=F.c.x+34,fy=F.c.y+(side==='L'?-6:6);ctx.strokeStyle='#5a3a20';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(fx,fy+10);ctx.lineTo(fx,fy-16);ctx.stroke();
+   ctx.fillStyle=alive(q)?col:'#555';ctx.fillRect(fx,fy-16,12,15);ctx.fillStyle='#1c140f';ctx.font='700 9px "Hiragino Mincho ProN",serif';ctx.textAlign='center';ctx.fillText(FORMS[q.form].k,fx+6,fy-5);
+   for(const f of F.list){
+    const key=side==='L'?'chibi-monka':'chibi-foe';
+    if(!f.alive){f.fall=Math.min(1,f.fall+dt*2.5);if(f.fall<1&&!sprite(ctx,key,f.x,f.y,26,side==='R',{rot:(side==='L'?1:-1)*f.fall*1.4,alpha:1-f.fall}))chibi(ctx,f.x,f.y,0.95,side==='L'?'#f4efe2':'#e6ddd0',q.form,side==='L'?-1:1,{rot:(side==='L'?1:-1)*f.fall*1.4,alpha:1-f.fall,band:col});continue;}
+    f.x=f.hx+off.x;f.y=f.hy+off.y;if(!sprite(ctx,key,f.x,f.y,26,side==='R',{tilt:swing!=null?(side==='L'?-0.3:0.3):0}))chibi(ctx,f.x,f.y,0.95,side==='L'?'#f4efe2':'#e6ddd0',q.form,side==='L'?-1:1,{band:col,swing});
+   }
+   if(F.lead){const L=F.lead,key=side==='L'?'chibi-monka':'chibi-foe';if(!L.alive){L.fall=Math.min(1,L.fall+dt*2);if(L.fall<1&&!sprite(ctx,key,L.x,L.y,38,side==='R',{rot:L.fall*1.4,alpha:1-L.fall}))chibi(ctx,L.x,L.y,1.4,col,q.form,side==='L'?-1:1,{rot:L.fall*1.4,alpha:1-L.fall});}
+    else{L.x=L.hx+off.x;L.y=L.hy+off.y;if(!sprite(ctx,key,L.x,L.y,38,side==='R',{tilt:swing!=null?(side==='L'?-0.3:0.3):0}))chibi(ctx,L.x,L.y,1.4,col,q.form,side==='L'?-1:1,{swing});
+     const ln=q.lead?.name||F.leadName;if(ln){F.leadName=ln;faceBadge(ctx,ln,L.x+20,L.y-34,9,col);ctx.font='700 10px sans-serif';ctx.fillStyle='rgba(255,255,255,.95)';ctx.textAlign='center';ctx.fillText(ln,L.x-8,L.y-40);}}}
+   ctx.font='700 10px sans-serif';ctx.fillStyle=alive(q)?'#fff':'#bbb';ctx.textAlign='center';ctx.fillText(alive(q)?`${q.troops}人`:'崩れた',F.c.x,F.c.y+(side==='L'?40:-36));
+  });
+ }
+ // the duel: the two leaders step to the middle and clash
+ if(A&&A.type==='duel'){const d=A.e,k=A.t/A.dur;ctx.fillStyle=`rgba(0,0,0,${Math.min(0.55,k*2)})`;ctx.fillRect(0,0,W,H);
+  ctx.font='800 26px "Hiragino Mincho ProN",serif';ctx.textAlign='center';ctx.fillStyle='#ffd56a';ctx.fillText('一騎討ち',W/2,H*0.2);
+  const lx=lerp(W*0.2,W*0.4,Math.min(1,k*3)),rx=lerp(W*0.8,W*0.6,Math.min(1,k*3)),y=H*0.53;
+  const bout=Math.min(d.bouts.length-1,Math.floor(Math.max(0,k-0.25)/0.75*d.bouts.length)),phase=((Math.max(0,k-0.25)/0.75*d.bouts.length)%1);
+  const clash=k>0.25&&phase<0.3;
+  if(!sprite(ctx,'chibi-monka',lx+(clash?12:0),y,70,true,{tilt:clash?0.25:0}))chibi(ctx,lx+(clash?12:0),y,2.4,'#d9b25e','uchigatana',-1,{swing:clash?-0.2:-1.2});
+  if(!sprite(ctx,'chibi-foe',rx-(clash?12:0),y,70,false,{tilt:clash?-0.25:0}))chibi(ctx,rx-(clash?12:0),y,2.4,BT.R.color,'uchigatana',1,{swing:clash?3.3:2.0});
+  faceBadge(ctx,d.Ln,W*0.2,H*0.3,22,'#d9b25e');faceBadge(ctx,d.Rn,W*0.8,H*0.3,22,BT.R.color);
+  ctx.font='700 13px sans-serif';ctx.fillStyle='#fff';ctx.fillText(d.Ln,lx,y+22);ctx.fillText(d.Rn,rx,y+22);
+  if(clash){ctx.fillStyle='rgba(255,255,220,.9)';for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.fillRect(W/2+Math.cos(a)*14,y-30+Math.sin(a)*14,3,3);}}
+  if(k>0.25){const won=d.bouts.slice(0,bout+1);ctx.font='800 16px "Hiragino Mincho ProN",serif';ctx.fillStyle='#ffd56a';ctx.fillText(won.map(b=>b==='L'?'○':'●').join(' '),W/2,H*0.3);}
+ }
+ for(const f of BT.fx){f.age+=dt;
+  if(f.arc){const a=Math.max(0,1-f.age/0.3);ctx.strokeStyle=`rgba(${f.c},${a})`;ctx.lineWidth=f.big?5:3;ctx.beginPath();ctx.arc(f.x,f.y,f.big?40:22,-2.4,-0.6);ctx.stroke();continue;}
+  ctx.globalAlpha=Math.max(0,1-f.age/1.1);ctx.font='800 15px "Hiragino Mincho ProN",serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.7)';ctx.strokeText(f.txt,f.x,f.y-f.age*24);ctx.fillStyle=f.c;ctx.fillText(f.txt,f.x,f.y-f.age*24);ctx.globalAlpha=1;}
+ BT.fx=BT.fx.filter(f=>f.age<(f.arc?0.3:1.1));
+}
+$('#speed').onclick=()=>{if(!BT)return;BT.speed=BT.speed>1?1:2.5;$('#speed').textContent=BT.speed>1?'ふつう':'はやく';};
+$('#skip').onclick=()=>{if(!BT)return;if(DU){DU.skip=true;return;}endBattle();};
+function endBattle(){
+ if(!BT)return;const res=BT.res,r=P.r,key=P.owner,L=BT.L;
+ $('#cutin').classList.remove('on');
+ const sent=L.squads.reduce((s,q)=>s+q.max,0),left=L.squads.reduce((s,q)=>s+q.troops,0),lost=sent-left;
+ const leave=Math.ceil(lost/4);G.pupils=Math.max(1,G.pupils-leave);
+ const broke={};L.squads.forEach(q=>{const b=Math.ceil((q.max-q.troops)/3);if(b){broke[q.form]=(broke[q.form]||0)+b;G.kura[q.form]=Math.max(0,G.kura[q.form]-b);}});
+ const hurt=[];
+ L.squads.forEach(q=>{const nm=q.lead?.name;if(q.lead&&q.troops<=0){hurt.push(nm);}});
+ hurt.forEach(nm=>{const n=G.named.find(x=>x.name===nm);if(n)n.hurt=1;});
+ const lines=[];let title,big='';
+ // the 名刀 keep a record, and earn a 二つ名 when they break a named swordsman's squad
+ L.squads.forEach((q,idx)=>{const sq=P.sq.filter(s=>s.troops>0)[idx];const n=sq?.lead&&G.named.find(x=>x.name===sq.lead),m=n&&n.meito&&meitoOf(n.meito);if(!m)return;
+  m.kills+=q.killed;if(res==='win')m.wins++;m.record.push(`${KAN(G.year)}年${MONTHS[G.month]} ${r.name}戦：${q.killed}人を倒した${res==='win'?'（勝ち）':''}`);
+  if(q.brokeChamp&&!m.title){m.title=SCHOOLS[q.brokeChamp].name.replace('流','')+'切';big+=`<p class="gold-big">〈${m.name}〉に二つ名「${m.title}」がついた！</p>`;}});
+ if(P.attack){G.fought=true;
+  if(res==='win'){
+   const nodes=Object.keys(G.owner).filter(k=>G.owner[k]===key);nodes.forEach(k=>G.owner[k]='tama');
+   G.boards.push(...nodes);G.newBoard=nodes[nodes.length-1];
+   const w=r.reward;
+   if(w.tech){G.tech[w.tech]=true;lines.push(`${FORMS[w.tech].name}の技術を手に入れた（鍛冶場で打てる）`);}
+   if(w.deed){G.deeds+=w.deed;lines.push(`土地の権利証を手に入れた（北の区画を開ける）`);}
+   if(w.book){G.books+=w.book;lines.push(`兵法書を手に入れた（隊が${squadSlots()}つまで組める）`);}
+   if(w.travel){G.travelBonus+=w.travel;lines.push(`町の旅人が増えた（＋${w.travel}人／月）`);}
+   r.champs.forEach(c=>G.wanting.push({name:c.name,trait:c.trait,lv:Math.max(2,Math.floor(c.lv)-1),cost:100*Math.floor(c.lv)}));
+   lines.push(`${r.champs.map(c=>c.name).join('、')}が入門を望んでいる（弟子の画面で交渉）`);
+   G.fame+=12*nodes.length;lines.push(`名声 ＋${12*nodes.length}`);
+   delete G.rivals[key];
+   for(const o of Object.values(G.rivals)){o.str*=1.05;o.squads.forEach(q=>q.troops=Math.round(q.troops*1.06));}
+   if(Object.keys(G.rivals).length)lines.push('残った道場が、負けじと力をつけた');
+   title=`勝ち！ ${nodes.map(k=>SCHOOLS[k].name).join('・')}の看板をもらった`;
+  }else if(res==='draw'){title='引き分け。看板は取れなかった';}
+  else{G.fame=Math.max(0,G.fame-4);title=`負け…… ${r.name}に及ばなかった`;lines.push('名声 −4');}
+ }else{
+  if(res==='win'){r.squads.forEach(q=>q.troops=Math.max(4,Math.floor(q.troops*0.7)));G.fame+=8;title='道場破りを追い返した！';lines.push(`名声 ＋8・${r.name}の門下生が減った`);}
+  else if(res==='draw'){title='道場破りは引きあげていった';}
+  else{if(P.node!=='tama'){G.owner[P.node]=key;G.boards=G.boards.filter(b=>b!==P.node);title=`${SCHOOLS[P.node].name}の看板を奪われた……`;}
+   else{const gg=Math.max(1,Math.ceil(G.pupils/8));G.pupils-=gg;G.money=Math.max(0,G.money-100);title='本堂を荒らされた……';lines.push(`門下生が ${gg}人 去った・100文 うばわれた`);}
+   G.fame=Math.max(0,G.fame-4);lines.push('名声 −4');}
+ }
+ lines.push(`出した ${sent}人のうち ${lost}人がけが。そのうち ${leave}人が道場を去った`);
+ const br=Object.entries(broke);if(br.length)lines.push(`折れた刀：${br.map(([f,n])=>`${FORMS[f].name}×${n}`).join('、')}`);
+ if(hurt.length)lines.push(`${[...new Set(hurt)].join('、')}はけが（来月は休み）`);
+ rankCheck(lines);
+ if(owned().length===5&&!G.won){G.won=true;big+='<p class="gold-big">町一番の道場になった！</p><p class="small" style="text-align:center;margin:0">国の地図が開きました（町の画面）。本番では、ここから国へ、天下へと広がります。</p>';}
+ G.history.push({month:G.year*12+G.month,vs:key,attack:P.attack,res});
+ BT=null;$('#battle').hidden=true;if(P.attack&&res==='win')G.tab='yard';
+ render();
+ sheet(`<h3>${title}</h3>${big}<ul class="report">${lines.map(l=>`<li>${l}</li>`).join('')}</ul><button class="btn main" data-close>つづける</button>`);
+}
+
+// ===== 御前試合（一騎討ちの勝ち抜き） ==========================================
+let DU=null;
+function gozenStart(){
+ const can=G.named.filter(n=>!n.hurt);
+ const foes=[...Object.values(G.rivals).flatMap(r=>r.champs.map(c=>({...c,from:r.name,hamon:c.hamon}))),...RONIN.map(c=>({...c,lv:c.lv+G.year-1,from:'浪人'}))].sort((a,b)=>b.lv-a.lv).slice(0,3);
+ sheet(`<h3>御前試合：出る剣士を選ぶ</h3><p class="small" style="margin:0">三本勝負の一騎討ちを、二度勝ち抜くと優勝です。名刀をもつ剣士は、二本目に必殺技を放ちます。</p>
+  <div class="foe">相手（強い順）：${foes.map(f=>`${f.name}（${f.from}・Lv${Math.floor(f.lv)}）`).join('、')}</div>
+  ${can.map(n=>{const m=n.meito&&meitoOf(n.meito);return `<button class="opt" data-champ="${n.name}"><span class="ic">${face(n.name,38)}</span><span class="nm">${n.name} <span class="small">Lv${Math.floor(n.lv)}</span></span><span class="ds">${m?`〈${m.name}〉攻撃力 ${m.atk}・${m.waza.name}`:'蔵の刀（必殺技なし）'}</span><span class="pr"></span></button>`;}).join('')}`);
+ $('#sheetIn').querySelectorAll('[data-champ]').forEach(b=>b.onclick=()=>{const n=G.named.find(x=>x.name===b.dataset.champ);$('#sheet').hidden=true;
+  DU={me:leadOf(n),bouts:[foes[2]||foes[0],foes[0]],stage:0,log:[]};duelNext();});
+}
+function duelNext(){
+ const f=DU.bouts[DU.stage],me=DU.me,them=champLead(f,null);
+ const ex=[];let a=0,b=0,used=false;
+ for(let k=0;k<3&&a<2&&b<2;k++){let x=duelPower(me),y=duelPower(them),w=null;if(k===1&&me.waza&&!used){x*=1.45;used=true;w=me.waza.name;}if(k===2&&them.waza)y*=1.3;
+  if(x>=y)a++;else b++;ex.push({win:x>=y?'L':'R',waza:w});}
+ DU.cur={f,them,ex,win:a>b,t:0,k:0};
+ $('#battle').hidden=false;$('#bR').innerHTML=`<span style="color:var(--ifh)">${f.name}</span>`;$('#bKind').textContent='御前試合';$('#bL').innerHTML=`<span style="color:var(--gold)">${me.name}</span>`;
+ $('#bRound').textContent=DU.stage===0?'一回戦':'決勝';$('#blog').textContent='三本勝負';
+ const {W,H}=sharp($('#bcv'));DU.W=W;DU.H=H;DU.last=performance.now();DU.skip=false;
+ banner(`${DU.stage===0?'一回戦':'決勝'}<br><span style="font-size:15px">${me.name} 対 ${f.name}</span>`,1300);
+ requestAnimationFrame(duelLoop);
+}
+function duelLoop(now){
+ if(!DU)return;const C=DU.cur,dt=Math.min(0.05,(now-DU.last)/1000);DU.last=now;C.t+=dt;
+ const W=DU.W,H=DU.H,ctx=$('#bcv').getContext('2d'),per=2.2,start=1.4;
+ const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#3a2c1e');g.addColorStop(1,'#5a4630');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='rgba(239,230,210,.12)';ctx.fillRect(W*0.08,H*0.66,W*0.84,4);
+ const idx=Math.floor(Math.max(0,C.t-start)/per),ph=(Math.max(0,C.t-start)%per)/per,e=C.ex[Math.min(idx,C.ex.length-1)];
+ if(idx<C.ex.length&&C.t>start&&ph<0.05&&C.k<=idx){C.k=idx+1;if(e.waza)cutinDuel(e.waza);}
+ const clash=C.t>start&&idx<C.ex.length&&ph>0.35&&ph<0.55,lx=W*0.3+(clash?24:0),rx=W*0.7-(clash?24:0),y=H*0.66;
+ if(!sprite(ctx,'chibi-monka',lx,y,96,true,{tilt:clash?0.25:0}))chibi(ctx,lx,y,3.2,'#d9b25e','uchigatana',-1,{swing:clash?-0.2:-1.3});
+ if(!sprite(ctx,'chibi-foe',rx,y,96,false,{tilt:clash?-0.25:0}))chibi(ctx,rx,y,3.2,'#c9a2ff','uchigatana',1,{swing:clash?3.3:2.0});
+ faceBadge(ctx,DU.me.name,W*0.3,H*0.45,26,'#d9b25e');faceBadge(ctx,C.f.name,W*0.7,H*0.45,26,'#c9a2ff');
+ ctx.font='700 14px sans-serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText(DU.me.name,W*0.3,y+26);ctx.fillText(C.f.name,W*0.7,y+26);
+ if(clash){ctx.fillStyle='rgba(255,255,220,.95)';for(let i=0;i<10;i++){const a=i*Math.PI/5;ctx.fillRect(W/2+Math.cos(a)*20,y-48+Math.sin(a)*20,4,4);}}
+ const done=C.ex.slice(0,Math.min(C.ex.length,C.t>start?idx+(ph>0.55?1:0):0));
+ ctx.font='800 22px "Hiragino Mincho ProN",serif';ctx.fillStyle='#ffd56a';ctx.fillText(done.map(x=>x.win==='L'?'○':'●').join('  '),W/2,H*0.25);
+ if(ph>0.55&&ph<0.95&&idx<C.ex.length){ctx.font='800 26px "Hiragino Mincho ProN",serif';ctx.fillStyle=e.win==='L'?'#9be07f':'#ff9a80';ctx.fillText(`一本！ ${e.win==='L'?DU.me.name:C.f.name}`,W/2,H*0.4);}
+ if(C.t>start+per*C.ex.length+0.3||DU.skip){gozenAfter();return;}
+ requestAnimationFrame(duelLoop);
+}
+function cutinDuel(name){const m=DU.me;cutin({side:'L',who:m.name,name,profile:m.profile,hamon:m.hamon});}
+function gozenAfter(){
+ const C=DU.cur;$('#cutin').classList.remove('on');
+ if(C.win&&DU.stage===0){DU.stage=1;banner('<span style="color:#9be07f">勝ち抜き！</span>',900);setTimeout(duelNext,1000);return;}
+ $('#battle').hidden=true;const me=DU.me;let title,lines=[];
+ if(C.win){G.money+=500;G.fame+=20;G.tamahagane=1;title=`御前試合 優勝！ ${me.name}`;lines=['ほうび 500文','名声 ＋20','玉鋼（次の名刀の攻撃力 ＋10）'];
+  const m=me.meito;if(m){m.record.push(`${KAN(G.year)}年 御前試合 優勝`);m.wins++;if(!m.title){m.title='御前';lines.push(`〈${m.name}〉に二つ名「御前」がついた`);}}}
+ else if(DU.stage===1){G.money+=200;G.fame+=8;title=`御前試合 準優勝 ${me.name}`;lines=['ほうび 200文','名声 ＋8'];}
+ else{title=`御前試合 一回戦で敗退……`;lines=['来年また挑もう'];}
+ rankCheck(lines);DU=null;render();
+ sheet(`<h3>${title}</h3><ul class="report">${lines.map(l=>`<li>${l}</li>`).join('')}</ul><button class="btn main" data-close>つづける</button>`);
+}
+
+// ===== 見本用の近道 ==========================================================
+document.querySelectorAll('[data-cheat]').forEach(b=>b.onclick=()=>{
+ const k=b.dataset.cheat;$('#phone').scrollIntoView({block:'start',behavior:'smooth'});
+ if(k==='reset'){newGame();BT=null;DU=null;FG=null;['#battle','#forge','#sheet'].forEach(s=>$(s).hidden=true);render();return;}
+ if(k==='forge'){G.forged=false;G.sumi=Math.max(G.sumi,4);G.satetsu=Math.max(G.satetsu,4);forgeStart();return;}
+ if(k==='strong'){const s=(x,y,b)=>{const t=T(x,y);if(!t.b)t.b=b;};s(1,7,'satetsu');s(5,7,'sumi');s(5,6,'kaji');s(2,5,'keiko');s(1,5,'toro');s(1,6,'satetsu');s(5,8,'sumi');s(2,8,'katanaya');s(1,8,'nagaya');s(6,5,'nagaya');s(6,6,'nagaya');
+  G.month=(G.month+6)%12;G.pupils=30;G.str=13;G.money=1500;G.fame=30;G.sumi=20;G.satetsu=20;G.kura={wakizashi:20,yari:0,uchigatana:26,odachi:0};G.named[0].lv=5;G.smith.lv=2;render();toast('半年すすめた道場にしました');return;}
+ if(k==='gozen'){gozenStart();return;}
+ if(k==='win'){Object.keys(G.owner).forEach(n=>G.owner[n]='tama');G.boards=['hayate','suigetsu','kito','tenjin'];G.rivals={};G.won=true;G.fame=Math.max(G.fame,95);G.rankSeen=0;G.tab='town';const l=[];rankCheck(l);render();sheet(`<h3>町一番の道場になった！</h3><ul class="report">${l.map(x=>`<li>${x}</li>`).join('')}<li>国の地図が開きました</li></ul><button class="btn main" data-close>つづける</button>`);}
+});
+
+// ===== go ==================================================================
+newGame();render();
+addEventListener('resize',()=>{if(G.tab==='yard')startWalkers();});
+window.__dojo={get G(){return G},get P(){return P},set P(v){P=v},get BT(){return BT},newGame,render,econ,forecast,advance,prep,fightEvents,makeArmy,squad,SCHOOLS,wazaOf,guideLine,leadOf,champLead};
+</script>
+
+</body>
+</html>
